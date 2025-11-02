@@ -203,14 +203,6 @@ workflows:
     scripts:
       - name: Clean build directories
         script: flutter clean
-      - name: Set up automatic signing
-        script: |
-          keychain initialize
-          app-store-connect fetch-signing-files \
-            --type IOS_APP_DEVELOPMENT \
-            --bundle-id com.mkeparkapp.app \
-            --create
-          keychain add-certificates
       - name: Get dependencies
         script: flutter pub get
       - name: Set up automatic signing
