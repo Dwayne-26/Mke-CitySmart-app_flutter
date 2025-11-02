@@ -55,6 +55,9 @@ workflows:
       - build/ios/ipa/*.ipa
     publishing:
       app_store_connect:
+        api_key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR1RBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJIa3dkd0lCQVFRZ1plZXRxZjNZcXdUKzZ5eUsKbngwVjN0U05OalZPNXpRU2dnbC8zcEN4c0pxZ0NnWUlLb1pJemowREFRZWhSQU5DQUFTQ1Fucy91QWNVR0R5Ugp1QkhUTXIvUWIrL0lhcHV1c01lYmlnNkdEUWtzQWxHMHdFa1dyYkZPNXFLMkFMaEdMMmszcDN3U1duTGhUYlFnCmZPdGVpWjgyCi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS0=
+        key_id: 24FX2U2QTR
+        issuer_id: 89dbf878-5b33-447c-a23c-3bac56284750
         submit_to_app_store: false
         submit_to_testflight: true
       email:
