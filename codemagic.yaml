@@ -191,8 +191,6 @@ workflows:
             --bundle-id com.mkeparkapp.app \
             --create
           keychain add-certificates
-      - name: Build IPA
-        script: flutter build ipa --release
       - name: Get dependencies
         script: flutter pub get
       - name: Build IPA
