@@ -7,18 +7,18 @@ import 'screens/history_screen.dart';
 import 'screens/landing_screen.dart';
 
 void main() {
-  runApp(const DeezParkApp());
+  runApp(const MKEParkApp());
 }
 
-class DeezParkApp extends StatelessWidget {
-  const DeezParkApp({super.key});
+class MKEParkApp extends StatelessWidget {
+  const MKEParkApp({super.key});
 
   Widget withDrawer(Widget child) {
     return Scaffold(
       backgroundColor: const Color(0xFF003E29),
       appBar: AppBar(
         backgroundColor: const Color(0xFF003E29),
-        title: const Text('DeezPark'),
+        title: const Text('MKEPark'),
         iconTheme: const IconThemeData(color: Colors.white), // ← sets hamburger AND back arrow
       ),
       drawer: Drawer(
@@ -42,7 +42,7 @@ class DeezParkApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'DeezPark',
+      title: 'MKEPark',
       theme: ThemeData(
         primaryColor: const Color(0xFF003E29),
         scaffoldBackgroundColor: const Color(0xFF003E29),

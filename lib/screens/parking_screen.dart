@@ -9,7 +9,7 @@ class ParkingScreen extends StatelessWidget {
       backgroundColor: const Color(0xFF003E29),
       appBar: AppBar(
         backgroundColor: const Color(0xFF003E29),
-        title: const Text('deezpark', style: TextStyle(color: Colors.white)),
+        title: const Text('MKEPark', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
     ),
 drawer: Drawer(
@@ -85,6 +85,13 @@ drawer: Drawer(
         ListTile(
           leading: const Icon(Icons.location_on, color: Colors.white),
           title: const Text('Location Tracking', style: TextStyle(color: Colors.white)),
+          onTap: () {
+            Navigator.pop(context);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.flag, color: Colors.white),
+          title: const Text('TEST HERE', style: TextStyle(color: Colors.white)),
           onTap: () {
             Navigator.pop(context);
           },

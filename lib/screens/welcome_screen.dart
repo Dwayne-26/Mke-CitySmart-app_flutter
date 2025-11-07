@@ -16,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
               const Icon(Icons.local_parking, size: 100, color: Color(0xFFFFC107)),
               const SizedBox(height: 40),
               const Text(
-                'Welcome to Deezpark',
+                'Welcome to MKEPark',
                 style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),

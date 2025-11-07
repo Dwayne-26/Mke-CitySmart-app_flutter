@@ -58,6 +58,11 @@
       ]
     },
     {
+      "name": "lints",
+      "version": "5.1.1",
+      "dependencies": []
+    },
+    {
       "name": "stream_channel",
       "version": "2.1.4",
       "dependencies": [
@@ -218,11 +223,6 @@
     {
       "name": "vm_service",
       "version": "14.3.1",
-      "dependencies": []
-    },
-    {
-      "name": "lints",
-      "version": "5.1.1",
       "dependencies": []
     }
   ],

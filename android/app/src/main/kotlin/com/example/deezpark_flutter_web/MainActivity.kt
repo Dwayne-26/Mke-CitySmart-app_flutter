@@ -1,4 +1,4 @@
-package com.example.deezpark_flutter_web
+package com.example.MKEPark_flutter_web
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,13 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:deezpark_flutter_web/main.dart';
+import 'package:MKEPark_flutter_web/main.dart';
 
 void main() {
   testWidgets('App renders WelcomeScreen and navigates to Parking', (tester) async {
     // Build the app
-    await tester.pumpWidget(const DeezParkApp());
+    await tester.pumpWidget(const MKEParkApp());
 
     // Verify WelcomeScreen content
-    expect(find.text('Welcome to Deezpark'), findsOneWidget);
+    expect(find.text('Welcome to MKEPark'), findsOneWidget);
     expect(find.text('Get Started'), findsOneWidget);
 
     // Navigate to Parking

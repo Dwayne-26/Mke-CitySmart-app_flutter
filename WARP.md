@@ -2,7 +2,7 @@
 
 This file provides guidance to WARP (warp.dev) when working with code in this repository.
 
-Project: Flutter web app for Milwaukee parking regulations (deezpark_flutter_web)
+Project: Flutter web app for Milwaukee parking regulations (MKEPark_flutter_web)
 
 Commands
 
@@ -30,7 +30,7 @@ Commands
 Architecture and code structure
 
 - Entry point: lib/main.dart
-  - DeezParkApp configures a MaterialApp with a global dark-green theme and named routes.
+  - MKEParkApp configures a MaterialApp with a global dark-green theme and named routes.
   - Routes:
     - '/': WelcomeScreen
     - '/parking': ParkingScreen
@@ -50,4 +50,4 @@ Architecture and code structure
 
 Repo-specific notes
 
-- The template test at test/widget_test.dart references MyApp, but the app’s entry widget is DeezParkApp. If tests are enabled, update the test to pump DeezParkApp (or add a MyApp alias) before expecting them to pass.
+- The template test at test/widget_test.dart references MyApp, but the app’s entry widget is MKEParkApp. If tests are enabled, update the test to pump MKEParkApp (or add a MyApp alias) before expecting them to pass.

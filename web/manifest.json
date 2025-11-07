@@ -1,6 +1,6 @@
 {
-    "name": "deezpark_flutter_web",
-    "short_name": "deezpark_flutter_web",
+    "name": "MKEPark_flutter_web",
+    "short_name": "MKEPark_flutter_web",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

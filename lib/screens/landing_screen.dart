@@ -11,7 +11,7 @@ class LandingScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'deezpark',
+              'MKEPark',
               style: TextStyle(
                 color: Color(0xFFFFB612),
                 fontSize: 40,
@@ -20,7 +20,7 @@ class LandingScreen extends StatelessWidget {
             ),
             SizedBox(height: 20),
             Text(
-              'Welcome to Deezpark',
+              'Welcome to MKEPark',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
