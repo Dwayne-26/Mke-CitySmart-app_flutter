@@ -1,3 +1,6 @@
+import 'permit.dart';
+import 'reservation.dart';
+import 'street_sweeping.dart';
 import 'user_preferences.dart';
 import 'vehicle.dart';
 
@@ -15,6 +18,9 @@ class UserProfile {
       towAlerts: true,
       reminderNotifications: true,
     ),
+    this.permits = const [],
+    this.reservations = const [],
+    this.sweepingSchedules = const [],
   });
 
   final String id;
@@ -25,6 +31,9 @@ class UserProfile {
   final String? address;
   final List<Vehicle> vehicles;
   final UserPreferences preferences;
+  final List<Permit> permits;
+  final List<Reservation> reservations;
+  final List<StreetSweepingSchedule> sweepingSchedules;
 
   UserProfile copyWith({
     String? name,
@@ -34,6 +43,9 @@ class UserProfile {
     String? address,
     List<Vehicle>? vehicles,
     UserPreferences? preferences,
+    List<Permit>? permits,
+    List<Reservation>? reservations,
+    List<StreetSweepingSchedule>? sweepingSchedules,
   }) {
     return UserProfile(
       id: id,
@@ -44,11 +56,17 @@ class UserProfile {
       address: address ?? this.address,
       vehicles: vehicles ?? this.vehicles,
       preferences: preferences ?? this.preferences,
+      permits: permits ?? this.permits,
+      reservations: reservations ?? this.reservations,
+      sweepingSchedules: sweepingSchedules ?? this.sweepingSchedules,
     );
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     final vehiclesJson = json['vehicles'] as List<dynamic>? ?? [];
+    final permitsJson = json['permits'] as List<dynamic>? ?? [];
+    final reservationsJson = json['reservations'] as List<dynamic>? ?? [];
+    final sweepingJson = json['sweepingSchedules'] as List<dynamic>? ?? [];
     return UserProfile(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
@@ -64,6 +82,22 @@ class UserProfile {
               json['preferences'] as Map<String, dynamic>,
             )
           : UserPreferences.defaults(),
+      permits: permitsJson
+          .map((permit) => Permit.fromJson(permit as Map<String, dynamic>))
+          .toList(),
+      reservations: reservationsJson
+          .map(
+            (reservation) =>
+                Reservation.fromJson(reservation as Map<String, dynamic>),
+          )
+          .toList(),
+      sweepingSchedules: sweepingJson
+          .map(
+            (schedule) => StreetSweepingSchedule.fromJson(
+              schedule as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
     );
   }
 
@@ -76,5 +110,10 @@ class UserProfile {
     'address': address,
     'vehicles': vehicles.map((vehicle) => vehicle.toJson()).toList(),
     'preferences': preferences.toJson(),
+    'permits': permits.map((permit) => permit.toJson()).toList(),
+    'reservations': reservations.map((r) => r.toJson()).toList(),
+    'sweepingSchedules': sweepingSchedules
+        .map((schedule) => schedule.toJson())
+        .toList(),
   };
 }

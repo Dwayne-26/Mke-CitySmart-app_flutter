@@ -108,6 +108,7 @@ class ParkingScreen extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(context);
+                  Navigator.pushNamed(context, '/location');
                 },
               ),
               ListTile(
