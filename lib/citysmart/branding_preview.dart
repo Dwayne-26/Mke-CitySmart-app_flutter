@@ -89,7 +89,11 @@ class _Palette extends StatelessWidget {
       _ColorTile('Primary #7CA726', Color(0xFF7CA726)),
       _ColorTile('Secondary #5E8A45', Color(0xFF5E8A45)),
       _ColorTile('Accent #E0B000', Color(0xFFE0B000)),
+<<<<<<< HEAD
       _ColorTile('Text #FDFDFD', Color(0xFF1A1A1A)),
+=======
+      _ColorTile('Text #1A1A1A', Color(0xFF1A1A1A)),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
       _ColorTile('BG #FDFDFD', Color(0xFFFDFDFD), outlined: true),
     ],
   );
@@ -120,8 +124,13 @@ class _Typography extends StatelessWidget {
       ),
       SizedBox(height: 6),
       Text(
+<<<<<<< HEAD
         'Body — Inter Regular 16. Clean, modern, legible.',
         style: TextStyle(fontFamily: 'Inter', fontSize: 16),
+=======
+        'Body — SF Pro Text Regular 16. Clean, modern, legible.',
+        style: TextStyle(fontFamily: 'Roboto', fontSize: 16),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
       ),
     ],
   );
@@ -155,7 +164,11 @@ class _Buttons extends StatelessWidget {
           side: const BorderSide(color: Color(0xFFE0B000), width: 1.5),
           foregroundColor: const Color(0xFFE0B000),
           textStyle: const TextStyle(
+<<<<<<< HEAD
             fontFamily: 'Inter',
+=======
+            fontFamily: 'Roboto',
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -167,7 +180,11 @@ class _Buttons extends StatelessWidget {
         style: TextButton.styleFrom(
           foregroundColor: const Color(0xFF5E8A45),
           textStyle: const TextStyle(
+<<<<<<< HEAD
             fontFamily: 'Inter',
+=======
+            fontFamily: 'Roboto',
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -214,13 +231,21 @@ class _InputCard extends StatelessWidget {
         children: [
           Text(
             'Address',
+<<<<<<< HEAD
             style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
+=======
+            style: TextStyle(fontFamily: 'Roboto', fontWeight: FontWeight.w600),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
           ),
           SizedBox(height: 6),
           TextField(
             decoration: InputDecoration(
               hintText: '123 W Main St',
+<<<<<<< HEAD
               hintStyle: TextStyle(fontFamily: 'Inter'),
+=======
+              hintStyle: TextStyle(fontFamily: 'Roboto'),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
               enabledBorder: OutlineInputBorder(
                 borderSide: BorderSide(color: Color(0xFF7CA726)),
                 borderRadius: BorderRadius.all(Radius.circular(10)),
@@ -235,7 +260,11 @@ class _InputCard extends StatelessWidget {
           SizedBox(height: 10),
           Text(
             'Tip: set garbage reminders in Settings → Notifications.',
+<<<<<<< HEAD
             style: TextStyle(fontFamily: 'Inter', color: Colors.white),
+=======
+            style: TextStyle(fontFamily: 'Roboto', color: Colors.black54),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
           ),
         ],
       ),
@@ -292,7 +321,11 @@ class _AdPlaceholder extends StatelessWidget {
     child: const Center(
       child: Text(
         'AdMob Banner (ca-app-pub-xxxx/yyyy)',
+<<<<<<< HEAD
         style: TextStyle(fontFamily: 'Inter', color: Colors.white),
+=======
+        style: TextStyle(fontFamily: 'Roboto', color: Colors.black54),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
       ),
     ),
   );
@@ -356,7 +389,11 @@ class _ColorTile extends StatelessWidget {
     child: Text(
       label,
       style: TextStyle(
+<<<<<<< HEAD
         fontFamily: 'Inter',
+=======
+        fontFamily: 'Roboto',
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
         fontWeight: FontWeight.w600,
         color: outlined ? color : _on(color),
       ),
@@ -395,7 +432,11 @@ class _Tile extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
+<<<<<<< HEAD
             fontFamily: 'Inter',
+=======
+            fontFamily: 'Roboto',
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
             fontWeight: FontWeight.w600,
           ),
         ),

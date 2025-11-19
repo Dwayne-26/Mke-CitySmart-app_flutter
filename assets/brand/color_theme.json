@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 { "primary":"#7CA726", "secondary":"#5E8A45", "accent":"#E0B000", "text":"#FDFDFD", "background":"#FDFDFD" }
+=======
+{ "primary":"#7CA726", "secondary":"#5E8A45", "accent":"#E0B000", "text":"#1A1A1A", "background":"#FDFDFD" }
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51

@@ -100,7 +100,11 @@ EOF
 
 # --- Branding ---
 cat > "$APP_DIR/assets/brand/color_theme.json" <<'EOF'
+<<<<<<< HEAD
 { "primary":"#7CA726", "secondary":"#5E8A45", "accent":"#E0B000", "text":"#FFFFFF", "background":"#FDFDFD" }
+=======
+{ "primary":"#7CA726", "secondary":"#5E8A45", "accent":"#E0B000", "text":"#1A1A1A", "background":"#FDFDFD" }
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
 EOF
 
 cat > "$APP_DIR/assets/brand/logo_primary.svg" <<'EOF'
@@ -265,7 +269,11 @@ class _Palette extends StatelessWidget {
     _ColorTile('Primary #7CA726', Color(0xFF7CA726)),
     _ColorTile('Secondary #5E8A45', Color(0xFF5E8A45)),
     _ColorTile('Accent #E0B000', Color(0xFFE0B000)),
+<<<<<<< HEAD
     _ColorTile('Text #FFFFFF', Color(0xFF1A1A1A)),
+=======
+    _ColorTile('Text #1A1A1A', Color(0xFF1A1A1A)),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
     _ColorTile('BG #FDFDFD', Color(0xFFFDFDFD), outlined: true),
   ]);
 }
@@ -357,7 +365,11 @@ class _InputCard extends StatelessWidget {
         ),
         SizedBox(height: 10),
         Text('Tip: set garbage reminders in Settings → Notifications.',
+<<<<<<< HEAD
             style: TextStyle(fontFamily: 'Inter', color: Colors.white)),
+=======
+            style: TextStyle(fontFamily: 'Inter', color: Colors.black54)),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
       ]),
     ),
   );
@@ -382,10 +394,17 @@ class _AdPlaceholder extends StatelessWidget {
       color: Colors.black12, borderRadius: BorderRadius.circular(8),
       border: Border.all(color: Colors.black26),
     ),
+<<<<<<< HEAD
       child: const Center(
         child: Text('AdMob Banner (ca-app-pub-xxxx/yyyy)',
           style: TextStyle(fontFamily: 'Inter', color: Colors.white)),
       ),
+=======
+    child: const Center(
+      child: Text('AdMob Banner (ca-app-pub-xxxx/yyyy)',
+        style: TextStyle(fontFamily: 'Inter', color: Colors.black54)),
+    ),
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
   );
 }
 
@@ -458,7 +477,11 @@ EOF
 
 # ---------------- Branding ----------------
 cat > "$APP_DIR/assets/brand/color_theme.json" <<'EOF'
+<<<<<<< HEAD
 { "primary":"#7CA726", "secondary":"#5E8A45", "accent":"#E0B000", "text":"#FFFFFF", "background":"#FDFDFD" }
+=======
+{ "primary":"#7CA726", "secondary":"#5E8A45", "accent":"#E0B000", "text":"#1A1A1A", "background":"#FDFDFD" }
+>>>>>>> 2b87afb11f152c882e984ad699e63f1ed266df51
 EOF
 
 cat > "$APP_DIR/assets/brand/logo_primary.svg" <<'EOF'
