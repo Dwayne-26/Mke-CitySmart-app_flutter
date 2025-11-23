@@ -49,7 +49,10 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> initialize() async {
     _profile = await _repository.loadProfile();
-    _tickets = List<Ticket>.from(sampleTickets);
+    final storedTickets = await _repository.loadTickets();
+    _tickets = storedTickets.isNotEmpty
+        ? storedTickets
+        : List<Ticket>.from(sampleTickets);
     _sightings = await _repository.loadSightings();
     _initializing = false;
     _guestMode = false;
@@ -125,6 +128,7 @@ class UserProvider extends ChangeNotifier {
     _sightings = const [];
     await _repository.clearProfile();
     await _repository.saveSightings(const []);
+    await _repository.saveTickets(const []);
     notifyListeners();
   }
 
@@ -260,6 +264,10 @@ class UserProvider extends ChangeNotifier {
     );
   }
 
+  Future<void> _persistTickets() async {
+    await _repository.saveTickets(_tickets);
+  }
+
   Ticket? findTicket(String plate, String ticketId) {
     try {
       return _tickets.firstWhere(
@@ -309,6 +317,7 @@ class UserProvider extends ChangeNotifier {
     _tickets = _tickets
         .map((t) => t.id == ticket.id ? updated : t)
         .toList();
+    _persistTickets();
     notifyListeners();
 
     final id = DateTime.now().millisecondsSinceEpoch.toString();
