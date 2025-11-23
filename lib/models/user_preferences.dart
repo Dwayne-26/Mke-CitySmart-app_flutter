@@ -3,24 +3,28 @@ class UserPreferences {
     required this.parkingNotifications,
     required this.towAlerts,
     required this.reminderNotifications,
+    this.geoRadiusMiles = 5,
     this.defaultVehicleId,
   });
 
   final bool parkingNotifications;
   final bool towAlerts;
   final bool reminderNotifications;
+  final int geoRadiusMiles;
   final String? defaultVehicleId;
 
   factory UserPreferences.defaults() => const UserPreferences(
     parkingNotifications: true,
     towAlerts: true,
     reminderNotifications: true,
+    geoRadiusMiles: 5,
   );
 
   UserPreferences copyWith({
     bool? parkingNotifications,
     bool? towAlerts,
     bool? reminderNotifications,
+    int? geoRadiusMiles,
     String? defaultVehicleId,
   }) {
     return UserPreferences(
@@ -28,6 +32,7 @@ class UserPreferences {
       towAlerts: towAlerts ?? this.towAlerts,
       reminderNotifications:
           reminderNotifications ?? this.reminderNotifications,
+      geoRadiusMiles: geoRadiusMiles ?? this.geoRadiusMiles,
       defaultVehicleId: defaultVehicleId ?? this.defaultVehicleId,
     );
   }
@@ -37,6 +42,7 @@ class UserPreferences {
       parkingNotifications: json['parkingNotifications'] as bool? ?? true,
       towAlerts: json['towAlerts'] as bool? ?? true,
       reminderNotifications: json['reminderNotifications'] as bool? ?? true,
+      geoRadiusMiles: json['geoRadiusMiles'] as int? ?? 5,
       defaultVehicleId: json['defaultVehicleId'] as String?,
     );
   }
@@ -45,6 +51,7 @@ class UserPreferences {
     'parkingNotifications': parkingNotifications,
     'towAlerts': towAlerts,
     'reminderNotifications': reminderNotifications,
+    'geoRadiusMiles': geoRadiusMiles,
     'defaultVehicleId': defaultVehicleId,
   };
 }

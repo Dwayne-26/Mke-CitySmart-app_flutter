@@ -62,6 +62,37 @@ class UserProvider extends ChangeNotifier {
   double get planFeeWaiverCap => subscriptionPlan.feeWaiverPct;
   bool get prioritySupport => subscriptionPlan.prioritySupport;
   List<MaintenanceReport> get maintenanceReports => _maintenanceReports;
+
+  /// Computes a rough risk score (0–100) based on recent enforcement sightings,
+  /// expiring permits, overdue tickets, and impending street sweeping.
+  int get towRiskIndex {
+    var score = 0.0;
+    // Recent sightings in last 24h boost risk.
+    final now = DateTime.now();
+    final recentSightings = _sightings.where(
+      (s) => now.difference(s.reportedAt).inHours <= 24,
+    );
+    for (final s in recentSightings) {
+      score += s.occurrences * 5;
+      if (s.type == SightingType.towTruck) {
+        score += 10;
+      }
+    }
+    // Overdue tickets increase risk.
+    final overdueTickets =
+        _tickets.where((t) => t.isOverdue && t.status == TicketStatus.open);
+    score += overdueTickets.length * 8;
+    // Expiring permits (<7 days) increase risk.
+    final expiringPermits =
+        permits.where((p) => p.endDate.difference(now).inDays <= 7);
+    score += expiringPermits.length * 6;
+    // Upcoming street sweeping within 48h increases risk.
+    final sweepingSoon = sweepingSchedules.where(
+      (s) => s.nextSweep.difference(now).inHours <= 48,
+    );
+    score += sweepingSoon.length * 12;
+    return score.clamp(0, 100).toInt();
+  }
   List<String> get cityParkingSuggestions {
     final set = <String>{};
     for (final schedule in sweepingSchedules) {
@@ -613,6 +644,7 @@ class UserProvider extends ChangeNotifier {
     bool? towAlerts,
     bool? reminderNotifications,
     String? defaultVehicleId,
+    int? geoRadiusMiles,
   }) async {
     if (_profile == null) return;
     final prefs = _profile!.preferences.copyWith(
@@ -620,6 +652,7 @@ class UserProvider extends ChangeNotifier {
       towAlerts: towAlerts,
       reminderNotifications: reminderNotifications,
       defaultVehicleId: defaultVehicleId,
+      geoRadiusMiles: geoRadiusMiles,
     );
     _profile = _profile!.copyWith(preferences: prefs);
     await _repository.saveProfile(_profile!);

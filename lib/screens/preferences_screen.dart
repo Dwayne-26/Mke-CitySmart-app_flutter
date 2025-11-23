@@ -66,6 +66,27 @@ class PreferencesScreen extends StatelessWidget {
               ),
               const Divider(height: 32),
               Text(
+                'Alert radius (miles)',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              DropdownButton<int>(
+                value: prefs.geoRadiusMiles,
+                items: const [5, 10, 15, 20, 25, 30]
+                    .map(
+                      (radius) => DropdownMenuItem(
+                        value: radius,
+                        child: Text('$radius miles'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => provider.updatePreferences(
+                  geoRadiusMiles: value,
+                ),
+                isExpanded: true,
+              ),
+              const Divider(height: 32),
+              Text(
                 'Default vehicle',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
