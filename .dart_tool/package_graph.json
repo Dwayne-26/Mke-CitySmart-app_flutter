@@ -21,7 +21,7 @@
     },
     {
       "name": "flutter_lints",
-      "version": "5.0.0",
+      "version": "6.0.0",
       "dependencies": [
         "lints"
       ]
@@ -46,7 +46,7 @@
     },
     {
       "name": "intl",
-      "version": "0.19.0",
+      "version": "0.20.2",
       "dependencies": [
         "clock",
         "meta",
@@ -102,7 +102,7 @@
     },
     {
       "name": "lints",
-      "version": "5.1.1",
+      "version": "6.0.0",
       "dependencies": []
     },
     {
@@ -248,7 +248,7 @@
     },
     {
       "name": "shared_preferences_android",
-      "version": "2.4.16",
+      "version": "2.4.17",
       "dependencies": [
         "flutter",
         "shared_preferences_platform_interface"
@@ -280,7 +280,7 @@
     },
     {
       "name": "async",
-      "version": "2.12.0",
+      "version": "2.13.0",
       "dependencies": [
         "collection",
         "meta"
@@ -394,7 +394,7 @@
     },
     {
       "name": "vm_service",
-      "version": "14.3.1",
+      "version": "15.0.2",
       "dependencies": []
     },
     {
