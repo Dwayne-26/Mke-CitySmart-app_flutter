@@ -49,6 +49,11 @@ class UserProvider extends ChangeNotifier {
   AdPreferences get adPreferences =>
       _profile?.adPreferences ?? _adPreferences;
   SubscriptionTier get tier => _profile?.tier ?? _tier;
+  SubscriptionPlan get subscriptionPlan => _planForTier(tier);
+  double get maxAlertRadiusMiles => subscriptionPlan.maxAlertRadiusMiles;
+  int get maxAlertsPerDay => subscriptionPlan.alertVolumePerDay;
+  double get planFeeWaiverCap => subscriptionPlan.feeWaiverPct;
+  bool get prioritySupport => subscriptionPlan.prioritySupport;
   List<String> get cityParkingSuggestions {
     final set = <String>{};
     for (final schedule in sweepingSchedules) {
@@ -252,7 +257,8 @@ class UserProvider extends ChangeNotifier {
       waiverPct += 0.1;
       notes.add('Senior discount applied (-10%).');
     }
-    waiverPct = waiverPct.clamp(0, 0.6);
+    final planCap = planFeeWaiverCap;
+    waiverPct = waiverPct.clamp(0, planCap > 0 ? planCap : 0.6);
     final waiverAmount = beforeWaiver * waiverPct;
     final total =
         (beforeWaiver - waiverAmount).clamp(0, double.infinity).toDouble();
@@ -350,7 +356,8 @@ class UserProvider extends ChangeNotifier {
       waiverPct += 0.1;
       waiverNotes.add('Resident discount (-10%)');
     }
-    waiverPct = waiverPct.clamp(0, 0.6);
+    final planCap = planFeeWaiverCap;
+    waiverPct = waiverPct.clamp(0, planCap > 0 ? planCap : 0.6);
     final waiverAmount = base * waiverPct;
     final totalDue =
         (base - waiverAmount).clamp(0, double.infinity).toDouble();
@@ -390,6 +397,38 @@ class UserProvider extends ChangeNotifier {
     await api.syncTickets(_tickets);
     await _persistTickets();
     notifyListeners();
+  }
+
+  SubscriptionPlan _planForTier(SubscriptionTier tier) {
+    switch (tier) {
+      case SubscriptionTier.free:
+        return const SubscriptionPlan(
+          tier: SubscriptionTier.free,
+          maxAlertRadiusMiles: 3,
+          alertVolumePerDay: 3,
+          feeWaiverPct: 0,
+          prioritySupport: false,
+          monthlyPrice: 0,
+        );
+      case SubscriptionTier.plus:
+        return const SubscriptionPlan(
+          tier: SubscriptionTier.plus,
+          maxAlertRadiusMiles: 8,
+          alertVolumePerDay: 10,
+          feeWaiverPct: 0.15,
+          prioritySupport: false,
+          monthlyPrice: 6.99,
+        );
+      case SubscriptionTier.pro:
+        return const SubscriptionPlan(
+          tier: SubscriptionTier.pro,
+          maxAlertRadiusMiles: 15,
+          alertVolumePerDay: 25,
+          feeWaiverPct: 0.35,
+          prioritySupport: true,
+          monthlyPrice: 14.99,
+        );
+    }
   }
 
   Future<void> changePassword(String password) async {
