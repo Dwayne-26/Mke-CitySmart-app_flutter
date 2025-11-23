@@ -84,21 +84,39 @@ class LandingScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Hello, $name',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Hello, $name',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  address,
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          _RiskBadge(score: provider.towRiskIndex),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        address,
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 14,
-                        ),
+                        'Alert radius: ${provider.profile?.preferences.geoRadiusMiles ?? 5} miles',
+                        style:
+                            const TextStyle(color: Colors.white70, fontSize: 12),
                       ),
                     ],
                   ),
@@ -262,6 +280,45 @@ class _OverviewTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _RiskBadge extends StatelessWidget {
+  const _RiskBadge({required this.score});
+
+  final int score;
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    if (score >= 70) {
+      color = Colors.redAccent;
+    } else if (score >= 40) {
+      color = Colors.orange;
+    } else {
+      color = Colors.green;
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Chip(
+          backgroundColor: color.withOpacity(0.15),
+          label: Text(
+            'Tow risk: $score',
+            style: TextStyle(color: color, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          score >= 70
+              ? 'High risk'
+              : score >= 40
+              ? 'Moderate'
+              : 'Low',
+          style: const TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+      ],
     );
   }
 }
