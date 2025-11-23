@@ -4,17 +4,18 @@ import 'package:provider/provider.dart';
 import 'citysmart/branding_preview.dart';
 import 'providers/user_provider.dart';
 import 'screens/auth_screen.dart';
+import 'screens/charging_map_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/parking_screen.dart';
 import 'screens/preferences_screen.dart';
 import 'screens/permit_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/report_sighting_screen.dart';
 import 'screens/street_sweeping_screen.dart';
 import 'screens/vehicle_management_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'services/user_repository.dart';
-import 'screens/charging_map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +56,7 @@ class MKEParkApp extends StatelessWidget {
           '/vehicles': (context) => const VehicleManagementScreen(),
           '/preferences': (context) => const PreferencesScreen(),
           '/charging': (context) => const ChargingMapScreen(),
+          '/report-sighting': (context) => const ReportSightingScreen(),
         },
       ),
     );

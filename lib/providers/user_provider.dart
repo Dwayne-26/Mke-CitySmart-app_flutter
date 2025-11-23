@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../models/permit.dart';
 import '../models/reservation.dart';
 import '../models/street_sweeping.dart';
+import '../models/sighting_report.dart';
 import '../models/user_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/vehicle.dart';
@@ -20,6 +21,7 @@ class UserProvider extends ChangeNotifier {
   List<Permit> _guestPermits = const [];
   List<Reservation> _guestReservations = const [];
   List<StreetSweepingSchedule> _guestSweepingSchedules = const [];
+  List<SightingReport> _sightings = const [];
 
   bool get isInitializing => _initializing;
   bool get isLoggedIn => _profile != null;
@@ -30,6 +32,7 @@ class UserProvider extends ChangeNotifier {
       _profile?.reservations ?? _guestReservations;
   List<StreetSweepingSchedule> get sweepingSchedules =>
       _profile?.sweepingSchedules ?? _guestSweepingSchedules;
+  List<SightingReport> get sightings => _sightings;
   List<String> get cityParkingSuggestions {
     final set = <String>{};
     for (final schedule in sweepingSchedules) {
@@ -40,6 +43,7 @@ class UserProvider extends ChangeNotifier {
 
   Future<void> initialize() async {
     _profile = await _repository.loadProfile();
+    _sightings = await _repository.loadSightings();
     _initializing = false;
     _guestMode = false;
     _guestPermits = const [];
@@ -110,7 +114,9 @@ class UserProvider extends ChangeNotifier {
     _guestPermits = const [];
     _guestReservations = const [];
     _guestSweepingSchedules = const [];
+    _sightings = const [];
     await _repository.clearProfile();
+    await _repository.saveSightings(const []);
     notifyListeners();
   }
 
@@ -129,6 +135,23 @@ class UserProvider extends ChangeNotifier {
     );
     _profile = updated;
     await _repository.saveProfile(updated);
+    notifyListeners();
+  }
+
+  Future<void> reportSighting({
+    required SightingType type,
+    required String location,
+    String notes = '',
+  }) async {
+    final report = SightingReport(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      type: type,
+      location: location,
+      notes: notes,
+      reportedAt: DateTime.now(),
+    );
+    _sightings = [report, ..._sightings];
+    await _repository.saveSightings(_sightings);
     notifyListeners();
   }
 
