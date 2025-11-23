@@ -13,6 +13,7 @@ import 'screens/preferences_screen.dart';
 import 'screens/permit_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/report_sighting_screen.dart';
+import 'screens/subscription_screen.dart';
 import 'screens/ticket_workflow_screen.dart';
 import 'screens/street_sweeping_screen.dart';
 import 'screens/vehicle_management_screen.dart';
@@ -63,6 +64,7 @@ class MKEParkApp extends StatelessWidget {
           '/charging': (context) => const ChargingMapScreen(),
           '/report-sighting': (context) => const ReportSightingScreen(),
           '/tickets': (context) => const TicketWorkflowScreen(),
+          '/subscriptions': (context) => const SubscriptionScreen(),
         },
       ),
     );

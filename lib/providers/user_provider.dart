@@ -7,6 +7,8 @@ import '../models/reservation.dart';
 import '../models/street_sweeping.dart';
 import '../models/sighting_report.dart';
 import '../models/ticket.dart';
+import '../models/ad_preferences.dart';
+import '../models/subscription_plan.dart';
 import '../models/user_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/vehicle.dart';
@@ -29,6 +31,8 @@ class UserProvider extends ChangeNotifier {
   List<Ticket> _tickets = const [];
   List<SightingReport> _sightings = const [];
   List<PaymentReceipt> _receipts = const [];
+  AdPreferences _adPreferences = const AdPreferences();
+  SubscriptionTier _tier = SubscriptionTier.free;
 
   bool get isInitializing => _initializing;
   bool get isLoggedIn => _profile != null;
@@ -42,6 +46,9 @@ class UserProvider extends ChangeNotifier {
   List<Ticket> get tickets => _tickets;
   List<SightingReport> get sightings => _sightings;
   List<PaymentReceipt> get receipts => _receipts;
+  AdPreferences get adPreferences =>
+      _profile?.adPreferences ?? _adPreferences;
+  SubscriptionTier get tier => _profile?.tier ?? _tier;
   List<String> get cityParkingSuggestions {
     final set = <String>{};
     for (final schedule in sweepingSchedules) {
@@ -54,6 +61,8 @@ class UserProvider extends ChangeNotifier {
     _profile = await _repository.loadProfile();
     final storedTickets = await _repository.loadTickets();
     _receipts = await _repository.loadReceipts();
+    _adPreferences = _profile?.adPreferences ?? _adPreferences;
+    _tier = _profile?.tier ?? _tier;
     _tickets = storedTickets.isNotEmpty
         ? storedTickets
         : List<Ticket>.from(sampleTickets);
@@ -130,6 +139,8 @@ class UserProvider extends ChangeNotifier {
     _guestSweepingSchedules = const [];
     _tickets = const [];
     _sightings = const [];
+    _adPreferences = const AdPreferences();
+    _tier = SubscriptionTier.free;
     _receipts = const [];
     await _repository.clearProfile();
     await _repository.saveSightings(const []);
@@ -143,6 +154,8 @@ class UserProvider extends ChangeNotifier {
     String? email,
     String? phone,
     String? address,
+    AdPreferences? adPreferences,
+    SubscriptionTier? tier,
   }) async {
     if (_profile == null) return;
     final updated = _profile!.copyWith(
@@ -150,6 +163,8 @@ class UserProvider extends ChangeNotifier {
       email: email ?? _profile!.email,
       phone: phone ?? _profile!.phone,
       address: address ?? _profile!.address,
+      adPreferences: adPreferences ?? _profile!.adPreferences,
+      tier: tier ?? _profile!.tier,
     );
     _profile = updated;
     await _repository.saveProfile(updated);
@@ -272,6 +287,24 @@ class UserProvider extends ChangeNotifier {
     _receipts = [receipt, ..._receipts];
     _persistReceipts();
     return receipt;
+  }
+
+  Future<void> updateAdPreferences(AdPreferences prefs) async {
+    _adPreferences = prefs;
+    if (_profile != null) {
+      _profile = _profile!.copyWith(adPreferences: prefs);
+      await _repository.saveProfile(_profile!);
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateSubscriptionTier(SubscriptionTier tier) async {
+    _tier = tier;
+    if (_profile != null) {
+      _profile = _profile!.copyWith(tier: tier);
+      await _repository.saveProfile(_profile!);
+    }
+    notifyListeners();
   }
 
   Future<void> _persistTickets() async {

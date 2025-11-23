@@ -2,6 +2,8 @@ import 'permit.dart';
 import 'reservation.dart';
 import 'street_sweeping.dart';
 import 'user_preferences.dart';
+import 'ad_preferences.dart';
+import 'subscription_plan.dart';
 import 'vehicle.dart';
 
 class UserProfile {
@@ -21,6 +23,8 @@ class UserProfile {
     this.permits = const [],
     this.reservations = const [],
     this.sweepingSchedules = const [],
+    this.adPreferences = const AdPreferences(),
+    this.tier = SubscriptionTier.free,
   });
 
   final String id;
@@ -31,6 +35,8 @@ class UserProfile {
   final String? address;
   final List<Vehicle> vehicles;
   final UserPreferences preferences;
+  final AdPreferences adPreferences;
+  final SubscriptionTier tier;
   final List<Permit> permits;
   final List<Reservation> reservations;
   final List<StreetSweepingSchedule> sweepingSchedules;
@@ -46,6 +52,8 @@ class UserProfile {
     List<Permit>? permits,
     List<Reservation>? reservations,
     List<StreetSweepingSchedule>? sweepingSchedules,
+    AdPreferences? adPreferences,
+    SubscriptionTier? tier,
   }) {
     return UserProfile(
       id: id,
@@ -56,6 +64,8 @@ class UserProfile {
       address: address ?? this.address,
       vehicles: vehicles ?? this.vehicles,
       preferences: preferences ?? this.preferences,
+      adPreferences: adPreferences ?? this.adPreferences,
+      tier: tier ?? this.tier,
       permits: permits ?? this.permits,
       reservations: reservations ?? this.reservations,
       sweepingSchedules: sweepingSchedules ?? this.sweepingSchedules,
@@ -82,6 +92,15 @@ class UserProfile {
               json['preferences'] as Map<String, dynamic>,
             )
           : UserPreferences.defaults(),
+      adPreferences: json['adPreferences'] != null
+          ? AdPreferences.fromJson(
+              json['adPreferences'] as Map<String, dynamic>,
+            )
+          : const AdPreferences(),
+      tier: SubscriptionTier.values.firstWhere(
+        (value) => value.name == (json['tier'] as String? ?? 'free'),
+        orElse: () => SubscriptionTier.free,
+      ),
       permits: permitsJson
           .map((permit) => Permit.fromJson(permit as Map<String, dynamic>))
           .toList(),
@@ -110,6 +129,8 @@ class UserProfile {
     'address': address,
     'vehicles': vehicles.map((vehicle) => vehicle.toJson()).toList(),
     'preferences': preferences.toJson(),
+    'adPreferences': adPreferences.toJson(),
+    'tier': tier.name,
     'permits': permits.map((permit) => permit.toJson()).toList(),
     'reservations': reservations.map((r) => r.toJson()).toList(),
     'sweepingSchedules': sweepingSchedules

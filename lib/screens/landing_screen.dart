@@ -134,6 +134,12 @@ class LandingScreen extends StatelessWidget {
                     onTap: () => Navigator.pushNamed(context, '/charging'),
                   ),
                   _OverviewTile(
+                    icon: Icons.workspace_premium,
+                    label: 'Plan',
+                    value: 'Free/Plus/Pro',
+                    onTap: () => Navigator.pushNamed(context, '/subscriptions'),
+                  ),
+                  _OverviewTile(
                     icon: Icons.warning_amber_rounded,
                     label: 'Report sighting',
                     value: 'Tow/Enforcer',
