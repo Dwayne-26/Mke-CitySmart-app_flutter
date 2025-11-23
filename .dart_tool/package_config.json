@@ -303,8 +303,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.10.0",
+  "generatorVersion": "3.10.1",
   "flutterRoot": "file:///usr/local/share/flutter",
-  "flutterVersion": "3.38.1",
+  "flutterVersion": "3.38.3",
   "pubCache": "file:///Users/d.sampson/.pub-cache"
 }
