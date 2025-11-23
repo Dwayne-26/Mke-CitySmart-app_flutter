@@ -14,7 +14,8 @@ class LandingScreen extends StatelessWidget {
           );
         }
         final profile = provider.profile;
-        if (profile == null) {
+        final isGuest = provider.isGuest;
+        if (!isGuest && profile == null) {
           return Scaffold(
             backgroundColor: const Color(0xFF203731),
             body: Center(
@@ -38,16 +39,38 @@ class LandingScreen extends StatelessWidget {
           );
         }
 
-        final vehicles = profile.vehicles;
+        final vehicles = profile?.vehicles ?? const [];
+        final name = profile?.name.split(' ').first ?? 'Guest';
+        final address =
+            profile?.address?.isNotEmpty == true
+                ? profile!.address!
+                : isGuest
+                ? 'Exploring in guest mode. Sign in to personalize alerts.'
+                : 'Set your address for hyper-local alerts.';
+        final alertsLabel = isGuest
+            ? 'Preview'
+            : (profile?.preferences.parkingNotifications ?? false
+                ? 'Enabled'
+                : 'Muted');
         return Scaffold(
           appBar: AppBar(
             title: const Text('CitySmart Dashboard'),
             backgroundColor: const Color(0xFF203731),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.person),
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
-              ),
+              if (isGuest)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Chip(
+                    label: const Text('Guest'),
+                    avatar: const Icon(Icons.visibility_outlined, size: 18),
+                    backgroundColor: Colors.white,
+                  ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  onPressed: () => Navigator.pushNamed(context, '/profile'),
+                ),
             ],
           ),
           backgroundColor: const Color(0xFF203731),
@@ -62,7 +85,7 @@ class LandingScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hello, ${profile.name.split(' ').first}',
+                        'Hello, $name',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -71,9 +94,7 @@ class LandingScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        profile.address?.isNotEmpty == true
-                            ? profile.address!
-                            : 'Set your address for hyper-local alerts.',
+                        address,
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 14,
@@ -97,9 +118,7 @@ class LandingScreen extends StatelessWidget {
                   _OverviewTile(
                     icon: Icons.notifications_active_outlined,
                     label: 'Alerts',
-                    value: profile.preferences.parkingNotifications
-                        ? 'Enabled'
-                        : 'Muted',
+                    value: alertsLabel,
                     onTap: () => Navigator.pushNamed(context, '/preferences'),
                   ),
                   _OverviewTile(
@@ -117,8 +136,18 @@ class LandingScreen extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.person_outline),
                       title: const Text('Profile & settings'),
-                      subtitle: Text(profile.email),
-                      onTap: () => Navigator.pushNamed(context, '/profile'),
+                      subtitle: Text(
+                        isGuest
+                            ? 'Sign in to save preferences'
+                            : profile!.email,
+                      ),
+                      onTap: () {
+                        if (isGuest) {
+                          Navigator.pushReplacementNamed(context, '/auth');
+                        } else {
+                          Navigator.pushNamed(context, '/profile');
+                        }
+                      },
                     ),
                     const Divider(height: 0),
                     ListTile(

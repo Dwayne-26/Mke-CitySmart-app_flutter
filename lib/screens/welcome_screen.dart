@@ -74,7 +74,7 @@ class WelcomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  if (!isLoggedIn)
+                  if (!isLoggedIn) ...[
                     OutlinedButton(
                       onPressed: isLoading
                           ? null
@@ -88,8 +88,30 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ),
                       child: const Text('Create an account'),
-                    )
-                  else
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                              provider.continueAsGuest();
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/landing',
+                              );
+                            },
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Continue as guest'),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Text(
+                        'Try the dashboard without creating an account.',
+                        style: TextStyle(color: Colors.white70),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ] else
                     TextButton(
                       onPressed: () => Navigator.pushNamed(context, '/profile'),
                       child: const Text('Manage profile'),
