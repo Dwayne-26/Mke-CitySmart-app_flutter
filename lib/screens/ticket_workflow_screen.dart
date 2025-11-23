@@ -80,6 +80,9 @@ class _TicketWorkflowScreenState extends State<TicketWorkflowScreen> {
     return Consumer<UserProvider>(
       builder: (context, provider, _) {
         final tickets = provider.tickets;
+        final receipts = provider.receipts
+            .where((r) => r.category == 'ticket')
+            .toList();
         return Scaffold(
           appBar: AppBar(title: const Text('Ticket lookup & payment')),
           body: ListView(
@@ -110,6 +113,12 @@ class _TicketWorkflowScreenState extends State<TicketWorkflowScreen> {
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => provider.syncTicketsWithBackend(),
+                icon: const Icon(Icons.cloud_sync),
+                label: const Text('Sync with backend'),
               ),
               const SizedBox(height: 12),
               if (_selected != null) _TicketDetailCard(ticket: _selected!),
@@ -172,6 +181,29 @@ class _TicketWorkflowScreenState extends State<TicketWorkflowScreen> {
               if (_receipt != null) ...[
                 const SizedBox(height: 12),
                 _TicketReceipt(receipt: _receipt!),
+              ],
+              if (receipts.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Receipts',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ...receipts.map(
+                  (r) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.receipt_long),
+                      title: Text(r.reference),
+                      subtitle: Text(
+                        '\$${r.amountCharged.toStringAsFixed(2)} • ${r.method.toUpperCase()}',
+                      ),
+                      trailing: Text(
+                        r.createdAt.toLocal().toString().split('.').first,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ),
+                ),
               ],
               const SizedBox(height: 16),
               Text(

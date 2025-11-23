@@ -200,6 +200,31 @@ class _PermitWorkflowScreenState extends State<PermitWorkflowScreen> {
                 const SizedBox(height: 12),
                 _ReceiptCard(receipt: _receipt!),
               ],
+              const SizedBox(height: 12),
+              if (context.read<UserProvider>().receipts
+                  .where((r) => r.category == 'permit')
+                  .isNotEmpty) ...[
+                Text(
+                  'Permit receipts',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                ...context.read<UserProvider>().receipts
+                    .where((r) => r.category == 'permit')
+                    .map((r) => Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.receipt),
+                            title: Text(r.reference),
+                            subtitle: Text(
+                              '\$${r.amountCharged.toStringAsFixed(2)} • ${r.method.toUpperCase()}',
+                            ),
+                            trailing: Text(
+                              r.createdAt.toLocal().toString().split('.').first,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        )),
+              ],
             ],
           ),
         );

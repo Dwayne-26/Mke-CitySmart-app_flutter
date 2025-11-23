@@ -10,6 +10,7 @@ import '../models/ticket.dart';
 import '../models/user_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/vehicle.dart';
+import '../services/ticket_api_service.dart';
 import '../services/user_repository.dart';
 import '../data/sample_tickets.dart';
 
@@ -27,6 +28,7 @@ class UserProvider extends ChangeNotifier {
   List<StreetSweepingSchedule> _guestSweepingSchedules = const [];
   List<Ticket> _tickets = const [];
   List<SightingReport> _sightings = const [];
+  List<PaymentReceipt> _receipts = const [];
 
   bool get isInitializing => _initializing;
   bool get isLoggedIn => _profile != null;
@@ -39,6 +41,7 @@ class UserProvider extends ChangeNotifier {
       _profile?.sweepingSchedules ?? _guestSweepingSchedules;
   List<Ticket> get tickets => _tickets;
   List<SightingReport> get sightings => _sightings;
+  List<PaymentReceipt> get receipts => _receipts;
   List<String> get cityParkingSuggestions {
     final set = <String>{};
     for (final schedule in sweepingSchedules) {
@@ -50,6 +53,7 @@ class UserProvider extends ChangeNotifier {
   Future<void> initialize() async {
     _profile = await _repository.loadProfile();
     final storedTickets = await _repository.loadTickets();
+    _receipts = await _repository.loadReceipts();
     _tickets = storedTickets.isNotEmpty
         ? storedTickets
         : List<Ticket>.from(sampleTickets);
@@ -126,9 +130,11 @@ class UserProvider extends ChangeNotifier {
     _guestSweepingSchedules = const [];
     _tickets = const [];
     _sightings = const [];
+    _receipts = const [];
     await _repository.clearProfile();
     await _repository.saveSightings(const []);
     await _repository.saveTickets(const []);
+    await _repository.saveReceipts(const []);
     notifyListeners();
   }
 
@@ -253,7 +259,7 @@ class UserProvider extends ChangeNotifier {
     required String method,
   }) {
     final id = DateTime.now().millisecondsSinceEpoch.toString();
-    return PaymentReceipt(
+    final receipt = PaymentReceipt(
       id: id,
       amountCharged: result.totalDue,
       method: method,
@@ -261,11 +267,19 @@ class UserProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
       waivedAmount: result.waiverAmount,
       description: 'Permit settlement for ${result.permitType.name}',
+      category: 'permit',
     );
+    _receipts = [receipt, ..._receipts];
+    _persistReceipts();
+    return receipt;
   }
 
   Future<void> _persistTickets() async {
     await _repository.saveTickets(_tickets);
+  }
+
+  Future<void> _persistReceipts() async {
+    await _repository.saveReceipts(_receipts);
   }
 
   Ticket? findTicket(String plate, String ticketId) {
@@ -318,10 +332,8 @@ class UserProvider extends ChangeNotifier {
         .map((t) => t.id == ticket.id ? updated : t)
         .toList();
     _persistTickets();
-    notifyListeners();
-
     final id = DateTime.now().millisecondsSinceEpoch.toString();
-    return PaymentReceipt(
+    final receipt = PaymentReceipt(
       id: id,
       amountCharged: totalDue,
       waivedAmount: waiverAmount,
@@ -329,7 +341,22 @@ class UserProvider extends ChangeNotifier {
       reference: 'TICKET-$id',
       createdAt: DateTime.now(),
       description: 'Settlement for ${ticket.id}',
+      category: 'ticket',
     );
+    _receipts = [receipt, ..._receipts];
+    _persistReceipts();
+    notifyListeners();
+
+    return receipt;
+  }
+
+  Future<void> syncTicketsWithBackend() async {
+    final api = TicketApiService();
+    final remote = await api.fetchTickets();
+    _tickets = remote;
+    await api.syncTickets(_tickets);
+    await _persistTickets();
+    notifyListeners();
   }
 
   Future<void> changePassword(String password) async {
