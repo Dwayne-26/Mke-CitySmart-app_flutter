@@ -20,6 +20,8 @@ platform :ios do
       scheme: "Runner",
       workspace: "Runner.xcworkspace",
       export_method: "app-store",
+      xcargs: "-allowProvisioningUpdates",
+      team_id: ENV['TEAM_ID'],
     )
 
     upload_to_testflight(
