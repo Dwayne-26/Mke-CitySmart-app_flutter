@@ -1,0 +1,30 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    # Use App Store Connect API key if provided; otherwise fall back to Apple ID auth.
+    api_key_path = ENV['APP_STORE_CONNECT_API_KEY_PATH']
+    if api_key_path && File.exist?(api_key_path)
+      app_store_connect_api_key(
+        key_id: ENV['APP_STORE_CONNECT_API_KEY_ID'],
+        issuer_id: ENV['APP_STORE_CONNECT_API_ISSUER_ID'],
+        keyfile: api_key_path,
+        is_key_content_base64: api_key_path.strip.start_with?('LS0t'),
+      )
+    else
+      UI.message("Using Apple ID auth. Ensure APPLE_ID and FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD are set.")
+    end
+
+    build_app(
+      scheme: "Runner",
+      workspace: "Runner.xcworkspace",
+      export_method: "app-store",
+    )
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+    )
+  end
+end
