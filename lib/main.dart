@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'citysmart/branding_preview.dart';
-import 'citysmart/theme.dart';
 import 'providers/user_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/charging_map_screen.dart';
@@ -29,6 +28,8 @@ import 'screens/alternate_side_parking_screen.dart';
 import 'screens/parking_heatmap_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/map_screen.dart';
+import 'screens/feed_screen.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,9 +48,9 @@ class MKEParkApp extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => UserProvider(userRepository: userRepository)..initialize(),
       child: MaterialApp(
-        title: 'MKEPark',
-        theme: CSTheme.theme(),
         debugShowCheckedModeBanner: false,
+        title: 'MKEPark',
+        theme: buildCitySmartTheme(),
         initialRoute: '/',
         routes: {
           '/': (context) => const WelcomeScreen(),
@@ -79,7 +80,53 @@ class MKEParkApp extends StatelessWidget {
               const ParkingHeatmapScreen(),
           '/citysmart-dashboard': (context) => const DashboardScreen(),
           '/citysmart-map': (context) => const MapScreen(),
+          '/citysmart-feed': (context) => const FeedScreen(),
+          '/citysmart-shell': (context) => const CitySmartShell(),
         },
+        home: const CitySmartShell(),
+      ),
+    );
+  }
+}
+
+/// Bottom navigation container (Dashboard / Map / Feed)
+class CitySmartShell extends StatefulWidget {
+  const CitySmartShell({super.key});
+
+  @override
+  State<CitySmartShell> createState() => _CitySmartShellState();
+}
+
+class _CitySmartShellState extends State<CitySmartShell> {
+  int _index = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = const [
+      DashboardScreen(),
+      MapScreen(),
+      FeedScreen(),
+    ];
+
+    return Scaffold(
+      body: pages[_index],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _index,
+        onTap: (i) => setState(() => _index = i),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_outlined),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.view_list_outlined),
+            label: 'Feed',
+          ),
+        ],
       ),
     );
   }
