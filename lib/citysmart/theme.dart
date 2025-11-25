@@ -42,7 +42,7 @@ class CSTheme {
           letterSpacing: 0.2,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 2,
         shadowColor: Colors.black12,
