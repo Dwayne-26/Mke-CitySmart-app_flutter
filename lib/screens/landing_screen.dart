@@ -15,11 +15,15 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen> {
   late Future<_AltSideData> _altSideFuture;
+  bool _quickStartShown = false;
 
   @override
   void initState() {
     super.initState();
     // Initialized later in build once provider is available.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showQuickStart(context);
+    });
   }
 
   @override
@@ -220,6 +224,64 @@ class _LandingScreenState extends State<LandingScreen> {
                       onTap: () => Navigator.pushNamed(context, '/preferences'),
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showQuickStart(BuildContext context) {
+    if (_quickStartShown) return;
+    _quickStartShown = true;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Quick start',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: CSTheme.text,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Skip'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _Bullet(text: 'Check "Report sighting" to quickly log enforcers/tow trucks.'),
+              _Bullet(text: 'View "Alt-side parking" to see today\'s side; we auto-detect from your location.'),
+              _Bullet(text: 'Enable alerts in "Alerts" to get warnings before side flips and tow risks.'),
+              _Bullet(text: 'Use "EV charging" and "Garbage day" for daily utilities.'),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Got it'),
                 ),
               ),
             ],
