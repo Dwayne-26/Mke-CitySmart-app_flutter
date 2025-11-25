@@ -54,7 +54,9 @@ class RiskAlertService {
     try {
       final position = await LocationService().getCurrentPosition();
       if (position == null) return;
-      final ticketDensity = provider.tickets.where((t) => t.isOpen).length / 10;
+      final ticketDensity =
+          provider.tickets.where((t) => t.status == TicketStatus.open).length /
+              10;
       final eventLoad = provider.sightings.isNotEmpty ? 0.3 : 0.0;
       final riskScore = _ticketRisk.predictRisk(
         when: DateTime.now(),

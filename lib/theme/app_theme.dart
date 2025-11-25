@@ -33,7 +33,7 @@ ThemeData buildCitySmartTheme() {
       ),
       iconTheme: IconThemeData(color: kCitySmartYellow),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: kCitySmartCard,
       elevation: 0,
       margin: EdgeInsets.zero,
