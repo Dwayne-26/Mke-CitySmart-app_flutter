@@ -48,7 +48,7 @@ class RiskAlertService {
 
     // Ticket risk predictor (auto push unless turned off).
     final prefs = provider.profile?.preferences;
-    final allow = prefs?.parkingNotifications ?? true;
+    final allow = prefs?.ticketRiskAlerts ?? true;
     if (!allow) return;
 
     try {
