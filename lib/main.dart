@@ -51,9 +51,8 @@ class MKEParkApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'MKEPark',
         theme: buildCitySmartTheme(),
-        initialRoute: '/',
+        home: const CitySmartShell(),
         routes: {
-          '/': (context) => const WelcomeScreen(),
           '/auth': (context) => const AuthScreen(),
           '/landing': (context) => LandingScreen(),
           '/parking': (context) => const ParkingScreen(),
@@ -82,8 +81,8 @@ class MKEParkApp extends StatelessWidget {
           '/citysmart-map': (context) => const MapScreen(),
           '/citysmart-feed': (context) => const FeedScreen(),
           '/citysmart-shell': (context) => const CitySmartShell(),
+          '/feed': (context) => const FeedScreen(),
         },
-        home: const CitySmartShell(),
       ),
     );
   }
