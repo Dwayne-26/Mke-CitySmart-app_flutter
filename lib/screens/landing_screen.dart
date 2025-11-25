@@ -272,10 +272,10 @@ class _LandingScreenState extends State<LandingScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              _Bullet(text: 'Check "Report sighting" to quickly log enforcers/tow trucks.'),
-              _Bullet(text: 'View "Alt-side parking" to see today\'s side; we auto-detect from your location.'),
-              _Bullet(text: 'Enable alerts in "Alerts" to get warnings before side flips and tow risks.'),
-              _Bullet(text: 'Use "EV charging" and "Garbage day" for daily utilities.'),
+              const _QuickBullet('Check "Report sighting" to quickly log enforcers/tow trucks.'),
+              const _QuickBullet('View "Alt-side parking" to see today\'s side; we auto-detect from your location.'),
+              const _QuickBullet('Enable alerts in "Alerts" to get warnings before side flips and tow risks.'),
+              const _QuickBullet('Use "EV charging" and "Garbage day" for daily utilities.'),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -607,6 +607,40 @@ class _InfoPill extends StatelessWidget {
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickBullet extends StatelessWidget {
+  const _QuickBullet(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '• ',
+            style: TextStyle(
+              color: CSTheme.text,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: CSTheme.text,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
