@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:geolocator/geolocator.dart';
 
+import '../models/ticket.dart';
 import '../providers/user_provider.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
