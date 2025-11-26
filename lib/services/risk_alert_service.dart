@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:math';
 
 import 'package:geolocator/geolocator.dart';
 
@@ -21,6 +22,7 @@ class RiskAlertService {
   DateTime? _lastHighAlert;
   DateTime? _lastTicketAlert;
   final _ticketRisk = TicketRiskPredictionService();
+  Position? _lastPosition;
 
   void start(UserProvider provider) {
     if (_running) return;
@@ -59,6 +61,8 @@ class RiskAlertService {
           provider.tickets.where((t) => t.status == TicketStatus.open).length /
               10;
       final eventLoad = provider.sightings.isNotEmpty ? 0.3 : 0.0;
+      final isNewArea = _isNewArea(position);
+      _lastPosition = position;
       final riskScore = _ticketRisk.predictRisk(
         when: DateTime.now(),
         latitude: position.latitude,
@@ -68,8 +72,9 @@ class RiskAlertService {
       );
       if (riskScore >= 0.7) {
         final now = DateTime.now();
+        final coolDown = isNewArea ? 30 : 90;
         if (_lastTicketAlert == null ||
-            now.difference(_lastTicketAlert!).inMinutes >= 90) {
+            now.difference(_lastTicketAlert!).inMinutes >= coolDown) {
           _lastTicketAlert = now;
           final msg = _ticketRisk.riskMessage(riskScore);
           NotificationService.instance.showLocal(
@@ -90,4 +95,35 @@ class RiskAlertService {
     _timer = null;
     _running = false;
   }
+
+  bool _isNewArea(Position pos) {
+    if (_lastPosition == null) return true;
+    final dist = _haversineMeters(
+      _lastPosition!.latitude,
+      _lastPosition!.longitude,
+      pos.latitude,
+      pos.longitude,
+    );
+    return dist > 150; // treat moves over ~150m as a new area
+  }
+
+  double _haversineMeters(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const R = 6371000; // meters
+    final dLat = _deg2rad(lat2 - lat1);
+    final dLon = _deg2rad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_deg2rad(lat1)) *
+            cos(_deg2rad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return R * c;
+  }
+
+  double _deg2rad(double deg) => deg * (pi / 180);
 }
