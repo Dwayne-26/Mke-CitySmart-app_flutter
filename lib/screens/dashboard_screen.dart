@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/user_provider.dart';
+import '../services/alternate_side_parking_service.dart';
+import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -8,6 +13,7 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final provider = context.watch<UserProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -51,14 +57,20 @@ class DashboardScreen extends StatelessWidget {
                     subtitle: 'Risks & reminders',
                     onTap: () => Navigator.pushNamed(context, '/preferences'),
                   ),
-                  HomeTile(
-                    icon: Icons.compare_arrows,
-                    title: 'Alt-side parking',
-                    subtitle: 'Today’s side + schedule',
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/alternate-parking',
-                    ),
+                  FutureBuilder<String>(
+                    future: _resolveAltSubtitle(provider),
+                    builder: (context, snapshot) {
+                      final subtitle = snapshot.data ?? 'Detecting...';
+                      return HomeTile(
+                        icon: Icons.compare_arrows,
+                        title: 'Alt-side parking',
+                        subtitle: subtitle,
+                        onTap: () => Navigator.pushNamed(
+                          context,
+                          '/alternate-parking',
+                        ),
+                      );
+                    },
                   ),
                   HomeTile(
                     icon: Icons.map,
@@ -205,4 +217,34 @@ class PromoBannerCard extends StatelessWidget {
       ),
     );
   }
+}
+
+int _addressNumber(String? address) {
+  if (address == null) return 0;
+  final match = RegExp(r'(\\d+)').firstMatch(address);
+  if (match == null) return 0;
+  return int.tryParse(match.group(0) ?? '0') ?? 0;
+}
+
+int _addressFromPosition(Position position) {
+  final val = (position.latitude.abs() * 10000).round() +
+      (position.longitude.abs() * 10000).round();
+  return val % 10000 == 0 ? 101 : val % 10000;
+}
+
+Future<String> _resolveAltSubtitle(UserProvider provider) async {
+  final service = AlternateSideParkingService();
+  int addressNumber = _addressNumber(provider.profile?.address);
+  try {
+    final loc = await LocationService().getCurrentPosition();
+    if (loc != null) {
+      addressNumber = _addressFromPosition(loc);
+    }
+  } catch (_) {
+    // ignore location errors, fall back to profile address
+  }
+  final status = service.status(addressNumber: addressNumber);
+  return status.sideToday == ParkingSide.odd
+      ? 'Odd side today'
+      : 'Even side today';
 }
