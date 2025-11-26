@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
-import 'citysmart_shell_screens.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -32,45 +31,68 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.local_parking,
                     title: 'Parking',
                     subtitle: 'Find, monitor, pay',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const ParkingShellScreen(),
-                      ),
-                    ),
+                    onTap: () => Navigator.pushNamed(context, '/parking'),
                   ),
                   HomeTile(
                     icon: Icons.delete_outline,
                     title: 'Garbage Day',
                     subtitle: 'Pickup schedules',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const GarbageDayShellScreen(),
-                      ),
-                    ),
+                    onTap: () => Navigator.pushNamed(context, '/garbage'),
                   ),
                   HomeTile(
                     icon: Icons.ev_station_outlined,
                     title: 'EV Chargers',
                     subtitle: 'Nearby stations',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const EVChargersShellScreen(),
-                      ),
-                    ),
+                    onTap: () => Navigator.pushNamed(context, '/charging'),
                   ),
                   HomeTile(
                     icon: Icons.notifications_active_outlined,
                     title: 'Alerts',
                     subtitle: 'Risks & reminders',
-                    onTap: () => Navigator.push(
+                    onTap: () => Navigator.pushNamed(context, '/preferences'),
+                  ),
+                  HomeTile(
+                    icon: Icons.compare_arrows,
+                    title: 'Alt-side parking',
+                    subtitle: 'Today’s side + schedule',
+                    onTap: () => Navigator.pushNamed(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const AlertsShellScreen(),
-                      ),
+                      '/alternate-parking',
                     ),
+                  ),
+                  HomeTile(
+                    icon: Icons.map,
+                    title: 'Parking heatmap',
+                    subtitle: 'Where to find a spot',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/parking-heatmap'),
+                  ),
+                  HomeTile(
+                    icon: Icons.warning_amber_rounded,
+                    title: 'Report sighting',
+                    subtitle: 'Tow/Enforcer',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/report-sighting'),
+                  ),
+                  HomeTile(
+                    icon: Icons.receipt_long,
+                    title: 'Tickets',
+                    subtitle: 'Lookup & pay',
+                    onTap: () => Navigator.pushNamed(context, '/tickets'),
+                  ),
+                  HomeTile(
+                    icon: Icons.workspace_premium,
+                    title: 'Subscriptions',
+                    subtitle: 'Plans & waivers',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/subscriptions'),
+                  ),
+                  HomeTile(
+                    icon: Icons.settings,
+                    title: 'City settings',
+                    subtitle: 'City & language',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/city-settings'),
                   ),
                 ],
               ),
