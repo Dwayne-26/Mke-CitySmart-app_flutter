@@ -15,6 +15,8 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
   late String _cityId;
   late String _tenantId;
   late String _languageCode;
+  late List<String> _cities;
+  String? _selectedOption;
 
   @override
   void initState() {
@@ -23,6 +25,8 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
     _cityId = provider.cityId;
     _tenantId = provider.tenantId;
     _languageCode = provider.languageCode;
+    _cities = const ['Milwaukee', 'Chicago', 'New York'];
+    _selectedOption = _cities.isNotEmpty ? _cities.first : null;
   }
 
   @override
@@ -37,18 +41,25 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
             children: [
               Text('City', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                value: _cityId,
-                items: cityRulePacks
-                    .map(
-                      (city) => DropdownMenuItem(
-                        value: city.cityId,
-                        child: Text(city.displayName),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) => setState(() => _cityId = value ?? 'default'),
-              ),
+              if (_cities.isEmpty)
+                const Center(child: CircularProgressIndicator())
+              else
+                DropdownButton<String>(
+                  value: _selectedOption,
+                  hint: const Text('Select a city'),
+                  items: _cities
+                      .map(
+                        (city) => DropdownMenuItem(
+                          value: city,
+                          child: Text(city),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (value) => setState(() {
+                    _selectedOption = value;
+                    _cityId = value ?? 'default';
+                  }),
+                ),
               const SizedBox(height: 12),
               Text('Tenant', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),

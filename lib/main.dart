@@ -98,6 +98,13 @@ class CitySmartShell extends StatefulWidget {
 
 class _CitySmartShellState extends State<CitySmartShell> {
   int _index = 0;
+  bool _quickShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showQuickStart());
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,6 +131,106 @@ class _CitySmartShellState extends State<CitySmartShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.view_list_outlined),
             label: 'Feed',
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showQuickStart() {
+    if (_quickShown) return;
+    _quickShown = true;
+    if (!mounted) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Quick start',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: kCitySmartText,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Skip'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const _QuickBullet(
+                'Use Dashboard tiles for Parking, Alerts, Heatmap, and Alt-side parking.',
+              ),
+              const _QuickBullet(
+                'Map tab shows the charging map and can host parking layers.',
+              ),
+              const _QuickBullet(
+                'Feed tab: alerts + sponsored items. Tap for details.',
+              ),
+              const _QuickBullet(
+                'Enable ticket/tow alerts in Preferences for automatic notifications.',
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Got it'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _QuickBullet extends StatelessWidget {
+  const _QuickBullet(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '• ',
+            style: TextStyle(
+              color: kCitySmartText,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: kCitySmartText,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/ad_preferences.dart';
 import '../models/subscription_plan.dart';
 import '../providers/user_provider.dart';
+import '../theme/app_theme.dart';
 
 class SubscriptionScreen extends StatelessWidget {
   const SubscriptionScreen({super.key});
@@ -87,8 +88,15 @@ class _PlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final borderColor = selected ? kCitySmartYellow : const Color(0xFF1F3A34);
+    final chipBg = kCitySmartGreen.withOpacity(0.4);
+    final chipText = kCitySmartText;
     return Card(
-      color: selected ? Colors.green.shade50 : null,
+      color: kCitySmartCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: borderColor, width: selected ? 2 : 1),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -96,9 +104,20 @@ class _PlanCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(plan.label, style: Theme.of(context).textTheme.titleLarge),
+                Text(
+                  plan.label,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
                 const Spacer(),
-                Text('\$${plan.monthlyPrice.toStringAsFixed(2)}/mo'),
+                Text(
+                  plan.monthlyPrice == 0
+                      ? 'Free'
+                      : '\$${plan.monthlyPrice.toStringAsFixed(2)}/mo',
+                  style: const TextStyle(
+                    color: kCitySmartText,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -106,27 +125,51 @@ class _PlanCard extends StatelessWidget {
               spacing: 8,
               children: [
                 Chip(
-                  avatar: const Icon(Icons.place, size: 16),
-                  label: Text('${plan.maxAlertRadiusMiles.toStringAsFixed(0)} mi radius'),
+                  backgroundColor: chipBg,
+                  avatar: const Icon(Icons.place, size: 16, color: kCitySmartYellow),
+                  label: Text(
+                    '${plan.maxAlertRadiusMiles.toStringAsFixed(0)} mi radius',
+                    style: TextStyle(color: chipText),
+                  ),
                 ),
                 Chip(
-                  avatar: const Icon(Icons.notifications, size: 16),
-                  label: Text('${plan.alertVolumePerDay} alerts/day'),
+                  backgroundColor: chipBg,
+                  avatar: const Icon(Icons.notifications, size: 16, color: kCitySmartYellow),
+                  label: Text(
+                    '${plan.alertVolumePerDay} alerts/day',
+                    style: TextStyle(color: chipText),
+                  ),
                 ),
                 Chip(
-                  avatar: const Icon(Icons.money_off, size: 16),
-                  label: Text('${(plan.feeWaiverPct * 100).toStringAsFixed(0)}% fee waiver'),
+                  backgroundColor: chipBg,
+                  avatar: const Icon(Icons.money_off, size: 16, color: kCitySmartYellow),
+                  label: Text(
+                    '${(plan.feeWaiverPct * 100).toStringAsFixed(0)}% fee waiver',
+                    style: TextStyle(color: chipText),
+                  ),
                 ),
                 if (plan.prioritySupport)
-                  const Chip(
-                    avatar: Icon(Icons.support_agent, size: 16),
-                    label: Text('Priority support'),
+                  Chip(
+                    backgroundColor: chipBg,
+                    avatar: const Icon(Icons.support_agent, size: 16, color: kCitySmartYellow),
+                    label: Text(
+                      'Priority support',
+                      style: TextStyle(color: chipText),
+                    ),
                   ),
               ],
             ),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: selected ? null : onSelect,
+              style: FilledButton.styleFrom(
+                backgroundColor: kCitySmartYellow,
+                foregroundColor: kCitySmartGreen,
+                minimumSize: const Size.fromHeight(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: Text(selected ? 'Current plan' : 'Select ${plan.label}'),
             ),
           ],
