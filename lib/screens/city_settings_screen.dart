@@ -25,7 +25,26 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
     _cityId = provider.cityId;
     _tenantId = provider.tenantId;
     _languageCode = provider.languageCode;
-    _cities = const ['Milwaukee', 'Chicago', 'New York'];
+    _cities = const [
+      'Milwaukee',
+      'West Allis',
+      'Wauwatosa',
+      'Greenfield',
+      'Oak Creek',
+      'South Milwaukee',
+      'Cudahy',
+      'Franklin',
+      'Glendale',
+      'Shorewood',
+      'Whitefish Bay',
+      'Brown Deer',
+      'St. Francis',
+      'Bayside',
+      'Fox Point',
+      'Brookfield',
+      'Madison',
+      'Green Bay',
+    ];
     _selectedOption = _cities.isNotEmpty ? _cities.first : null;
   }
 
@@ -79,6 +98,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                 value: _languageCode,
                 items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
+                  DropdownMenuItem(value: 'es', child: Text('Español')),
                   DropdownMenuItem(value: 'zh', child: Text('中文')),
                   DropdownMenuItem(value: 'fr', child: Text('Français')),
                   DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
