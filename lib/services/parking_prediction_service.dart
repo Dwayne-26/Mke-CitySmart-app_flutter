@@ -16,11 +16,13 @@ class ParkingPredictionService {
     required double latitude,
     required double longitude,
     double eventLoad = 0.0, // 0 (no event) to 1 (major event)
+    double cityBias = 0.0, // simple city modifier 0-1
   }) {
     final hourScore = _hourFactor(when.hour);
     final dayScore = _dayFactor(when.weekday);
     final eventPenalty = 1 - (eventLoad.clamp(0, 1) * 0.35);
     final locationNoise = _locationNoise(latitude, longitude);
+    final cityFactor = 1 - cityBias.clamp(0, 1) * 0.2; // higher bias lowers availability slightly
 
     // Combine factors; clamp to [0,1].
     final raw = hourScore * 0.4 +
@@ -37,6 +39,7 @@ class ParkingPredictionService {
     required double longitude,
     double eventLoad = 0,
     int samples = 5,
+    double cityBias = 0.0,
   }) {
     final rng = Random(latitude.hashCode ^ longitude.hashCode ^ when.hashCode);
     return List.generate(samples, (i) {
@@ -49,6 +52,7 @@ class ParkingPredictionService {
         latitude: lat,
         longitude: lng,
         eventLoad: eventLoad,
+        cityBias: cityBias,
       );
       return PredictedPoint(latitude: lat, longitude: lng, score: score);
     });

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/user_provider.dart';
+import '../services/location_service.dart';
 import '../services/parking_prediction_service.dart';
 
 class ParkingHeatmapScreen extends StatefulWidget {
@@ -11,21 +15,49 @@ class ParkingHeatmapScreen extends StatefulWidget {
 
 class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   final _service = ParkingPredictionService();
-  final _centerLat = 43.0389;
-  final _centerLng = -87.9065;
+  double _centerLat = 43.0389;
+  double _centerLng = -87.9065;
   final _eventLoad = 0.2;
-  late List<PredictedPoint> _points;
+  List<PredictedPoint> _points = const [];
+  bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    double lat = _centerLat;
+    double lng = _centerLng;
+    try {
+      final loc = await LocationService().getCurrentPosition();
+      if (loc != null) {
+        lat = loc.latitude;
+        lng = loc.longitude;
+      }
+    } catch (e) {
+      _error = 'Location unavailable; showing defaults.';
+    }
+    final cityBias = _cityBias(context.read<UserProvider>().cityId);
     _points = _service.predictNearby(
       when: DateTime.now(),
-      latitude: _centerLat,
-      longitude: _centerLng,
+      latitude: lat,
+      longitude: lng,
       eventLoad: _eventLoad,
-      samples: 30,
+      samples: 60,
+      cityBias: cityBias,
     );
+    setState(() {
+      _centerLat = lat;
+      _centerLng = lng;
+      _loading = false;
+    });
   }
 
   Color _scoreColor(double score) {
@@ -54,6 +86,19 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.orangeAccent),
+                ),
+              ),
+            if (_loading)
+              const Expanded(
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -145,5 +190,20 @@ class _LegendDot extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+double _cityBias(String cityId) {
+  switch (cityId.toLowerCase()) {
+    case 'milwaukee':
+    case 'milwaukee-county':
+      return 0.05;
+    case 'chicago':
+      return 0.08;
+    case 'new-york':
+    case 'nyc':
+      return 0.1;
+    default:
+      return 0.04;
   }
 }
