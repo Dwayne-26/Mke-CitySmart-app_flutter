@@ -8,6 +8,7 @@ import '../models/ticket.dart';
 import '../providers/user_provider.dart';
 import 'location_service.dart';
 import 'notification_service.dart';
+import 'city_ticket_stats_service.dart';
 import 'ticket_risk_prediction_service.dart';
 
 /// Lightweight in-app risk watcher. In background, this should be replaced by
@@ -23,6 +24,7 @@ class RiskAlertService {
   DateTime? _lastTicketAlert;
   final _ticketRisk = TicketRiskPredictionService();
   Position? _lastPosition;
+  final _cityStats = CityTicketStatsService();
 
   void start(UserProvider provider) {
     if (_running) return;
@@ -63,12 +65,20 @@ class RiskAlertService {
       final eventLoad = provider.sightings.isNotEmpty ? 0.3 : 0.0;
       final isNewArea = _isNewArea(position);
       _lastPosition = position;
-      final riskScore = _ticketRisk.predictRisk(
+      final stats = _cityStats.lookup(
+        cityId: provider.cityId,
+        when: DateTime.now(),
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+      final riskScore = _ticketRisk.predictRiskWithCityStats(
         when: DateTime.now(),
         latitude: position.latitude,
         longitude: position.longitude,
         eventLoad: eventLoad,
         historicalDensity: ticketDensity,
+        monthlyFactor: stats.monthlyFactor,
+        cityHotspotDensity: stats.hotspotDensity,
       );
       if (riskScore >= 0.7) {
         final now = DateTime.now();
