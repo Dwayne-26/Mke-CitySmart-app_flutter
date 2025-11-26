@@ -65,6 +65,7 @@ class MKEParkApp extends StatelessWidget {
           '/profile': (context) => const ProfileScreen(),
           '/vehicles': (context) => const VehicleManagementScreen(),
           '/preferences': (context) => const PreferencesScreen(),
+          '/alerts': (context) => const PreferencesScreen(),
           '/charging': (context) => const ChargingMapScreen(),
           '/report-sighting': (context) => const ReportSightingScreen(),
           '/tickets': (context) => const TicketWorkflowScreen(),
