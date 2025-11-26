@@ -13,7 +13,6 @@ class CitySettingsScreen extends StatefulWidget {
 
 class _CitySettingsScreenState extends State<CitySettingsScreen> {
   late String _cityId;
-  late String _tenantId;
   late String _languageCode;
   late List<String> _cities;
   String? _selectedOption;
@@ -23,7 +22,6 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
     super.initState();
     final provider = context.read<UserProvider>();
     _cityId = provider.cityId;
-    _tenantId = provider.tenantId;
     _languageCode = provider.languageCode;
     _cities = const [
       'Milwaukee',
@@ -80,18 +78,6 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                   }),
                 ),
               const SizedBox(height: 12),
-              Text('Tenant', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              TextFormField(
-                initialValue: _tenantId,
-                decoration: const InputDecoration(
-                  labelText: 'Tenant/org id',
-                ),
-                onChanged: (value) => _tenantId = value.trim().isEmpty
-                    ? 'default'
-                    : value.trim(),
-              ),
-              const SizedBox(height: 12),
               Text('Language', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -111,7 +97,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                 onPressed: () async {
                   await provider.updateCityAndTenant(
                     cityId: _cityId,
-                    tenantId: _tenantId,
+                    tenantId: provider.tenantId,
                   );
                   await provider.updateLanguage(_languageCode);
                   ScaffoldMessenger.of(context).showSnackBar(
