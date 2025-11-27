@@ -35,8 +35,8 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   HomeTile(
                     icon: Icons.local_parking,
-                    title: 'Parking',
-                    subtitle: 'Find, monitor, pay',
+                    title: 'Overview',
+                    subtitle: 'Parking, pay, history',
                     onTap: () => Navigator.pushNamed(context, '/parking'),
                   ),
                   HomeTile(
