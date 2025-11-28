@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class AdService {
@@ -10,6 +11,10 @@ class AdService {
 
   Future<void> initialize({required String appId}) async {
     if (_initialized) return;
+    if (kIsWeb) {
+      _initialized = true;
+      return;
+    }
     // App ID is usually set in Info.plist/AndroidManifest via the SDK;
     // here we just ensure the SDK is initialized.
     await MobileAds.instance.initialize();
@@ -22,6 +27,9 @@ class AdService {
     void Function(Ad)? onLoaded,
     void Function(Ad, LoadAdError)? onFailed,
   }) {
+    if (kIsWeb) {
+      return null as dynamic;
+    }
     final ad = BannerAd(
       adUnitId: unitId,
       size: size,

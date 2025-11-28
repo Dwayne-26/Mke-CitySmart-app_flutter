@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../services/ad_service.dart';
@@ -49,6 +50,7 @@ class _FeedBodyState extends State<_FeedBody> {
   void _loadBanner() {
     const appId = 'ca-app-pub-2009498889741048~9019853313';
     const unitId = 'ca-app-pub-2009498889741048/5020898555';
+    if (kIsWeb) return;
     AdService.instance.initialize(appId: appId).then((_) {
       final ad = AdService.instance.createBanner(
         unitId: unitId,
