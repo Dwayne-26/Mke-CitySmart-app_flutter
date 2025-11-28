@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import 'citysmart/branding_preview.dart';
@@ -30,9 +31,14 @@ import 'screens/dashboard_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/feed_screen.dart';
 import 'theme/app_theme.dart';
+import 'services/ad_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    await AdService.instance
+        .initialize(appId: 'ca-app-pub-2009498889741048~9019853313');
+  }
   await NotificationService.instance.initialize();
   final repository = await UserRepository.create();
   runApp(MKEParkApp(userRepository: repository));
@@ -65,6 +71,7 @@ class MKEParkApp extends StatelessWidget {
           '/profile': (context) => const ProfileScreen(),
           '/vehicles': (context) => const VehicleManagementScreen(),
           '/preferences': (context) => const PreferencesScreen(),
+          '/alerts': (context) => const PreferencesScreen(),
           '/charging': (context) => const ChargingMapScreen(),
           '/report-sighting': (context) => const ReportSightingScreen(),
           '/tickets': (context) => const TicketWorkflowScreen(),
@@ -99,6 +106,8 @@ class CitySmartShell extends StatefulWidget {
 class _CitySmartShellState extends State<CitySmartShell> {
   int _index = 0;
   bool _quickShown = false;
+  bool _tutorialDone = false;
+  int _tutorialStep = 0;
 
   @override
   void initState() {
@@ -138,7 +147,7 @@ class _CitySmartShellState extends State<CitySmartShell> {
   }
 
   void _showQuickStart() {
-    if (_quickShown) return;
+    if (_quickShown || _tutorialDone) return;
     _quickShown = true;
     if (!mounted) return;
     showModalBottomSheet(
@@ -171,31 +180,42 @@ class _CitySmartShellState extends State<CitySmartShell> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(ctx),
+                    onPressed: () {
+                      _tutorialDone = true;
+                      Navigator.pop(ctx);
+                    },
                     child: const Text('Skip'),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              const _QuickBullet(
-                'Use Dashboard tiles for Parking, Alerts, Heatmap, and Alt-side parking.',
-              ),
-              const _QuickBullet(
-                'Map tab shows the charging map and can host parking layers.',
-              ),
-              const _QuickBullet(
-                'Feed tab: alerts + sponsored items. Tap for details.',
-              ),
-              const _QuickBullet(
-                'Enable ticket/tow alerts in Preferences for automatic notifications.',
-              ),
+              _TutorialStepContent(step: _tutorialStep),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Got it'),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: _tutorialStep == 0
+                        ? null
+                        : () => setState(() {
+                              _tutorialStep--;
+                            }),
+                    child: const Text('Back'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      if (_tutorialStep < 2) {
+                        setState(() {
+                          _tutorialStep++;
+                        });
+                      } else {
+                        _tutorialDone = true;
+                        Navigator.pop(ctx);
+                      }
+                    },
+                    child: Text(_tutorialStep < 2 ? 'Next' : 'Done'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -235,5 +255,52 @@ class _QuickBullet extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _TutorialStepContent extends StatelessWidget {
+  const _TutorialStepContent({required this.step});
+  final int step;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (step) {
+      case 0:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _QuickBullet(
+              'Use Dashboard tiles for Parking, Alerts, Heatmap, and Alt-side parking.',
+            ),
+            _QuickBullet(
+              'Parking tile shows today’s side; heatmap shows likely open spots.',
+            ),
+          ],
+        );
+      case 1:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _QuickBullet(
+              'Map tab shows the charging map; add parking layers as needed.',
+            ),
+            _QuickBullet(
+              'Feed tab: alerts + sponsored items. Tap for details.',
+            ),
+          ],
+        );
+      default:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            _QuickBullet(
+              'Enable ticket/tow alerts in Preferences for automatic notifications.',
+            ),
+            _QuickBullet(
+              'Report enforcer/tow sightings to improve risk alerts.',
+            ),
+          ],
+        );
+    }
   }
 }

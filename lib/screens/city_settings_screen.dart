@@ -13,7 +13,6 @@ class CitySettingsScreen extends StatefulWidget {
 
 class _CitySettingsScreenState extends State<CitySettingsScreen> {
   late String _cityId;
-  late String _tenantId;
   late String _languageCode;
   late List<String> _cities;
   String? _selectedOption;
@@ -23,9 +22,27 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
     super.initState();
     final provider = context.read<UserProvider>();
     _cityId = provider.cityId;
-    _tenantId = provider.tenantId;
     _languageCode = provider.languageCode;
-    _cities = const ['Milwaukee', 'Chicago', 'New York'];
+    _cities = const [
+      'Milwaukee',
+      'West Allis',
+      'Wauwatosa',
+      'Greenfield',
+      'Oak Creek',
+      'South Milwaukee',
+      'Cudahy',
+      'Franklin',
+      'Glendale',
+      'Shorewood',
+      'Whitefish Bay',
+      'Brown Deer',
+      'St. Francis',
+      'Bayside',
+      'Fox Point',
+      'Brookfield',
+      'Madison',
+      'Green Bay',
+    ];
     _selectedOption = _cities.isNotEmpty ? _cities.first : null;
   }
 
@@ -61,24 +78,13 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                   }),
                 ),
               const SizedBox(height: 12),
-              Text('Tenant', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              TextFormField(
-                initialValue: _tenantId,
-                decoration: const InputDecoration(
-                  labelText: 'Tenant/org id',
-                ),
-                onChanged: (value) => _tenantId = value.trim().isEmpty
-                    ? 'default'
-                    : value.trim(),
-              ),
-              const SizedBox(height: 12),
               Text('Language', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 value: _languageCode,
                 items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
+                  DropdownMenuItem(value: 'es', child: Text('Español')),
                   DropdownMenuItem(value: 'zh', child: Text('中文')),
                   DropdownMenuItem(value: 'fr', child: Text('Français')),
                   DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
@@ -91,7 +97,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                 onPressed: () async {
                   await provider.updateCityAndTenant(
                     cityId: _cityId,
-                    tenantId: _tenantId,
+                    tenantId: provider.tenantId,
                   );
                   await provider.updateLanguage(_languageCode);
                   ScaffoldMessenger.of(context).showSnackBar(

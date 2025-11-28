@@ -35,8 +35,8 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   HomeTile(
                     icon: Icons.local_parking,
-                    title: 'Parking',
-                    subtitle: 'Find, monitor, pay',
+                    title: 'Overview',
+                    subtitle: 'Parking, pay, history',
                     onTap: () => Navigator.pushNamed(context, '/parking'),
                   ),
                   HomeTile(
@@ -53,9 +53,9 @@ class DashboardScreen extends StatelessWidget {
                   ),
                   HomeTile(
                     icon: Icons.notifications_active_outlined,
-                    title: 'Alerts',
-                    subtitle: 'Risks & reminders',
-                    onTap: () => Navigator.pushNamed(context, '/preferences'),
+                    title: 'Risk & reminders',
+                    subtitle: 'Alerts, radius, preferences',
+                    onTap: () => Navigator.pushNamed(context, '/alerts'),
                   ),
                   FutureBuilder<String>(
                     future: _resolveAltSubtitle(provider),
@@ -98,6 +98,18 @@ class DashboardScreen extends StatelessWidget {
                     subtitle: 'Plans & waivers',
                     onTap: () =>
                         Navigator.pushNamed(context, '/subscriptions'),
+                  ),
+                  HomeTile(
+                    icon: Icons.construction,
+                    title: 'Maintenance',
+                    subtitle: 'City reports',
+                    onTap: () => Navigator.pushNamed(context, '/maintenance'),
+                  ),
+                  HomeTile(
+                    icon: Icons.history,
+                    title: 'History',
+                    subtitle: 'Alerts & receipts',
+                    onTap: () => Navigator.pushNamed(context, '/history'),
                   ),
                   HomeTile(
                     icon: Icons.settings,

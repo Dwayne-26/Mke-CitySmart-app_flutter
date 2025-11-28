@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../services/ad_service.dart';
 import '../theme/app_theme.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -8,6 +11,7 @@ class FeedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -16,36 +20,90 @@ class FeedScreen extends StatelessWidget {
         ),
         title: const Text('CitySmart'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        children: [
-          Text('Feed', style: textTheme.headlineMedium),
-          const SizedBox(height: 20),
-          SponsoredFeedCard(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const SponsoredDetailScreen(),
-              ),
+      body: const _FeedBody(),
+    );
+  }
+}
+
+class _FeedBody extends StatefulWidget {
+  const _FeedBody();
+
+  @override
+  State<_FeedBody> createState() => _FeedBodyState();
+}
+
+class _FeedBodyState extends State<_FeedBody> {
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBanner();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadBanner() {
+    const appId = 'ca-app-pub-2009498889741048~9019853313';
+    const unitId = 'ca-app-pub-2009498889741048/5020898555';
+    if (kIsWeb) return;
+    AdService.instance.initialize(appId: appId).then((_) {
+      final ad = AdService.instance.createBanner(
+        unitId: unitId,
+        size: AdSize.banner,
+        onLoaded: (ad) => setState(() => _bannerAd = ad as BannerAd),
+        onFailed: (ad, error) {
+          ad.dispose();
+        },
+      );
+      _bannerAd = ad;
+      setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      children: [
+        Text('Feed', style: textTheme.headlineMedium),
+        const SizedBox(height: 20),
+        SponsoredFeedCard(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SponsoredDetailScreen(),
             ),
           ),
-          const SizedBox(height: 16),
-          AlertFeedCard(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const AlertDetailScreen(),
-              ),
+        ),
+        const SizedBox(height: 16),
+        AlertFeedCard(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const AlertDetailScreen(),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        if (_bannerAd != null)
+          SizedBox(
+            height: _bannerAd!.size.height.toDouble(),
+            width: _bannerAd!.size.width.toDouble(),
+            child: AdWidget(ad: _bannerAd!),
+          ),
+      ],
     );
   }
 }
 
 class SponsoredFeedCard extends StatelessWidget {
-  const SponsoredFeedCard({super.key, this.onTap});
-
   final VoidCallback? onTap;
+
+  const SponsoredFeedCard({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +122,7 @@ class SponsoredFeedCard extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Sponsored', style: textTheme.labelSmall),
-                  const Icon(Icons.chevron_right, color: kCitySmartMuted),
+                  Icon(Icons.chevron_right, color: kCitySmartMuted),
                 ],
               ),
               const SizedBox(height: 10),
@@ -101,9 +159,9 @@ class SponsoredFeedCard extends StatelessWidget {
 }
 
 class AlertFeedCard extends StatelessWidget {
-  const AlertFeedCard({super.key, this.onTap});
-
   final VoidCallback? onTap;
+
+  const AlertFeedCard({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -138,10 +196,8 @@ class AlertFeedCard extends StatelessWidget {
                   children: [
                     Text('Alert', style: textTheme.labelSmall),
                     const SizedBox(height: 4),
-                    Text(
-                      'Tow Sighting',
-                      style: textTheme.titleMedium,
-                    ),
+                    Text('Tow Sighting',
+                        style: textTheme.titleMedium),
                     const SizedBox(height: 2),
                     Text(
                       'Tow trucks spotted near 3rd St. & Maple Ave.',

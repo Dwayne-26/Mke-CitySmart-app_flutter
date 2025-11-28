@@ -253,6 +253,11 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setGarbageSchedules(List<GarbageSchedule> schedules) async {
+    _garbageSchedules = schedules;
+    notifyListeners();
+  }
+
   Future<void> reportSighting({
     required SightingType type,
     required String location,
