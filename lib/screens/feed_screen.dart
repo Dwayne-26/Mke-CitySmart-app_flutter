@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../services/ad_service.dart';
 import '../theme/app_theme.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -17,33 +19,81 @@ class FeedScreen extends StatelessWidget {
         ),
         title: const Text('CitySmart'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-        children: [
-          Text('Feed', style: textTheme.headlineMedium),
-          const SizedBox(height: 20),
+      body: const _FeedBody(),
+    );
+  }
+}
 
-          SponsoredFeedCard(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const SponsoredDetailScreen(),
-                ),
-              );
-            },
+class _FeedBody extends StatefulWidget {
+  const _FeedBody();
+
+  @override
+  State<_FeedBody> createState() => _FeedBodyState();
+}
+
+class _FeedBodyState extends State<_FeedBody> {
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBanner();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadBanner() {
+    const appId = 'ca-app-pub-2009498889741048~9019853313';
+    const unitId = 'ca-app-pub-2009498889741048/5020898555';
+    AdService.instance.initialize(appId: appId).then((_) {
+      final ad = AdService.instance.createBanner(
+        unitId: unitId,
+        size: AdSize.banner,
+        onLoaded: (ad) => setState(() => _bannerAd = ad as BannerAd),
+        onFailed: (ad, error) {
+          ad.dispose();
+        },
+      );
+      _bannerAd = ad;
+      setState(() {});
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+      children: [
+        Text('Feed', style: textTheme.headlineMedium),
+        const SizedBox(height: 20),
+        SponsoredFeedCard(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const SponsoredDetailScreen(),
+            ),
           ),
-          const SizedBox(height: 16),
-          AlertFeedCard(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AlertDetailScreen(),
-                ),
-              );
-            },
+        ),
+        const SizedBox(height: 16),
+        AlertFeedCard(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const AlertDetailScreen(),
+            ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        if (_bannerAd != null)
+          SizedBox(
+            height: _bannerAd!.size.height.toDouble(),
+            width: _bannerAd!.size.width.toDouble(),
+            child: AdWidget(ad: _bannerAd!),
+          ),
+      ],
     );
   }
 }

@@ -51,5 +51,7 @@
 	<string>Allow MKEPark to tag enforcement/tow sightings with your current location.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow MKEPark to attach photos to maintenance reports.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-2009498889741048~9019853313</string>
 </dict>
 </plist>
