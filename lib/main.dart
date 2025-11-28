@@ -33,6 +33,8 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await AdService.instance
+      .initialize(appId: 'ca-app-pub-2009498889741048~9019853313');
   await NotificationService.instance.initialize();
   final repository = await UserRepository.create();
   runApp(MKEParkApp(userRepository: repository));

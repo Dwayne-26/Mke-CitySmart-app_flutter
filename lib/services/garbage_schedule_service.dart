@@ -24,42 +24,72 @@ class GarbageScheduleService {
     required double latitude,
     required double longitude,
   }) async {
-    final uri = Uri.parse('$baseUrl/garbage/schedule')
-        .replace(queryParameters: {
-      'lat': latitude.toString(),
-      'lng': longitude.toString(),
+    final uri = Uri.parse('$baseUrl/query').replace(queryParameters: {
+      'f': 'json',
+      'geometry': '$longitude,$latitude',
+      'geometryType': 'esriGeometryPoint',
+      'inSR': '4326',
+      'spatialRel': 'esriSpatialRelIntersects',
+      'outFields': '*',
+      'returnGeometry': 'false',
     });
     final resp = await http.get(uri, headers: _headers());
     if (resp.statusCode != 200) {
       throw Exception('Failed to fetch schedule: ${resp.statusCode}');
     }
-    final data = jsonDecode(resp.body) as List<dynamic>;
-    return data
-        .map((json) => _fromJson(json as Map<String, dynamic>))
-        .toList();
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final features = (data['features'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+    return features.map(_fromFeature).toList();
   }
 
   Future<List<GarbageSchedule>> fetchByAddress(String address) async {
-    final uri = Uri.parse('$baseUrl/garbage/schedule')
-        .replace(queryParameters: {'address': address});
+    final where = "UPPER(ADDRESS) LIKE '%${address.toUpperCase()}%'";
+    final uri = Uri.parse('$baseUrl/query').replace(queryParameters: {
+      'f': 'json',
+      'where': where,
+      'outFields': '*',
+      'returnGeometry': 'false',
+    });
     final resp = await http.get(uri, headers: _headers());
     if (resp.statusCode != 200) {
       throw Exception('Failed to fetch schedule: ${resp.statusCode}');
     }
-    final data = jsonDecode(resp.body) as List<dynamic>;
-    return data
-        .map((json) => _fromJson(json as Map<String, dynamic>))
-        .toList();
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    final features = (data['features'] as List<dynamic>? ?? [])
+        .cast<Map<String, dynamic>>();
+    return features.map(_fromFeature).toList();
   }
 
-  GarbageSchedule _fromJson(Map<String, dynamic> json) {
+  GarbageSchedule _fromFeature(Map<String, dynamic> feature) {
+    final attrs = feature['attributes'] as Map<String, dynamic>? ?? {};
+    final typeStr =
+        (attrs['type'] ?? attrs['service'] ?? attrs['material'] ?? '')
+            .toString()
+            .toLowerCase();
+    final type = typeStr.contains('recycl') ? PickupType.recycling : PickupType.garbage;
+    final route = (attrs['route'] ??
+            attrs['routeId'] ??
+            attrs['ROUTE'] ??
+            'unknown')
+        .toString();
+    final addr = (attrs['address'] ??
+            attrs['ADDRESS'] ??
+            attrs['location'] ??
+            attrs['LOCATION'] ??
+            '')
+        .toString();
+    final pickupDate = _parseDate(
+      attrs['pickupDate'] ??
+          attrs['PICKUPDATE'] ??
+          attrs['nextPickup'] ??
+          attrs['NEXT_PICKUP'],
+    );
     return GarbageSchedule(
-      routeId: json['routeId'] as String? ?? 'unknown',
-      address: json['address'] as String? ?? '',
-      pickupDate: _parseDate(json['pickupDate']),
-      type: (json['type'] as String?)?.toLowerCase() == 'recycling'
-          ? PickupType.recycling
-          : PickupType.garbage,
+      routeId: route,
+      address: addr,
+      pickupDate: pickupDate,
+      type: type,
     );
   }
 

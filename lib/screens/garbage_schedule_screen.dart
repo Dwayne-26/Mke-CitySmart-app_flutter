@@ -21,6 +21,7 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
   String _language = 'en';
   bool _loading = false;
   String? _error;
+  late final GarbageScheduleService _service;
 
   @override
   void dispose() {
@@ -118,24 +119,24 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                                 : const Duration(hours: 0),
                             languageCode: _language,
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Reminders scheduled.'),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.notifications_active),
-                        label: const Text('Schedule reminders'),
-                      ),
-                    ],
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Reminders scheduled.'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.notifications_active),
+                    label: const Text('Schedule reminders'),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(height: 12),
-              Text(
-                'Upcoming pickups (${schedules.length})',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Upcoming pickups (${schedules.length})',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
               const SizedBox(height: 8),
               if (_loading)
                 const Center(child: CircularProgressIndicator())
@@ -162,5 +163,74 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
         );
       },
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _service = GarbageScheduleService(
+      baseUrl:
+          'https://milwaukeemaps.milwaukee.gov/arcgis/rest/services/DPW/DPW_Sanitation/MapServer/9',
+    );
+  }
+
+  Future<void> _useLocation() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final loc = await LocationService().getCurrentPosition();
+      if (loc == null) {
+        setState(() {
+          _error = 'Location unavailable.';
+          _loading = false;
+        });
+        return;
+      }
+      final schedules = await _service.fetchByLocation(
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+      );
+      if (!mounted) return;
+      await context.read<UserProvider>().setGarbageSchedules(schedules);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load schedule: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _useAddress() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final addr = _addressController.text.trim();
+      final schedules = await _service.fetchByAddress(addr);
+      if (!mounted) return;
+      await context.read<UserProvider>().setGarbageSchedules(schedules);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load schedule: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
+    }
   }
 }
