@@ -35,6 +35,9 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
   bool _includeWeather = true;
   _PredictionMode _mode = _PredictionMode.heatmap;
 
+  bool get _hasFastStation =>
+      _stations.any((s) => s.hasFastCharging && s.maxPowerKw >= 50);
+
   List<EVStation> _filterStations() {
     return _stations.where((station) {
       if (_showFastOnly && !station.hasFastCharging) return false;
@@ -85,12 +88,20 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                       setState(() => _showAvailableOnly = value),
                 ),
                 const SizedBox(width: 8),
-                FilterChip(
-                  selected: _showFastOnly,
-                  label: const Text('50kW+'),
-                  avatar: const Icon(Icons.flash_on, size: 18),
-                  onSelected: (value) => setState(() => _showFastOnly = value),
-                ),
+                if (_hasFastStation)
+                  FilterChip(
+                    selected: _showFastOnly,
+                    label: const Text('50kW+'),
+                    avatar: const Icon(Icons.flash_on, size: 18),
+                    onSelected: (value) =>
+                        setState(() => _showFastOnly = value),
+                  )
+                else
+                  const Text(
+                    'No fast chargers nearby',
+                    style:
+                        TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                 const Spacer(),
                 Text('${stations.length} spots',
                     style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -440,7 +451,12 @@ class _StationMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = station.hasAvailability ? Colors.green : Colors.orange;
+    final isFast = station.hasFastCharging;
+    final color = isFast
+        ? Colors.blueAccent
+        : station.hasAvailability
+            ? Colors.green
+            : Colors.orange;
     return AnimatedScale(
       scale: isSelected ? 1.1 : 1.0,
       duration: const Duration(milliseconds: 150),
@@ -475,6 +491,23 @@ class _StationMarker extends StatelessWidget {
               color: Colors.white,
             ),
           ),
+          if (isFast)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.flash_on,
+                  size: 12,
+                  color: Colors.blueAccent,
+                ),
+              ),
+            ),
         ],
       ),
     );
