@@ -37,6 +37,8 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
 
   bool get _hasFastStation =>
       _stations.any((s) => s.hasFastCharging && s.maxPowerKw >= 50);
+  bool get _hasAvailabilityVariance =>
+      _stations.any((s) => !s.hasAvailability);
 
   List<EVStation> _filterStations() {
     return _stations.where((station) {
@@ -80,13 +82,20 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                FilterChip(
-                  selected: _showAvailableOnly,
-                  label: const Text('Only available'),
-                  avatar: const Icon(Icons.ev_station, size: 18),
-                  onSelected: (value) =>
-                      setState(() => _showAvailableOnly = value),
-                ),
+                if (_hasAvailabilityVariance)
+                  FilterChip(
+                    selected: _showAvailableOnly,
+                    label: const Text('Only available'),
+                    avatar: const Icon(Icons.ev_station, size: 18),
+                    onSelected: (value) =>
+                        setState(() => _showAvailableOnly = value),
+                  )
+                else
+                  const Text(
+                    'Live availability not provided',
+                    style:
+                        TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                 const SizedBox(width: 8),
                 if (_hasFastStation)
                   FilterChip(

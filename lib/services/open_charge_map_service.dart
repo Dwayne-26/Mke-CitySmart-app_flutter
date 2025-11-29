@@ -47,6 +47,7 @@ class OpenChargeMapService {
     final status = (json['StatusType']?['Title'] as String?) ?? 'Unknown';
     final usageCost = json['UsageCost'] as String?;
 
+    final isAvailable = _isAvailableStatus(status);
     final connectorTypes = connections
         .map((c) => (c['ConnectionType']?['Title'] as String?)?.trim())
         .whereType<String>()
@@ -56,9 +57,8 @@ class OpenChargeMapService {
         .map((c) => (c['PowerKW'] as num?)?.toDouble() ?? 0)
         .fold<double>(0, (a, b) => b > a ? b : a);
 
-    final totalPorts = connections.length;
-    // OCM doesn’t expose live availability; assume ports are available.
-    final availablePorts = totalPorts == 0 ? 1 : totalPorts;
+    final totalPorts = connections.isEmpty ? 1 : connections.length;
+    final availablePorts = isAvailable ? totalPorts : 0;
 
     return EVStation(
       id: '${json['ID'] ?? address?['ID'] ?? ''}',
@@ -75,6 +75,15 @@ class OpenChargeMapService {
       status: status,
       notes: usageCost,
     );
+  }
+
+  bool _isAvailableStatus(String status) {
+    final s = status.toLowerCase();
+    return s.contains('available') ||
+        s.contains('operational') ||
+        s.contains('in service') ||
+        s.contains('in-service') ||
+        s.contains('active');
   }
 
   String _formatAddress(Map<String, dynamic>? addr) {
