@@ -11,26 +11,8 @@ class AlertsLandingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, provider, _) {
-        final profile = provider.profile;
-        final prefs = profile?.preferences ?? UserPreferences.defaults();
-        if (profile == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Alerts')),
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('Sign in to manage alerts and reminders.'),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/auth'),
-                    child: const Text('Sign in'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
+        final prefs =
+            provider.profile?.preferences ?? UserPreferences.defaults();
 
         return Scaffold(
           appBar: AppBar(title: const Text('Alerts & reminders')),
