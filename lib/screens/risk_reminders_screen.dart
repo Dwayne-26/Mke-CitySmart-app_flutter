@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/user_preferences.dart';
+import '../models/sighting_report.dart';
 import '../providers/user_provider.dart';
 
 class RiskRemindersScreen extends StatelessWidget {
