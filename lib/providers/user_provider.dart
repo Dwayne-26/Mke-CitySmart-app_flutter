@@ -45,6 +45,7 @@ class UserProvider extends ChangeNotifier {
   List<SightingReport> _sightings = const [];
   List<PaymentReceipt> _receipts = const [];
   AdPreferences _adPreferences = const AdPreferences();
+  DateTime? _alertsMutedUntil;
   SubscriptionTier _tier = SubscriptionTier.free;
   List<MaintenanceReport> _maintenanceReports = const [];
   List<GarbageSchedule> _garbageSchedules = const [];
@@ -64,6 +65,7 @@ class UserProvider extends ChangeNotifier {
       _profile?.sweepingSchedules ?? _guestSweepingSchedules;
   List<Ticket> get tickets => _tickets;
   List<SightingReport> get sightings => _sightings;
+  DateTime? get alertsMutedUntil => _alertsMutedUntil;
   List<PaymentReceipt> get receipts => _receipts;
   AdPreferences get adPreferences =>
       _profile?.adPreferences ?? _adPreferences;
@@ -141,6 +143,16 @@ class UserProvider extends ChangeNotifier {
     _guestPermits = const [];
     _guestReservations = const [];
     _guestSweepingSchedules = const [];
+    notifyListeners();
+  }
+
+  void muteAlerts(Duration duration) {
+    _alertsMutedUntil = DateTime.now().add(duration);
+    notifyListeners();
+  }
+
+  void unmuteAlerts() {
+    _alertsMutedUntil = null;
     notifyListeners();
   }
 
@@ -287,6 +299,10 @@ class UserProvider extends ChangeNotifier {
   Future<void> _maybeNotifyNearbySighting(SightingReport report) async {
     if (report.latitude == null || report.longitude == null) return;
     final prefs = _profile?.preferences ?? UserPreferences.defaults();
+    if (_alertsMutedUntil != null &&
+        DateTime.now().isBefore(_alertsMutedUntil!)) {
+      return;
+    }
     final radiusMiles = prefs.geoRadiusMiles.toDouble();
     // Respect toggles: tow alerts for tow, parkingNotifications for enforcer.
     if (report.type == SightingType.towTruck && !prefs.towAlerts) return;

@@ -13,6 +13,7 @@ class RiskRemindersScreen extends StatelessWidget {
       builder: (context, provider, _) {
         final profile = provider.profile;
         final prefs = profile?.preferences ?? UserPreferences.defaults();
+        final mutedUntil = provider.alertsMutedUntil;
         if (profile == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Risk & reminders')),
@@ -110,6 +111,85 @@ class RiskRemindersScreen extends StatelessWidget {
                       provider.updatePreferences(reminderNotifications: v),
                 ),
               ),
+              const SizedBox(height: 12),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Mute alerts',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      if (mutedUntil != null)
+                        Text(
+                          'Muted until ${mutedUntil.toLocal().toString().substring(0, 16)}',
+                          style: const TextStyle(color: Colors.orange),
+                        )
+                      else
+                        const Text(
+                          'Alerts are active',
+                          style: TextStyle(color: Colors.green),
+                        ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () => provider.muteAlerts(
+                              const Duration(hours: 1),
+                            ),
+                            child: const Text('Mute 1h'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => provider.muteAlerts(
+                              const Duration(hours: 4),
+                            ),
+                            child: const Text('Mute 4h'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => provider.muteAlerts(
+                              const Duration(hours: 8),
+                            ),
+                            child: const Text('Mute 8h'),
+                          ),
+                          if (mutedUntil != null)
+                            TextButton(
+                              onPressed: provider.unmuteAlerts,
+                              child: const Text('Unmute'),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Recent alerts',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              ...provider.sightings.take(5).map(
+                (s) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    s.type == SightingType.towTruck
+                        ? Icons.local_shipping_outlined
+                        : Icons.shield_moon_outlined,
+                    color: s.type == SightingType.towTruck
+                        ? Colors.redAccent
+                        : Colors.blueGrey,
+                  ),
+                  title: Text(s.location),
+                  subtitle: Text(_formatAgo(s.reportedAt)),
+                ),
+              ),
               const SizedBox(height: 16),
               const Text(
                 'Alerts use your current location and radius. '
@@ -121,5 +201,14 @@ class RiskRemindersScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _formatAgo(DateTime time) {
+    final now = DateTime.now();
+    final diff = now.difference(time);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} hr ago';
+    return '${diff.inDays} day${diff.inDays == 1 ? '' : 's'} ago';
   }
 }
