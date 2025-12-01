@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../models/sighting_report.dart';
 import '../providers/user_provider.dart';
 import '../services/location_service.dart';
+import '../services/street_segment_service.dart';
 
 class ReportSightingScreen extends StatefulWidget {
   const ReportSightingScreen({super.key});
@@ -23,6 +24,7 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
   bool _locating = false;
   Position? _lastPosition;
   final _locationService = LocationService();
+  final _streetService = StreetSegmentService();
   String? _resolvedAddress;
 
   @override
@@ -256,7 +258,11 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
       );
       return;
     }
-    final address = await _reverseGeocode(position);
+    final segment = await _streetService.fetchByPoint(
+      lat: position.latitude,
+      lng: position.longitude,
+    );
+    final address = segment?.display() ?? await _reverseGeocode(position);
     if (!mounted) return;
     setState(() {
       _lastPosition = position;
