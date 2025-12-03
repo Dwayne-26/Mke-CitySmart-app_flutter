@@ -112,6 +112,11 @@ if [[ "$first_arg" == "pub" || "$first_arg" == "packages" ]]; then
   echo "Running (no dart-define flags needed): flutter $*"
   flutter "$@"
 else
-  echo "Running: flutter $* ${dart_defines[*]}"
-  flutter "$@" "${dart_defines[@]}"
+  joined_defines="${dart_defines[*]-}"
+  echo "Running: flutter $* $joined_defines"
+  if [[ ${#dart_defines[@]} -eq 0 ]]; then
+    flutter "$@"
+  else
+    flutter "$@" "${dart_defines[@]}"
+  fi
 fi
