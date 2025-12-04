@@ -26,6 +26,12 @@ workflows:
     artifacts:
       - build/ios/archive/*.xcarchive
       - build/ios/ipa/*.ipa
+    code_signing:
+      certificates:
+        - certificate: $IOS_DISTRIBUTION_CERTIFICATE
+          password: $IOS_CERTIFICATE_PASSWORD
+      provisioning_profiles:
+        - $IOS_PROVISIONING_PROFILE
 
   android_release:
     name: Android Release
