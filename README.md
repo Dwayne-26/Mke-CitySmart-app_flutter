@@ -49,6 +49,17 @@ drivers. This repository contains:
   - `FIREBASE_ENV_FILE` – entire `.env.firebase`.
   - `ANDROID_GOOGLE_SERVICES_JSON` – base64 of `google-services.json`.
   - `IOS_GOOGLE_SERVICE_INFO_PLIST` – base64 of `GoogleService-Info.plist`.
+- Codemagic users can run
+  ```bash
+  python scripts/codemagic_sync.py \
+    --app-id YOUR_CODEMAGIC_APP_ID \
+    --token $CODEMAGIC_TOKEN \
+    --env-file .env.firebase \
+    --android-json android/app/google-services.json \
+    --ios-plist ios/Runner/GoogleService-Info.plist
+  ```
+  to push the same secrets via Codemagic's REST API (all variables are marked
+  secure automatically).
 
 ## Automated Versioning
 - Every push to `main` triggers `.github/workflows/auto_version.yml`.
