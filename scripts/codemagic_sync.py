@@ -99,8 +99,8 @@ def bulk_import(app_id: str, token: str, group_id: str, variables: List[Dict[str
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Codemagic secret sync (v3)")
-    parser.add_argument("--app-id", required=True, help="Codemagic app ID")
-    parser.add_argument("--token", required=True, help="Codemagic API token")
+    parser.add_argument("--app-id", help="Codemagic app ID")
+    parser.add_argument("--token", help="Codemagic API token")
     parser.add_argument(
         "--group",
         required=True,
@@ -118,6 +118,25 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--provisioning-profile", type=pathlib.Path)
     parser.add_argument("--app-store-key", type=pathlib.Path)
     args = parser.parse_args(argv)
+
+    config = {}
+    config_path = pathlib.Path(__file__).with_name("codemagic.conf")
+    if config_path.exists():
+        for line in config_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            config[key.strip()] = value.strip()
+
+    if not args.app_id:
+        args.app_id = config.get("CODEMAGIC_APP_ID")
+    if not args.token:
+        args.token = config.get("CODEMAGIC_TOKEN")
+
+    if not args.app_id or not args.token:
+        print("Error: provide --app-id and --token (or define them in codemagic.conf).", file=sys.stderr)
+        return 1
 
     file_args = [
         ("env_file", args.env_file),

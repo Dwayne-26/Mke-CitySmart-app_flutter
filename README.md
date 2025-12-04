@@ -76,10 +76,7 @@ drivers. This repository contains:
 - Push Firebase secrets to Codemagic via API (creates/updates the
   `firebase-secrets` variable group):
   ```bash
-  export CODEMAGIC_TOKEN=...  # Generate under Codemagic user settings
   python scripts/codemagic_sync.py \
-    --app-id YOUR_CODEMAGIC_APP_ID \
-    --token "$CODEMAGIC_TOKEN" \
     --group firebase-secrets \
     --env-file .env.firebase \
     --android-json .secrets/firebase/android/google-services.json \
@@ -88,8 +85,6 @@ drivers. This repository contains:
 - To upload signing assets use the same script with extra flags, e.g.
   ```bash
   python scripts/codemagic_sync.py \
-    --app-id YOUR_CODEMAGIC_APP_ID \
-    --token "$CODEMAGIC_TOKEN" \
     --group ios-signing \
     --distribution-p12 .secrets/apple/codemagic_code_sign.p12 \
     --distribution-p12-password '<p12 password>' \
@@ -98,11 +93,12 @@ drivers. This repository contains:
 - And for App Store Connect API keys:
   ```bash
   python scripts/codemagic_sync.py \
-    --app-id YOUR_CODEMAGIC_APP_ID \
-    --token "$CODEMAGIC_TOKEN" \
     --group app-store-connect \
     --app-store-key .secrets/apple/Codemagic_AppStoreConnectApi_AuthKey_<KEYID>.p8
   ```
+- The script reads `codemagic.conf` (same directory) for default
+  `CODEMAGIC_APP_ID` and `CODEMAGIC_TOKEN`. Copy the template and fill in local
+  values; the file is git-ignored because it contains secrets.
 
 ## Automated Versioning
 - Every push to `main` triggers `.github/workflows/auto_version.yml`.

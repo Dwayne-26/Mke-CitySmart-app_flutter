@@ -48,6 +48,9 @@ app.*.map.json
 CitySmart_App_Bundle/
 CitySmart_App_Bundle.zip
 
+# Local Codemagic configuration
+codemagic.conf
+
 # Firebase / secrets staging (generated at build time)
 .env.firebase
 .secrets/
