@@ -73,15 +73,16 @@ drivers. This repository contains:
     `APP_STORE_CONNECT_PRIVATE_KEY`, `APP_STORE_CONNECT_APP_ID`.
   - `android-signing` (optional): `ANDROID_KEYSTORE_BASE64`,
     `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
-- Push Firebase secrets to Codemagic via API:
+- Push Firebase secrets to Codemagic via API (creates/updates the
+  `firebase-secrets` variable group):
   ```bash
   export CODEMAGIC_TOKEN=...  # Generate under Codemagic user settings
   python scripts/codemagic_sync.py \
-    --app-id YOUR_APP_ID \
     --token "$CODEMAGIC_TOKEN" \
+    --group firebase-secrets \
     --env-file .env.firebase \
-    --android-json android/app/google-services.json \
-    --ios-plist ios/Runner/GoogleService-Info.plist
+    --android-json .secrets/firebase/android/google-services.json \
+    --ios-plist .secrets/firebase/ios/GoogleService-Info.plist
   ```
 
 ## Automated Versioning
