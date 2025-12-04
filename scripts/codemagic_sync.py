@@ -21,7 +21,7 @@ from typing import Any, Dict, List
 
 import urllib.request
 
-API_ROOT = "https://codemagic.io/api/v3"
+API_ROOT = "https://codemagic.io/api/v3/apps"
 
 
 def api_request(
@@ -48,8 +48,8 @@ def encode_file(path: pathlib.Path) -> str:
     return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
-def list_groups(token: str) -> List[Dict[str, Any]]:
-    data = api_request("GET", "/variable-groups", token)
+def list_groups(app_id: str, token: str) -> List[Dict[str, Any]]:
+    data = api_request("GET", f"/{app_id}/variable-groups", token)
     if isinstance(data, dict):
         groups = (
             data.get("variableGroups")
@@ -64,8 +64,8 @@ def list_groups(token: str) -> List[Dict[str, Any]]:
     return []
 
 
-def ensure_group(token: str, name: str, description: str | None) -> str:
-    for group in list_groups(token):
+def ensure_group(app_id: str, token: str, name: str, description: str | None) -> str:
+    for group in list_groups(app_id, token):
         if group.get("name") == name:
             group_id = group.get("id") or group.get("_id")
             if group_id:
@@ -73,7 +73,7 @@ def ensure_group(token: str, name: str, description: str | None) -> str:
     payload: Dict[str, Any] = {"name": name}
     if description:
         payload["description"] = description
-    created = api_request("POST", "/variable-groups", token, payload)
+    created = api_request("POST", f"/{app_id}/variable-groups", token, payload)
     group_id = created.get("id") or created.get("_id")
     if not group_id:
         raise RuntimeError("Failed to create variable group")
@@ -81,11 +81,11 @@ def ensure_group(token: str, name: str, description: str | None) -> str:
     return group_id
 
 
-def bulk_import(token: str, group_id: str, variables: List[Dict[str, Any]]) -> None:
+def bulk_import(app_id: str, token: str, group_id: str, variables: List[Dict[str, Any]]) -> None:
     payload = {"variables": variables}
     api_request(
         "POST",
-        f"/variable-groups/{group_id}/variables/bulk-import",
+        f"/{app_id}/variable-groups/{group_id}/variables/bulk-import",
         token,
         payload,
     )
@@ -94,6 +94,7 @@ def bulk_import(token: str, group_id: str, variables: List[Dict[str, Any]]) -> N
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Codemagic secret sync (v3)")
+    parser.add_argument("--app-id", required=True, help="Codemagic app ID")
     parser.add_argument("--token", required=True, help="Codemagic API token")
     parser.add_argument(
         "--group",
@@ -114,7 +115,7 @@ def main(argv: list[str]) -> int:
             print(f"Missing file: {path}", file=sys.stderr)
             return 1
 
-    group_id = ensure_group(args.token, args.group, args.description)
+    group_id = ensure_group(args.app_id, args.token, args.group, args.description)
     variables = [
         {
             "name": "FIREBASE_ENV_FILE",
@@ -132,7 +133,7 @@ def main(argv: list[str]) -> int:
             "secure": True,
         },
     ]
-    bulk_import(args.token, group_id, variables)
+    bulk_import(args.app_id, args.token, group_id, variables)
     return 0
 
 

@@ -78,6 +78,7 @@ drivers. This repository contains:
   ```bash
   export CODEMAGIC_TOKEN=...  # Generate under Codemagic user settings
   python scripts/codemagic_sync.py \
+    --app-id YOUR_CODEMAGIC_APP_ID \
     --token "$CODEMAGIC_TOKEN" \
     --group firebase-secrets \
     --env-file .env.firebase \
