@@ -26,21 +26,6 @@ workflows:
     artifacts:
       - build/ios/archive/*.xcarchive
       - build/ios/ipa/*.ipa
-    code_signing:
-      certificates:
-        - certificate: $IOS_DISTRIBUTION_CERTIFICATE
-          password: $IOS_CERTIFICATE_PASSWORD
-      provisioning_profiles:
-        - $IOS_PROVISIONING_PROFILE
-    publishing:
-      app_store_connect:
-        apple_id: $APP_STORE_CONNECT_APPLE_ID
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        private_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        app_id: $APP_STORE_CONNECT_APP_ID
-        submit_to_testflight: true
-        submit_to_app_store: true
 
   android_release:
     name: Android Release
