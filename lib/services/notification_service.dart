@@ -6,7 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../firebase_options.dart';
+import '../firebase_bootstrap.dart';
 import 'api_client.dart';
 
 class NotificationService {
@@ -17,7 +17,7 @@ class NotificationService {
   final _local = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
-  Future<void> initialize() async {
+  Future<void> initialize({required bool enableRemoteNotifications}) async {
     if (_initialized) return;
     // Skip push setup on web to avoid service worker/service constraints unless configured.
     if (kIsWeb) {
@@ -25,12 +25,21 @@ class NotificationService {
       return;
     }
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      await _setupLocalNotifications();
+      if (!enableRemoteNotifications) {
+        log('Push notifications disabled; init limited to local notifications.');
+        _initTimeZones();
+        _initialized = true;
+        return;
+      }
+      if (Firebase.apps.isEmpty && !await initializeFirebaseIfAvailable()) {
+        log('Skipping push notifications (Firebase unavailable).');
+        _initTimeZones();
+        _initialized = true;
+        return;
+      }
       _messaging = FirebaseMessaging.instance;
       await _requestPermissions();
-      await _setupLocalNotifications();
       await _registerToken();
       _initTimeZones();
 
@@ -151,12 +160,8 @@ class NotificationService {
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-  } catch (_) {
-    // Already initialized.
+  if (Firebase.apps.isEmpty) {
+    await initializeFirebaseIfAvailable();
   }
   // Optionally handle background payloads for risk alerts.
 }

@@ -314,12 +314,6 @@
       "languageVersion": "3.5"
     },
     {
-      "name": "google_mobile_ads",
-      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/google_mobile_ads-6.0.0",
-      "packageUri": "lib/",
-      "languageVersion": "3.6"
-    },
-    {
       "name": "gsettings",
       "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/gsettings-0.2.8",
       "packageUri": "lib/",
@@ -447,9 +441,9 @@
     },
     {
       "name": "meta",
-      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/meta-1.16.0",
+      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/meta-1.17.0",
       "packageUri": "lib/",
-      "languageVersion": "2.12"
+      "languageVersion": "3.5"
     },
     {
       "name": "mgrs_dart",
@@ -645,7 +639,7 @@
     },
     {
       "name": "test_api",
-      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/test_api-0.7.6",
+      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/test_api-0.7.7",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
@@ -747,7 +741,7 @@
     },
     {
       "name": "webview_flutter_android",
-      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/webview_flutter_android-4.10.9",
+      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/webview_flutter_android-4.10.11",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -759,7 +753,7 @@
     },
     {
       "name": "webview_flutter_wkwebview",
-      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.4",
+      "rootUri": "file:///Users/vincentrosso/.pub-cache/hosted/pub.dev/webview_flutter_wkwebview-3.23.5",
       "packageUri": "lib/",
       "languageVersion": "3.9"
     },
@@ -795,8 +789,8 @@
     }
   ],
   "generator": "pub",
-  "generatorVersion": "3.9.2",
+  "generatorVersion": "3.10.3",
   "flutterRoot": "file:///usr/local/Caskroom/flutter/3.29.3/flutter",
-  "flutterVersion": "3.35.7",
+  "flutterVersion": "3.38.4",
   "pubCache": "file:///Users/vincentrosso/.pub-cache"
 }

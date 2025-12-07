@@ -26,7 +26,7 @@ drivers. This repository contains:
 
 ## Local Setup
 1. Install Flutter and ensure `flutter doctor` passes for your target platforms.
-2. Copy secrets template and fill in real values:
+2. Copy secrets template and fill in real values (Firebase + App Store Connect):
    ```bash
    cp .env.firebase.example .env.firebase
    # edit and point to secure google-services.json / GoogleService-Info.plist files
@@ -38,6 +38,33 @@ drivers. This repository contains:
    ./scripts/flutter_with_secrets.sh build apk --release
    ```
 4. Use VS Code/Android Studio normally once the native config files are copied.
+5. Run the doctor to verify Flutter + secrets are wired up:
+   ```bash
+   python scripts/doctor.py
+   ```
+
+## Local Secrets Layout
+- `.env.firebase` – copy from the example and fill in every `FIREBASE_*` plus the
+  App Store Connect values (`APP_STORE_CONNECT_API_KEY_ID`,
+  `APP_STORE_CONNECT_API_ISSUER`). Request the real values from the CitySmart
+  release manager and paste them into this file; it never leaves your machine.
+- `.secrets/firebase/android/google-services.json` /
+  `.secrets/firebase/ios/GoogleService-Info.plist` /
+  `.secrets/firebase/macos/GoogleService-Info.plist` – download the official
+  Firebase configs (again provided via the secure secrets bundle) and drop them
+  into these exact paths. `scripts/flutter_with_secrets.sh` and
+  `scripts/doctor.py` both look here automatically.
+- `.secrets/apple/…` – store signing assets like
+  `codemagic_code_sign.p12`, `J8U8FW3PA8_*.mobileprovision`, and any App Store
+  Connect API keys used by Codemagic. Use `scripts/codemagic_sync.py` to push
+  these to Codemagic groups when needed.
+- `~/.private_keys/AuthKey_<KEYID>.p8` – Apple requires App Store Connect API
+  keys for `xcrun altool` builds to live in one of their default directories.
+  Keep the `.p8` file out of the repo (the git-ignored `private_keys/` folder is
+  available as a staging area) and copy it into `~/.private_keys/` so
+  `scripts/ios_build_and_upload.sh` can upload successfully.
+- Whenever you refresh secrets or change machines, re-run
+  `python scripts/doctor.py` to confirm nothing drifted.
 
 ## Firebase Secrets & CI
 - Sensitive files (`android/app/google-services.json`,
@@ -130,6 +157,11 @@ drivers. This repository contains:
   config files, and forwards all Firebase dart-defines.
 - `scripts/bump_version.py` – increments the `pubspec.yaml` version string.
 - `scripts/create_citysmart_bundle.sh` – exports assets for marketing demos.
+- `scripts/doctor.py` – sanity-checks Flutter installs and required Firebase
+  secrets (env vars + `GoogleService-Info.plist` paths).
+- `scripts/ios_build_and_upload.sh` – bumps the `pubspec.yaml` version + `CFBundleVersion`, runs
+  `flutter build ipa -v --release`, and uploads the resulting IPA with `xcrun altool`
+  using `APP_STORE_CONNECT_*` values sourced from `.env.firebase` (override via env vars as needed).
 
 ## Project Structure
 - `lib/` – Flutter code organized by screens, services, providers, theme.
@@ -144,5 +176,8 @@ drivers. This repository contains:
   to Google Play/App Store.
 - Wire the `backend/` API routes to live services for parking predictions,
   device registration, and reporting.
+- For App Store uploads, confirm export compliance by answering Apple's prompt or by
+  relying on `ITSAppUsesNonExemptEncryption=false` in `ios/Runner/Info.plist` if you do
+  not ship custom encryption.
 
 Happy building! 🚀

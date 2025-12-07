@@ -19,7 +19,11 @@ local workstation) is responsible for copying them into place before running
 
 1. Copy `.env.firebase.example` to `.env.firebase` (which is git-ignored).
 2. Fill in the full set of `FIREBASE_*` values plus the paths to the native
-   Firebase config files that you downloaded from the Firebase console.
+   Firebase config files that you downloaded from the Firebase console. The
+   example file assumes you store them under `.secrets/firebase/<platform>/`
+   so scripts and `python scripts/doctor.py` all look in one place. The same
+   file now also holds App Store Connect values (`APP_STORE_CONNECT_API_KEY_ID`
+   and `APP_STORE_CONNECT_API_ISSUER`) for the iOS upload helper.
 3. Run Flutter commands through the wrapper script so secrets are injected,
    for example:
 
@@ -35,7 +39,11 @@ local workstation) is responsible for copying them into place before running
      `lib/firebase_options.dart` receives the correct credentials at compile
      time.
 
-4. CI/CD can use the same script by setting `FIREBASE_ENV_FILE` to point at an
+4. Run the doctor to confirm everything is wired up before building:
+   ```bash
+   python scripts/doctor.py
+   ```
+5. CI/CD can use the same script by setting `FIREBASE_ENV_FILE` to point at an
    injected secret file or by exporting all the required variables before
    invoking the wrapper.
 

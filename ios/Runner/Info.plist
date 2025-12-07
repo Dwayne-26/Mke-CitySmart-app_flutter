@@ -23,9 +23,19 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>7</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-2009498889741048~5799735559</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Allow MKEPark to tag enforcement/tow sightings with your current location.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Allow MKEPark to tag enforcement/tow sightings with your current location.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow MKEPark to attach photos to maintenance reports.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -45,13 +55,5 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Allow MKEPark to tag enforcement/tow sightings with your current location.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Allow MKEPark to tag enforcement/tow sightings with your current location.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow MKEPark to attach photos to maintenance reports.</string>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-2009498889741048~5799735559</string>
 </dict>
 </plist>
