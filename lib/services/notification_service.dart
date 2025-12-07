@@ -7,6 +7,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../firebase_bootstrap.dart';
+import 'cloud_log_service.dart';
 import 'api_client.dart';
 
 class NotificationService {
@@ -28,6 +29,7 @@ class NotificationService {
       await _setupLocalNotifications();
       if (!enableRemoteNotifications) {
         log('Push notifications disabled; init limited to local notifications.');
+        CloudLogService.instance.logEvent('push_notifications_disabled');
         _initTimeZones();
         _initialized = true;
         return;
@@ -42,6 +44,7 @@ class NotificationService {
       await _requestPermissions();
       await _registerToken();
       _initTimeZones();
+      CloudLogService.instance.logEvent('push_notifications_enabled');
 
       FirebaseMessaging.onMessage.listen((message) {
         final notification = message.notification;
@@ -109,6 +112,10 @@ class NotificationService {
       sound: true,
     );
     log('Notification permission: ${settings.authorizationStatus}');
+    CloudLogService.instance.logEvent(
+      'push_permission_prompt',
+      data: {'status': settings.authorizationStatus.name},
+    );
   }
 
   Future<void> _setupLocalNotifications() async {
@@ -143,8 +150,14 @@ class NotificationService {
         },
       );
       log('Registered push token: $token');
+      CloudLogService.instance.logEvent(
+        'push_token_registered',
+        data: {'platform': _platform()},
+      );
     } catch (e) {
       log('Failed to register push token: $e');
+      CloudLogService.instance
+          .recordError('push_token_register_failed', e, StackTrace.current);
     }
   }
 

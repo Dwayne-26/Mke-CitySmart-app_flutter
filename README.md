@@ -75,7 +75,17 @@ drivers. This repository contains:
 - GitHub secrets expected by `mobile_build.yml`:
   - `FIREBASE_ENV_FILE` – entire `.env.firebase`.
   - `ANDROID_GOOGLE_SERVICES_JSON` – base64 of `google-services.json`.
-  - `IOS_GOOGLE_SERVICE_INFO_PLIST` – base64 of `GoogleService-Info.plist`.
+- `IOS_GOOGLE_SERVICE_INFO_PLIST` – base64 of `GoogleService-Info.plist`.
+
+## Cloud Logging
+- Firestore is used for lightweight cloud logging. `lib/services/cloud_log_service.dart`
+  initializes once Firebase is ready and writes events to the `appLogs` collection
+  (each entry includes an `event` name, metadata, and timestamp).
+- Enable Firestore for your Firebase project and grant the app write access to
+  `appLogs` (e.g., via environment-specific security rules).
+- Common events include app bootstrap, tab changes, sightings, auth actions, and
+  push-notification lifecycle events, giving you a basic timeline of user
+  behavior without shipping full analytics SDKs.
 
 ## Codemagic CI/CD
 - GitHub Actions workflows are paused (only manual `workflow_dispatch`) because

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,15 +20,16 @@ import '../models/vehicle.dart';
 import '../models/maintenance_report.dart';
 import '../models/garbage_schedule.dart';
 import '../models/city_rule_pack.dart';
+import '../data/city_rule_packs.dart';
+import '../data/sample_schedules.dart';
+import '../data/sample_tickets.dart';
+import '../services/api_client.dart';
+import '../services/cloud_log_service.dart';
+import '../services/location_service.dart';
+import '../services/notification_service.dart';
+import '../services/report_api_service.dart';
 import '../services/ticket_api_service.dart';
 import '../services/user_repository.dart';
-import '../data/sample_tickets.dart';
-import '../services/report_api_service.dart';
-import '../services/api_client.dart';
-import '../data/sample_schedules.dart';
-import '../services/notification_service.dart';
-import '../data/city_rule_packs.dart';
-import '../services/location_service.dart';
 
 class UserProvider extends ChangeNotifier {
   UserProvider({required UserRepository userRepository, FirebaseAuth? auth})
@@ -207,6 +209,7 @@ class UserProvider extends ChangeNotifier {
     _guestReservations = _seedReservations();
     _guestSweepingSchedules = _seedSweepingSchedules();
     notifyListeners();
+    unawaited(CloudLogService.instance.logEvent('guest_session_started'));
   }
 
   Future<String?> register({
@@ -248,10 +251,24 @@ class UserProvider extends ChangeNotifier {
       _guestMode = false;
       await _hydrateFromStorage();
       notifyListeners();
+      unawaited(
+        CloudLogService.instance.logEvent(
+          'user_register',
+          data: {'method': 'email', 'userId': user.uid},
+        ),
+      );
       return null;
     } on FirebaseAuthException catch (e) {
+      unawaited(
+        CloudLogService.instance
+            .recordError('register_auth_error', e, StackTrace.current),
+      );
       return _mapAuthError(e);
-    } catch (_) {
+    } catch (err, stack) {
+      unawaited(
+        CloudLogService.instance
+            .recordError('register_generic_error', err, stack),
+      );
       return 'Unable to create account right now.';
     }
   }
@@ -289,10 +306,24 @@ class UserProvider extends ChangeNotifier {
       _guestMode = false;
       await _hydrateFromStorage();
       notifyListeners();
+      unawaited(
+        CloudLogService.instance.logEvent(
+          'user_login',
+          data: {'method': 'email', 'userId': user.uid},
+        ),
+      );
       return null;
     } on FirebaseAuthException catch (e) {
+      unawaited(
+        CloudLogService.instance
+            .recordError('login_auth_error', e, StackTrace.current),
+      );
       return _mapAuthError(e);
-    } catch (_) {
+    } catch (err, stack) {
+      unawaited(
+        CloudLogService.instance
+            .recordError('login_generic_error', err, stack),
+      );
       return 'Unable to sign in right now.';
     }
   }
@@ -317,6 +348,7 @@ class UserProvider extends ChangeNotifier {
     _tenantId = 'default';
     _languageCode = 'en';
     notifyListeners();
+    unawaited(CloudLogService.instance.logEvent('user_logout'));
   }
 
   Future<void> updateProfile({
@@ -347,6 +379,16 @@ class UserProvider extends ChangeNotifier {
     _profile = updated;
     await _repository.saveProfile(updated);
     notifyListeners();
+    unawaited(
+      CloudLogService.instance.logEvent(
+        'profile_updated',
+        data: {
+          'cityId': updated.cityId,
+          'language': updated.languageCode,
+          'tier': updated.tier.name,
+        },
+      ),
+    );
   }
 
   Future<void> setGarbageSchedules(List<GarbageSchedule> schedules) async {
@@ -376,6 +418,15 @@ class UserProvider extends ChangeNotifier {
     _reportApi.sendSighting(report);
     _maybeNotifyNearbySighting(report);
     notifyListeners();
+    unawaited(
+      CloudLogService.instance.logEvent(
+        'report_sighting',
+        data: {
+          'type': report.type.name,
+          'hasLocation': report.latitude != null && report.longitude != null,
+        },
+      ),
+    );
   }
 
   Future<void> _maybeNotifyNearbySighting(SightingReport report) async {

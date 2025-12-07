@@ -1,10 +1,10 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'citysmart/branding_preview.dart';
 import 'firebase_bootstrap.dart';
+import 'services/cloud_log_service.dart';
 import 'providers/user_provider.dart';
 import 'screens/auth_screen.dart';
 import 'screens/charging_map_screen.dart';
@@ -21,12 +21,12 @@ import 'screens/ticket_workflow_screen.dart';
 import 'screens/street_sweeping_screen.dart';
 import 'screens/vehicle_management_screen.dart';
 import 'screens/welcome_screen.dart';
-import 'services/user_repository.dart';
 import 'screens/history_receipts_screen.dart';
 import 'screens/maintenance_report_screen.dart';
 import 'screens/garbage_schedule_screen.dart';
 import 'screens/city_settings_screen.dart';
 import 'services/notification_service.dart';
+import 'services/user_repository.dart';
 import 'screens/alternate_side_parking_screen.dart';
 import 'screens/parking_heatmap_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -41,7 +41,12 @@ Future<void> main() async {
   const enableRemoteNotifications =
       bool.fromEnvironment('ENABLE_PUSH_NOTIFICATIONS', defaultValue: false);
   final firebaseReady = await initializeFirebaseIfAvailable();
-  final shouldInitNotifications = firebaseReady && enableRemoteNotifications;
+  await CloudLogService.instance.initialize(firebaseReady: firebaseReady);
+  if (!firebaseReady) {
+    runApp(const MissingFirebaseConfigApp());
+    return;
+  }
+  final shouldInitNotifications = enableRemoteNotifications;
   await NotificationService.instance
       .initialize(enableRemoteNotifications: shouldInitNotifications);
   final repository = await UserRepository.create();
@@ -127,7 +132,13 @@ class _CitySmartShellState extends State<CitySmartShell> {
       body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
-        onTap: (i) => setState(() => _index = i),
+        onTap: (i) {
+          if (_index != i) {
+            CloudLogService.instance
+                .logEvent('tab_change', data: {'tab': _tabLabel(i)});
+          }
+          setState(() => _index = i);
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_outlined),
@@ -146,6 +157,7 @@ class _CitySmartShellState extends State<CitySmartShell> {
   void _showQuickStart() {
     if (_quickShown || _tutorialDone) return;
     _quickShown = true;
+    CloudLogService.instance.logEvent('quick_start_prompt');
     if (!mounted) return;
     showModalBottomSheet(
       context: context,
@@ -274,6 +286,43 @@ class _CitySmartShellState extends State<CitySmartShell> {
           ),
         );
       },
+    );
+  }
+
+  String _tabLabel(int index) {
+    switch (index) {
+      case 0:
+        return 'dashboard';
+      case 1:
+        return 'map';
+      case 2:
+        return 'feed';
+      default:
+        return 'unknown';
+    }
+  }
+}
+
+class MissingFirebaseConfigApp extends StatelessWidget {
+  const MissingFirebaseConfigApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Firebase configuration is missing.\n\n'
+              'Copy your GoogleService-Info.plist / google-services.json files into '
+              '.secrets/firebase/... and rerun the app.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
