@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/user_provider.dart';
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.initialTabIndex = 0});
+
+  final int initialTabIndex;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -22,6 +25,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
   bool _loggingIn = false;
   bool _registering = false;
+  bool _socialLoading = false;
+
+  bool get _busy => _loggingIn || _registering || _socialLoading;
 
   @override
   void dispose() {
@@ -80,6 +86,40 @@ class _AuthScreenState extends State<AuthScreen> {
     Navigator.pushReplacementNamed(context, '/landing');
   }
 
+  Future<void> _handleGoogle() async {
+    setState(() {
+      _socialLoading = true;
+    });
+    final provider = context.read<UserProvider>();
+    final error = await provider.signInWithGoogle();
+    setState(() {
+      _socialLoading = false;
+    });
+    if (!mounted) return;
+    if (error != null) {
+      _showMessage(error);
+      return;
+    }
+    Navigator.pushReplacementNamed(context, '/landing');
+  }
+
+  Future<void> _handleApple() async {
+    setState(() {
+      _socialLoading = true;
+    });
+    final provider = context.read<UserProvider>();
+    final error = await provider.signInWithApple();
+    setState(() {
+      _socialLoading = false;
+    });
+    if (!mounted) return;
+    if (error != null) {
+      _showMessage(error);
+      return;
+    }
+    Navigator.pushReplacementNamed(context, '/landing');
+  }
+
   void _showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
@@ -88,6 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Account Access'),
@@ -122,6 +163,24 @@ class _AuthScreenState extends State<AuthScreen> {
                       ? null
                       : 'Password must be 6+ characters',
                 ),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _loggingIn || _socialLoading ? null : _handleGoogle,
+                  icon: const Icon(Icons.login),
+                  label: const Text('Continue with Google'),
+                ),
+                const SizedBox(height: 8),
+                if (!kIsWeb &&
+                    (defaultTargetPlatform == TargetPlatform.iOS ||
+                        defaultTargetPlatform == TargetPlatform.macOS))
+                  OutlinedButton.icon(
+                    onPressed:
+                        _loggingIn || _socialLoading ? null : _handleApple,
+                    icon: const Icon(Icons.apple),
+                    label: const Text('Continue with Apple'),
+                  ),
               ],
             ),
             _AuthForm(
@@ -168,7 +227,7 @@ class _AuthScreenState extends State<AuthScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: OutlinedButton.icon(
-              onPressed: _loggingIn || _registering
+              onPressed: _busy
                   ? null
                   : () {
                       _continueAsGuest();

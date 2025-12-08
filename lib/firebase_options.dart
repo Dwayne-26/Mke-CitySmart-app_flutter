@@ -19,84 +19,30 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: String.fromEnvironment(
-      'FIREBASE_WEB_API_KEY',
-      defaultValue: 'MISSING_FIREBASE_WEB_API_KEY',
-    ),
-    appId: String.fromEnvironment(
-      'FIREBASE_WEB_APP_ID',
-      defaultValue: 'MISSING_FIREBASE_WEB_APP_ID',
-    ),
-    messagingSenderId: String.fromEnvironment(
-      'FIREBASE_WEB_MESSAGING_SENDER_ID',
-      defaultValue: 'MISSING_FIREBASE_WEB_MESSAGING_SENDER_ID',
-    ),
-    projectId: String.fromEnvironment(
-      'FIREBASE_WEB_PROJECT_ID',
-      defaultValue: 'MISSING_FIREBASE_WEB_PROJECT_ID',
-    ),
-    authDomain: String.fromEnvironment(
-      'FIREBASE_WEB_AUTH_DOMAIN',
-      defaultValue: 'MISSING_FIREBASE_WEB_AUTH_DOMAIN',
-    ),
-    storageBucket: String.fromEnvironment(
-      'FIREBASE_WEB_STORAGE_BUCKET',
-      defaultValue: 'MISSING_FIREBASE_WEB_STORAGE_BUCKET',
-    ),
-    measurementId: String.fromEnvironment(
-      'FIREBASE_WEB_MEASUREMENT_ID',
-      defaultValue: 'MISSING_FIREBASE_WEB_MEASUREMENT_ID',
-    ),
+    apiKey: 'AIzaSyC1HAQQo9WNYdUL2hODZL-gugYvNGgC_Fs',
+    appId: '1:802081773281:web:e95fba34813b26ff0009a0',
+    messagingSenderId: '802081773281',
+    projectId: 'mkeparkapp-6edc3',
+    authDomain: 'mkeparkapp-6edc3.firebaseapp.com',
+    storageBucket: 'mkeparkapp-6edc3.firebasestorage.app',
+    measurementId: 'G-J12YLCNLDY',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: String.fromEnvironment(
-      'FIREBASE_ANDROID_API_KEY',
-      defaultValue: 'MISSING_FIREBASE_ANDROID_API_KEY',
-    ),
-    appId: String.fromEnvironment(
-      'FIREBASE_ANDROID_APP_ID',
-      defaultValue: 'MISSING_FIREBASE_ANDROID_APP_ID',
-    ),
-    messagingSenderId: String.fromEnvironment(
-      'FIREBASE_ANDROID_MESSAGING_SENDER_ID',
-      defaultValue: 'MISSING_FIREBASE_ANDROID_MESSAGING_SENDER_ID',
-    ),
-    projectId: String.fromEnvironment(
-      'FIREBASE_ANDROID_PROJECT_ID',
-      defaultValue: 'MISSING_FIREBASE_ANDROID_PROJECT_ID',
-    ),
-    storageBucket: String.fromEnvironment(
-      'FIREBASE_ANDROID_STORAGE_BUCKET',
-      defaultValue: 'MISSING_FIREBASE_ANDROID_STORAGE_BUCKET',
-    ),
+    apiKey: 'AIzaSyAh_ZSbyPodEEkBHSBlb9vksmVZnyDZf4U',
+    appId: '1:802081773281:android:55de0e46223bddcf0009a0',
+    messagingSenderId: '802081773281',
+    projectId: 'mkeparkapp-6edc3',
+    storageBucket: 'mkeparkapp-6edc3.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: String.fromEnvironment(
-      'FIREBASE_IOS_API_KEY',
-      defaultValue: 'MISSING_FIREBASE_IOS_API_KEY',
-    ),
-    appId: String.fromEnvironment(
-      'FIREBASE_IOS_APP_ID',
-      defaultValue: 'MISSING_FIREBASE_IOS_APP_ID',
-    ),
-    messagingSenderId: String.fromEnvironment(
-      'FIREBASE_IOS_MESSAGING_SENDER_ID',
-      defaultValue: 'MISSING_FIREBASE_IOS_MESSAGING_SENDER_ID',
-    ),
-    projectId: String.fromEnvironment(
-      'FIREBASE_IOS_PROJECT_ID',
-      defaultValue: 'MISSING_FIREBASE_IOS_PROJECT_ID',
-    ),
-    storageBucket: String.fromEnvironment(
-      'FIREBASE_IOS_STORAGE_BUCKET',
-      defaultValue: 'MISSING_FIREBASE_IOS_STORAGE_BUCKET',
-    ),
-    iosBundleId: String.fromEnvironment(
-      'FIREBASE_IOS_BUNDLE_ID',
-      defaultValue: 'MISSING_FIREBASE_IOS_BUNDLE_ID',
-    ),
+    apiKey: 'AIzaSyCM8iSNLw1mX2AxaRSPNeK28Na8lqIRPFA',
+    appId: '1:802081773281:ios:3a6fd889c11c626f0009a0',
+    messagingSenderId: '802081773281',
+    projectId: 'mkeparkapp-6edc3',
+    storageBucket: 'mkeparkapp-6edc3.firebasestorage.app',
+    iosBundleId: 'com.mkeparkapp.app',
   );
 
   static const FirebaseOptions macos = android;

@@ -164,6 +164,8 @@ class AlternateSideParkingService {
 }
 
 int _dayOfYear(DateTime date) {
-  final start = DateTime(date.year, 1, 1);
-  return date.difference(start).inDays + 1;
+  // Use UTC to avoid DST offsets skewing parity calculations.
+  final start = DateTime.utc(date.year, 1, 1);
+  final target = DateTime.utc(date.year, date.month, date.day);
+  return target.difference(start).inDays + 1;
 }

@@ -31,6 +31,10 @@ class WeatherAlert {
 }
 
 class WeatherService {
+  WeatherService({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
   Future<WeatherSummary?> fetchCurrent({
     required double lat,
     required double lng,
@@ -38,8 +42,9 @@ class WeatherService {
     // Step 1: resolve grid via points endpoint
     final pointsUri = Uri.parse(
         'https://api.weather.gov/points/${lat.toStringAsFixed(4)},${lng.toStringAsFixed(4)}');
-    final pointsResp =
-        await http.get(pointsUri, headers: _headers()).timeout(const Duration(seconds: 10));
+    final pointsResp = await _client
+        .get(pointsUri, headers: _headers())
+        .timeout(const Duration(seconds: 10));
     if (pointsResp.statusCode != 200) return null;
     final pointsJson = jsonDecode(pointsResp.body) as Map<String, dynamic>;
     final hourlyUrl =
@@ -47,8 +52,9 @@ class WeatherService {
     if (hourlyUrl == null) return null;
 
     // Step 2: grab first period from hourly forecast
-    final hourlyResp =
-        await http.get(Uri.parse(hourlyUrl), headers: _headers()).timeout(const Duration(seconds: 10));
+    final hourlyResp = await _client
+        .get(Uri.parse(hourlyUrl), headers: _headers())
+        .timeout(const Duration(seconds: 10));
     if (hourlyResp.statusCode != 200) return null;
     final hourlyJson = jsonDecode(hourlyResp.body) as Map<String, dynamic>;
     final periods = hourlyJson['properties']?['periods'] as List<dynamic>?;
@@ -75,7 +81,7 @@ class WeatherService {
   }) async {
     final alertsUri = Uri.parse(
         'https://api.weather.gov/alerts/active?point=${lat.toStringAsFixed(4)},${lng.toStringAsFixed(4)}');
-    final resp = await http
+    final resp = await _client
         .get(alertsUri, headers: _headers())
         .timeout(const Duration(seconds: 10));
     if (resp.statusCode != 200) return const [];

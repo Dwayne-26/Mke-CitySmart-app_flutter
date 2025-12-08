@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/permit.dart';
@@ -254,23 +256,11 @@ class UserProvider extends ChangeNotifier {
       if (user == null) {
         return 'Account creation failed. Please try again.';
       }
-      await _repository.setActiveUser(user.uid);
-      final newProfile = UserProfile(
-        id: user.uid,
-        name: name,
-        email: email,
+      await _ensureProfileForUser(
+        user,
+        fallbackName: name,
         phone: phone,
-        preferences: UserPreferences.defaults(),
-        vehicles: const [],
-        permits: _seedPermits(ownerHint: name),
-        reservations: _seedReservations(ownerHint: name),
-        sweepingSchedules: _seedSweepingSchedules(ownerHint: name),
       );
-      await _repository.saveProfile(newProfile);
-      _profile = newProfile;
-      _guestMode = false;
-      await _hydrateFromStorage();
-      notifyListeners();
       unawaited(
         CloudLogService.instance.logEvent(
           'user_register',
@@ -306,29 +296,12 @@ class UserProvider extends ChangeNotifier {
       if (user == null) {
         return 'Unable to sign in right now.';
       }
-      await _repository.setActiveUser(user.uid);
-      var stored = await _repository.loadProfile();
-      if (stored == null) {
-        final fallbackName = user.displayName?.trim().isNotEmpty == true
+      await _ensureProfileForUser(
+        user,
+        fallbackName: user.displayName?.trim().isNotEmpty == true
             ? user.displayName!.trim()
-            : _nameFromEmail(email);
-        stored = UserProfile(
-          id: user.uid,
-          name: fallbackName,
-          email: user.email ?? email,
-          phone: user.phoneNumber,
-          preferences: UserPreferences.defaults(),
-          vehicles: const [],
-          permits: _seedPermits(ownerHint: fallbackName),
-          reservations: _seedReservations(ownerHint: fallbackName),
-          sweepingSchedules: _seedSweepingSchedules(ownerHint: fallbackName),
-        );
-        await _repository.saveProfile(stored);
-      }
-      _profile = stored;
-      _guestMode = false;
-      await _hydrateFromStorage();
-      notifyListeners();
+            : _nameFromEmail(email),
+      );
       unawaited(
         CloudLogService.instance.logEvent(
           'user_login',
@@ -348,6 +321,90 @@ class UserProvider extends ChangeNotifier {
             .recordError('login_generic_error', err, stack),
       );
       return 'Unable to sign in right now.';
+    }
+  }
+
+  Future<String?> signInWithGoogle() async {
+    if (_auth == null || !_firebaseEnabled) {
+      return 'Google sign-in is unavailable (Firebase disabled).';
+    }
+    try {
+      UserCredential credential;
+      if (kIsWeb) {
+        credential = await _auth!.signInWithPopup(GoogleAuthProvider());
+      } else {
+        final googleUser = await GoogleSignIn().signIn();
+        if (googleUser == null) return 'Sign-in was canceled.';
+        final googleAuth = await googleUser.authentication;
+        final oauth = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        credential = await _auth!.signInWithCredential(oauth);
+      }
+      final user = credential.user;
+      if (user == null) return 'Unable to sign in right now.';
+      await _ensureProfileForUser(
+        user,
+        fallbackName: user.displayName ?? 'Google user',
+      );
+      unawaited(
+        CloudLogService.instance.logEvent(
+          'user_login',
+          data: {'method': 'google', 'userId': user.uid},
+        ),
+      );
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _mapAuthError(e);
+    } catch (_) {
+      return 'Google sign-in failed. Try again.';
+    }
+  }
+
+  Future<String?> signInWithApple() async {
+    if (_auth == null || !_firebaseEnabled) {
+      return 'Apple sign-in is unavailable (Firebase disabled).';
+    }
+    if (kIsWeb ||
+        (defaultTargetPlatform != TargetPlatform.iOS &&
+            defaultTargetPlatform != TargetPlatform.macOS)) {
+      return 'Apple sign-in is only available on Apple platforms.';
+    }
+    try {
+      final appleId = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final oauth = OAuthProvider('apple.com').credential(
+        idToken: appleId.identityToken,
+        accessToken: appleId.authorizationCode,
+      );
+      final credential = await _auth!.signInWithCredential(oauth);
+      final user = credential.user;
+      if (user == null) return 'Unable to sign in right now.';
+      final name = appleId.givenName?.isNotEmpty == true
+          ? '${appleId.givenName} ${appleId.familyName ?? ''}'.trim()
+          : user.displayName ?? 'Apple user';
+      await _ensureProfileForUser(user, fallbackName: name);
+      unawaited(
+        CloudLogService.instance.logEvent(
+          'user_login',
+          data: {'method': 'apple', 'userId': user.uid},
+        ),
+      );
+      return null;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return 'Sign-in was canceled.';
+      }
+      return 'Apple sign-in failed (${e.code.name}).';
+    } on FirebaseAuthException catch (e) {
+      return _mapAuthError(e);
+    } catch (_) {
+      return 'Apple sign-in failed. Try again.';
     }
   }
 
@@ -943,6 +1000,38 @@ class UserProvider extends ChangeNotifier {
     } catch (_) {
       return 'Unable to update password right now.';
     }
+  }
+
+  Future<void> _ensureProfileForUser(
+    User user, {
+    String? fallbackName,
+    String? phone,
+  }) async {
+    final emailKey = (user.email ?? '').trim().toLowerCase();
+    final storageKey = emailKey.isNotEmpty ? emailKey : user.uid;
+    await _repository.setActiveUser(storageKey);
+    var stored = await _repository.loadProfile();
+    if (stored == null) {
+      final name = fallbackName ??
+          user.displayName?.trim() ??
+          _nameFromEmail(user.email ?? '');
+      stored = UserProfile(
+        id: storageKey,
+        name: name,
+        email: emailKey.isNotEmpty ? emailKey : (user.email ?? ''),
+        phone: phone ?? user.phoneNumber,
+        preferences: UserPreferences.defaults(),
+        vehicles: const [],
+        permits: _seedPermits(ownerHint: name),
+        reservations: _seedReservations(ownerHint: name),
+        sweepingSchedules: _seedSweepingSchedules(ownerHint: name),
+      );
+      await _repository.saveProfile(stored);
+    }
+    _profile = stored;
+    _guestMode = false;
+    await _hydrateFromStorage();
+    notifyListeners();
   }
 
   Future<void> addVehicle(Vehicle vehicle) async {

@@ -10,6 +10,10 @@ const String _ocmApiKey = String.fromEnvironment(
 );
 
 class OpenChargeMapService {
+  OpenChargeMapService({http.Client? client}) : _client = client ?? http.Client();
+
+  final http.Client _client;
+
   Future<List<EVStation>> fetchStations({
     required double lat,
     required double lng,
@@ -27,7 +31,7 @@ class OpenChargeMapService {
       '&key=$_ocmApiKey',
     );
 
-    final resp = await http.get(uri, headers: {
+    final resp = await _client.get(uri, headers: {
       'Accept': 'application/json',
       'X-API-Key': _ocmApiKey,
     });
@@ -98,7 +102,7 @@ class OpenChargeMapService {
 
   double _parsePrice(String? usageCost) {
     if (usageCost == null) return 0;
-    final match = RegExp(r'(\\d+[\\.,]?\\d*)').firstMatch(usageCost);
+    final match = RegExp(r'(\d+[.,]?\d*)').firstMatch(usageCost);
     if (match == null) return 0;
     return double.tryParse(match.group(1)!.replaceAll(',', '.')) ?? 0;
   }

@@ -5,10 +5,15 @@ import 'package:http/http.dart' as http;
 import '../models/ticket.dart';
 
 class TicketLookupService {
-  TicketLookupService({required this.baseUrl, this.authToken});
+  TicketLookupService({
+    required this.baseUrl,
+    this.authToken,
+    http.Client? client,
+  }) : _client = client ?? http.Client();
 
   final String baseUrl;
   final String? authToken;
+  final http.Client _client;
 
   Map<String, String> _headers() {
     final headers = <String, String>{
@@ -26,7 +31,7 @@ class TicketLookupService {
   }) async {
     final uri = Uri.parse('$baseUrl/tickets')
         .replace(queryParameters: {'plate': plate, 'state': state});
-    final resp = await http.get(uri, headers: _headers());
+    final resp = await _client.get(uri, headers: _headers());
     if (resp.statusCode != 200) {
       throw Exception('Lookup failed: ${resp.statusCode}');
     }
@@ -50,7 +55,7 @@ class TicketLookupService {
       if (feeWaiverCode != null) 'feeWaiverCode': feeWaiverCode,
       if (email != null) 'email': email,
     };
-    final resp = await http.post(
+    final resp = await _client.post(
       uri,
       headers: _headers(),
       body: jsonEncode(body),
