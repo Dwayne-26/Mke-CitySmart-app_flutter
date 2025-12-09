@@ -88,16 +88,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Profile & Settings'),
-            actions: [
-              IconButton(
-                onPressed: () async {
-                  await provider.logout();
-                  if (!mounted) return;
-                  Navigator.pushNamedAndRemoveUntil(
-                    context,
-                    '/',
-                    (route) => false,
-                  );
+              actions: [
+                IconButton(
+                  onPressed: () async {
+                    await provider.logout();
+                    if (!context.mounted) return;
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/',
+                      (route) => false,
+                    );
                 },
                 icon: const Icon(Icons.logout),
                 tooltip: 'Sign out',

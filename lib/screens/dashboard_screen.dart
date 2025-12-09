@@ -7,7 +7,7 @@ import '../services/alternate_side_parking_service.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import 'alerts_landing_screen.dart';
-import 'risk_reminders_screen.dart';
+import '../widgets/main_drawer.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -18,6 +18,7 @@ class DashboardScreen extends StatelessWidget {
     final provider = context.watch<UserProvider>();
 
     return Scaffold(
+      drawer: const MainDrawer(),
       appBar: AppBar(
         title: const Text('CitySmart'),
       ),

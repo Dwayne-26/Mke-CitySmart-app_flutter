@@ -11,6 +11,7 @@ import '../providers/user_provider.dart';
 import '../services/api_client.dart';
 import '../services/prediction_api_service.dart';
 import '../widgets/openchargemap_embed.dart';
+import '../widgets/main_drawer.dart';
 import '../services/location_service.dart';
 import '../services/open_charge_map_service.dart';
 import '../services/weather_service.dart';
@@ -74,6 +75,7 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
         .where((s) => s.latitude != null && s.longitude != null)
         .toList();
     return Scaffold(
+      drawer: const MainDrawer(),
       appBar: AppBar(
         title: const Text('EV charging map'),
         actions: [
@@ -263,7 +265,7 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                             point: LatLng(p.lat, p.lng),
                             radius: (50 + (p.score * 80)).clamp(40, 120),
                             useRadiusInMeter: false,
-                            color: _scoreColor(p.score).withOpacity(0.35),
+                            color: _scoreColor(p.score).withValues(alpha: 0.35),
                             borderColor: _scoreColor(p.score),
                             borderStrokeWidth: 1.5,
                           ),
@@ -572,7 +574,7 @@ class _HeatLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Chip(
-      backgroundColor: color.withOpacity(0.15),
+      backgroundColor: color.withValues(alpha: 0.15),
       label: Text(label, style: TextStyle(color: color)),
     );
   }

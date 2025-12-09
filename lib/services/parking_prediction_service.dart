@@ -29,7 +29,7 @@ class ParkingPredictionService {
         dayScore * 0.3 +
         eventPenalty * 0.2 +
         locationNoise * 0.1;
-    return raw.clamp(0.0, 1.0);
+    return (raw * cityFactor).clamp(0.0, 1.0);
   }
 
   /// Predict a set of nearby points (simple grid fan-out).

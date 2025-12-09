@@ -42,7 +42,7 @@ class VehicleManagementScreen extends StatelessWidget {
           body: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: vehicles.isEmpty ? 1 : vehicles.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (_, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               if (vehicles.isEmpty) {
                 return const Card(

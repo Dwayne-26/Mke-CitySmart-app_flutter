@@ -1,5 +1,3 @@
-import 'dart:math';
-
 class CityTicketStats {
   const CityTicketStats({
     required this.monthlyFactor,

@@ -5,8 +5,6 @@ class BrandingPreviewPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -318,7 +316,7 @@ class _Footer extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String text;
-  const _SectionHeader(this.text, {super.key});
+  const _SectionHeader(this.text);
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
@@ -338,7 +336,7 @@ class _ColorTile extends StatelessWidget {
   final String label;
   final Color color;
   final bool outlined;
-  const _ColorTile(this.label, this.color, {this.outlined = false, super.key});
+  const _ColorTile(this.label, this.color, {this.outlined = false});
   @override
   Widget build(BuildContext context) => Container(
     width: 170,
@@ -364,7 +362,7 @@ class _ColorTile extends StatelessWidget {
   );
 
   Color _on(Color c) {
-    final y = (299 * c.red + 587 * c.green + 114 * c.blue) / 1000;
+    final y = (299 * c.r * 255 + 587 * c.g * 255 + 114 * c.b * 255) / 1000;
     return y > 128 ? Colors.black87 : Colors.white;
   }
 }
@@ -377,7 +375,6 @@ class _Tile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.color,
-    super.key,
   });
   @override
   Widget build(BuildContext context) => Container(

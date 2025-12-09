@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../data/city_rule_packs.dart';
 import '../providers/user_provider.dart';
 
 class CitySettingsScreen extends StatefulWidget {
@@ -81,7 +80,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
               Text('Language', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _languageCode,
+                initialValue: _languageCode,
                 items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
                   DropdownMenuItem(value: 'es', child: Text('Español')),
@@ -94,12 +93,14 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
                   await provider.updateCityAndTenant(
                     cityId: _cityId,
                     tenantId: provider.tenantId,
                   );
                   await provider.updateLanguage(_languageCode);
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  if (!mounted) return;
+                  messenger.showSnackBar(
                     const SnackBar(content: Text('Settings updated')),
                   );
                 },

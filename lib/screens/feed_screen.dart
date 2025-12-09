@@ -1,20 +1,16 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../widgets/main_drawer.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
+      drawer: const MainDrawer(),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {},
-        ),
         title: const Text('CitySmart'),
       ),
       body: const _FeedBody(),
@@ -133,7 +129,7 @@ class AlertFeedCard extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: kCitySmartYellow.withOpacity(0.16),
+                  color: kCitySmartYellow.withValues(alpha: 0.16),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

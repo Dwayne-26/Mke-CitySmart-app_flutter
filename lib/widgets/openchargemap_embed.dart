@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import 'openchargemap_embed_stub.dart'
     if (dart.library.html) 'openchargemap_embed_web.dart';

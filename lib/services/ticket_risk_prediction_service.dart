@@ -1,5 +1,3 @@
-import 'dart:math';
-
 class TicketRiskPredictionService {
   /// Predicts risk of getting a ticket (0-1).
   ///

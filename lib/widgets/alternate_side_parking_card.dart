@@ -59,7 +59,7 @@ class AlternateSideParkingCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: _badgeColor(today.side).withOpacity(0.14),
+                    color: _badgeColor(today.side).withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -86,7 +86,7 @@ class AlternateSideParkingCard extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.redAccent),
                     ),

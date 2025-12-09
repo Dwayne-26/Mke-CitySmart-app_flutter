@@ -20,8 +20,8 @@ class _AuthScreenState extends State<AuthScreen> {
   final _loginPasswordController = TextEditingController();
   final _registerNameController = TextEditingController();
   final _registerEmailController = TextEditingController();
-  final _registerPhoneController = TextEditingController();
   final _registerPasswordController = TextEditingController();
+  String? _phoneVerificationId;
 
   bool _loggingIn = false;
   bool _registering = false;
@@ -35,7 +35,6 @@ class _AuthScreenState extends State<AuthScreen> {
     _loginPasswordController.dispose();
     _registerNameController.dispose();
     _registerEmailController.dispose();
-    _registerPhoneController.dispose();
     _registerPasswordController.dispose();
     super.dispose();
   }
@@ -65,9 +64,6 @@ class _AuthScreenState extends State<AuthScreen> {
       name: _registerNameController.text.trim(),
       email: _registerEmailController.text.trim(),
       password: _registerPasswordController.text.trim(),
-      phone: _registerPhoneController.text.trim().isEmpty
-          ? null
-          : _registerPhoneController.text.trim(),
     );
     setState(() => _registering = false);
     if (!mounted) return;
@@ -103,6 +99,55 @@ class _AuthScreenState extends State<AuthScreen> {
     Navigator.pushReplacementNamed(context, '/landing');
   }
 
+  Future<void> _handlePhoneSignUp() async {
+    if (kIsWeb) {
+      _showMessage('Phone sign-in is not available on web.');
+      return;
+    }
+    final phone = await _promptForValue(
+      title: 'Verify phone',
+      hint: 'Enter your phone number',
+      keyboardType: TextInputType.phone,
+    );
+    if (phone == null || !mounted) return;
+    setState(() => _socialLoading = true);
+    final provider = context.read<UserProvider>();
+    final result = await provider.startPhoneSignIn(phone);
+    setState(() => _socialLoading = false);
+    if (!mounted) return;
+    if (result.error != null) {
+      _showMessage(result.error!);
+      return;
+    }
+    if (result.requiresSmsCode && result.verificationId != null) {
+      _phoneVerificationId = result.verificationId;
+      final code = await _promptForValue(
+        title: 'Enter code',
+        hint: '6-digit SMS code',
+        keyboardType: TextInputType.number,
+      );
+      if (code == null || !mounted) return;
+      setState(() => _socialLoading = true);
+      final error = await provider.confirmPhoneCode(
+        verificationId: _phoneVerificationId!,
+        smsCode: code.trim(),
+        phoneNumber: phone,
+      );
+      setState(() => _socialLoading = false);
+      if (!mounted) return;
+      if (error != null) {
+        _showMessage(error);
+        return;
+      }
+      _showMessage('Phone verified and account created.');
+      Navigator.pushReplacementNamed(context, '/landing');
+      return;
+    }
+    // Auto-verified path.
+    _showMessage('Phone verified and account created.');
+    Navigator.pushReplacementNamed(context, '/landing');
+  }
+
   Future<void> _handleApple() async {
     setState(() {
       _socialLoading = true;
@@ -122,6 +167,40 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _showMessage(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<String?> _promptForValue({
+    required String title,
+    required String hint,
+    TextInputType keyboardType = TextInputType.text,
+  }) async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            keyboardType: keyboardType,
+            decoration: InputDecoration(hintText: hint),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+              child: const Text('Continue'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (result == null || result.isEmpty) return null;
+    return result;
   }
 
   @override
@@ -186,39 +265,108 @@ class _AuthScreenState extends State<AuthScreen> {
             _AuthForm(
               formKey: _registerFormKey,
               isSubmitting: _registering,
-              submitLabel: 'Create Account',
+              submitLabel: 'Create with email',
               onSubmit: _handleRegister,
               children: [
-                TextFormField(
-                  controller: _registerNameController,
-                  decoration: const InputDecoration(labelText: 'Full Name'),
-                  validator: (value) => value != null && value.isNotEmpty
-                      ? null
-                      : 'Introduce yourself with a name',
+                Text(
+                  'Create your CitySmart account',
+                  style: Theme.of(context).textTheme.headlineMedium,
                 ),
-                TextFormField(
-                  controller: _registerEmailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) => value != null && value.contains('@')
-                      ? null
-                      : 'Enter a valid email',
+                const SizedBox(height: 8),
+                Text(
+                  'Use email, phone, or a social account to get started.',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                TextFormField(
-                  controller: _registerPhoneController,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone (optional)',
+                const SizedBox(height: 16),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Email & password',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _registerNameController,
+                          decoration:
+                              const InputDecoration(labelText: 'Full name'),
+                          validator: (value) =>
+                              value != null && value.isNotEmpty
+                                  ? null
+                                  : 'Introduce yourself with a name',
+                        ),
+                        TextFormField(
+                          controller: _registerEmailController,
+                          decoration: const InputDecoration(labelText: 'Email'),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) =>
+                              value != null && value.contains('@')
+                                  ? null
+                                  : 'Enter a valid email',
+                        ),
+                        TextFormField(
+                          controller: _registerPasswordController,
+                          decoration:
+                              const InputDecoration(labelText: 'Password'),
+                          obscureText: true,
+                          validator: (value) =>
+                              value != null && value.length >= 6
+                                  ? null
+                                  : 'Password must be 6+ characters',
+                        ),
+                      ],
+                    ),
                   ),
-                  keyboardType: TextInputType.phone,
                 ),
-                TextFormField(
-                  controller: _registerPasswordController,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                  obscureText: true,
-                  validator: (value) => value != null && value.length >= 6
+                const SizedBox(height: 16),
+                Card(
+                  child: ListTile(
+                    contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    leading: const Icon(Icons.phone_iphone),
+                    title: const Text('Verify with phone'),
+                    subtitle: const Text('Get a text code to create your account'),
+                    trailing: SizedBox(
+                      width: 116,
+                      child: ElevatedButton(
+                        onPressed: _socialLoading ? null : _handlePhoneSignUp,
+                        child: _socialLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Text('Send code'),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Or continue with',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _registering || _socialLoading
                       ? null
-                      : 'Password must be 6+ characters',
+                      : _handleGoogle,
+                  icon: const Icon(Icons.login),
+                  label: const Text('Google'),
                 ),
+                if (!kIsWeb &&
+                    (defaultTargetPlatform == TargetPlatform.iOS ||
+                        defaultTargetPlatform == TargetPlatform.macOS))
+                  OutlinedButton.icon(
+                    onPressed:
+                        _registering || _socialLoading ? null : _handleApple,
+                    icon: const Icon(Icons.apple),
+                    label: const Text('Sign in with Apple'),
+                  ),
               ],
             ),
           ],
@@ -260,30 +408,27 @@ class _AuthForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ...children,
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: isSubmitting ? null : onSubmit,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: isSubmitting
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(submitLabel),
-                ),
+      child: Form(
+        key: formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(24),
+          children: [
+            ...children,
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: isSubmitting ? null : onSubmit,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: isSubmitting
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(submitLabel),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

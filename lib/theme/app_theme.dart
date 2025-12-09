@@ -11,7 +11,6 @@ ThemeData buildCitySmartTheme() {
   final base = ThemeData.dark();
 
   return base.copyWith(
-    useMaterial3: true,
     scaffoldBackgroundColor: kCitySmartGreen,
     colorScheme: base.colorScheme.copyWith(
       brightness: Brightness.dark,
@@ -19,8 +18,6 @@ ThemeData buildCitySmartTheme() {
       onPrimary: kCitySmartGreen,
       surface: kCitySmartCard,
       onSurface: kCitySmartText,
-      background: kCitySmartGreen,
-      onBackground: kCitySmartText,
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: kCitySmartGreen,

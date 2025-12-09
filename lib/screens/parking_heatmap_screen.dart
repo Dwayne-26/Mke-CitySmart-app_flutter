@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/user_provider.dart';
@@ -35,6 +34,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
     });
     double lat = _centerLat;
     double lng = _centerLng;
+    final userProvider = context.read<UserProvider>();
     try {
       final loc = await LocationService().getCurrentPosition();
       if (loc != null) {
@@ -44,7 +44,8 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
     } catch (e) {
       _error = 'Location unavailable; showing defaults.';
     }
-    final cityBias = _cityBias(context.read<UserProvider>().cityId);
+    if (!mounted) return;
+    final cityBias = _cityBias(userProvider.cityId);
     _points = _service.predictNearby(
       when: DateTime.now(),
       latitude: lat,
@@ -63,11 +64,11 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   Color _scoreColor(double score) {
     // 0 -> red, 0.5 -> yellow, 1 -> green
     if (score < 0.33) {
-      return Colors.redAccent.withOpacity(0.6 + score * 0.2);
+      return Colors.redAccent.withValues(alpha: 0.6 + score * 0.2);
     } else if (score < 0.66) {
-      return Colors.orangeAccent.withOpacity(0.6 + (score - 0.33) * 0.2);
+      return Colors.orangeAccent.withValues(alpha: 0.6 + (score - 0.33) * 0.2);
     }
-    return Colors.greenAccent.withOpacity(0.6 + (score - 0.66) * 0.2);
+    return Colors.greenAccent.withValues(alpha: 0.6 + (score - 0.66) * 0.2);
   }
 
   @override

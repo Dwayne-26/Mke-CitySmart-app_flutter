@@ -27,7 +27,7 @@ Future<bool> initializeFirebaseIfAvailable() async {
     return true;
   } catch (err, stack) {
     log(
-      'Firebase config missing for ${describeEnum(defaultTargetPlatform)}: $err',
+      'Firebase config missing for ${defaultTargetPlatform.name}: $err',
       stackTrace: stack,
     );
     return false;

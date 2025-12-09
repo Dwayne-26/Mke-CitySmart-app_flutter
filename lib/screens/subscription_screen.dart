@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/ad_preferences.dart';
 import '../models/subscription_plan.dart';
 import '../providers/user_provider.dart';
 import '../theme/app_theme.dart';
@@ -89,7 +88,7 @@ class _PlanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final borderColor = selected ? kCitySmartYellow : const Color(0xFF1F3A34);
-    final chipBg = kCitySmartGreen.withOpacity(0.4);
+    final chipBg = kCitySmartGreen.withValues(alpha: 0.4);
     final chipText = kCitySmartText;
     return Card(
       color: kCitySmartCard,

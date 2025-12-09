@@ -22,7 +22,6 @@ import 'screens/subscription_screen.dart';
 import 'screens/ticket_workflow_screen.dart';
 import 'screens/street_sweeping_screen.dart';
 import 'screens/vehicle_management_screen.dart';
-import 'screens/welcome_screen.dart';
 import 'screens/history_receipts_screen.dart';
 import 'screens/maintenance_report_screen.dart';
 import 'screens/garbage_schedule_screen.dart';
@@ -34,7 +33,6 @@ import 'screens/parking_heatmap_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/feed_screen.dart';
-import 'screens/risk_reminders_screen.dart';
 import 'screens/alerts_landing_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -42,7 +40,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final diagnostics = BootstrapDiagnostics();
   diagnostics
-    ..addMetadata('Platform', describeEnum(defaultTargetPlatform))
+    ..addMetadata('Platform', defaultTargetPlatform.name)
     ..addMetadata(
       'BuildMode',
       kReleaseMode
@@ -235,32 +233,7 @@ class _CitySmartShellState extends State<CitySmartShell> {
     final pages = const [DashboardScreen(), MapScreen(), FeedScreen()];
 
     return Scaffold(
-      drawer: const _MainDrawer(),
-      body: Builder(
-        builder: (ctx) {
-          final topPadding = MediaQuery.of(ctx).padding.top;
-          return Stack(
-            children: [
-              pages[_index],
-              Positioned(
-                top: topPadding + 8,
-                left: 12,
-                child: SafeArea(
-                  child: Material(
-                    color: Colors.black.withOpacity(0.05),
-                    shape: const CircleBorder(),
-                    child: IconButton(
-                      icon: const Icon(Icons.menu),
-                      tooltip: 'Menu',
-                      onPressed: () => Scaffold.of(ctx).openDrawer(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: (i) {
@@ -400,7 +373,8 @@ class _CitySmartShellState extends State<CitySmartShell> {
                   child: FilledButton(
                     onPressed: () async {
                       await prefs.setBool('seen_welcome_v1', true);
-                      if (mounted) Navigator.pop(ctx);
+                      if (!ctx.mounted) return;
+                      Navigator.pop(ctx);
                     },
                     child: const Text('Get started'),
                   ),
@@ -408,7 +382,8 @@ class _CitySmartShellState extends State<CitySmartShell> {
                 TextButton(
                   onPressed: () async {
                     await prefs.setBool('seen_welcome_v1', true);
-                    if (mounted) Navigator.pop(ctx);
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
                   },
                   child: const Text('Skip'),
                 ),
@@ -431,122 +406,6 @@ class _CitySmartShellState extends State<CitySmartShell> {
       default:
         return 'unknown';
     }
-  }
-}
-
-class _MainDrawer extends StatelessWidget {
-  const _MainDrawer();
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      child: SafeArea(
-        child: Consumer<UserProvider>(
-          builder: (context, provider, _) {
-            final isLoggedIn = provider.isLoggedIn;
-            final profile = provider.profile;
-            final name = profile?.name ?? 'Guest';
-            final email = profile?.email ?? '';
-            return ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                UserAccountsDrawerHeader(
-                  currentAccountPicture: const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, color: Colors.black87),
-                  ),
-                  accountName: Text(name),
-                  accountEmail: Text(
-                    email.isEmpty
-                        ? (isLoggedIn ? 'Signed in' : 'Not signed in')
-                        : email,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: kCitySmartGreen,
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.dashboard_outlined),
-                  title: const Text('Dashboard'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushReplacementNamed(context, '/citysmart-shell');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.account_circle_outlined),
-                  title: Text(isLoggedIn ? 'Profile' : 'Sign in'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AuthScreen(initialTabIndex: 0),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.person_add_alt),
-                  title: const Text('Create account'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AuthScreen(initialTabIndex: 1),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text('Preferences'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/preferences');
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.language),
-                  title: const Text('City & language'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/city-settings');
-                  },
-                ),
-                const Divider(),
-                if (isLoggedIn)
-                  ListTile(
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Sign out'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await provider.logout();
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(context, '/landing');
-                      }
-                    },
-                  )
-                else
-                  ListTile(
-                    leading: const Icon(Icons.visibility_outlined),
-                    title: const Text('Continue as guest'),
-                    onTap: () async {
-                      Navigator.pop(context);
-                      await provider.continueAsGuest();
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(context, '/landing');
-                      }
-                    },
-                  ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
   }
 }
 

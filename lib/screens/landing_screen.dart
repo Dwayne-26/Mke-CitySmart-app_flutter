@@ -9,6 +9,8 @@ import '../services/alternate_side_parking_service.dart';
 import '../services/location_service.dart';
 
 class LandingScreen extends StatefulWidget {
+  const LandingScreen({super.key});
+
   @override
   State<LandingScreen> createState() => _LandingScreenState();
 }
@@ -459,11 +461,11 @@ class _OverviewTile extends StatelessWidget {
     final baseBorder =
         highlight ? const Color(0xFFFFC2B8) : CSTheme.border;
     final baseShadow = highlight
-        ? Colors.redAccent.withOpacity(0.12)
+        ? Colors.redAccent.withValues(alpha: 0.12)
         : Colors.black12;
     final iconBg = highlight
-        ? Colors.redAccent.withOpacity(0.14)
-        : CSTheme.primary.withOpacity(0.12);
+        ? Colors.redAccent.withValues(alpha: 0.14)
+        : CSTheme.primary.withValues(alpha: 0.12);
     final iconColor = highlight ? Colors.redAccent : CSTheme.primary;
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -543,7 +545,7 @@ class _RiskBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
+        color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -560,7 +562,7 @@ class _RiskBadge extends StatelessWidget {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: color.withOpacity(0.4),
+                      color: color.withValues(alpha: 0.4),
                       blurRadius: 8,
                       spreadRadius: 1,
                     ),
@@ -600,7 +602,7 @@ class _InfoPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.16),
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white24),
       ),

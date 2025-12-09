@@ -108,7 +108,7 @@ class _MaintenanceReportScreenState extends State<MaintenanceReportScreen> {
                             style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<MaintenanceCategory>(
-                          value: _category,
+                          initialValue: _category,
                           decoration: const InputDecoration(labelText: 'Category'),
                           items: MaintenanceCategory.values
                               .map(

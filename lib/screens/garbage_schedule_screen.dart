@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 import '../models/garbage_schedule.dart';
@@ -100,7 +99,7 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _language,
+                        initialValue: _language,
                         decoration: const InputDecoration(labelText: 'Language'),
                         items: const [
                           DropdownMenuItem(value: 'en', child: Text('English')),

@@ -92,7 +92,7 @@ class _AlternateSideParkingScreenState
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: _sideColor(day.side).withOpacity(0.16),
+                                    color: _sideColor(day.side).withValues(alpha: 0.16),
                                     shape: BoxShape.circle,
                                   ),
                                   alignment: Alignment.center,
@@ -267,7 +267,7 @@ class _DayRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.14),
+            color: color.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(

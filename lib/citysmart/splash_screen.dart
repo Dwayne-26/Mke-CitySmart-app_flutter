@@ -15,7 +15,10 @@ class _SplashState extends State<SplashScreen> {
     showSpinner = Random().nextBool();
     Future.delayed(
       const Duration(seconds: 2),
-      () => Navigator.pushReplacementNamed(context, '/home'),
+      () {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(context, '/home');
+      },
     );
   }
 

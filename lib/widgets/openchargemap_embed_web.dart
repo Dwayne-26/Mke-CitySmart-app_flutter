@@ -1,6 +1,5 @@
-// Web-only embed for OpenChargeMap using an iframe.
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+// Web-only embed for OpenChargeMap using an iframe (package:web).
+import 'package:web/web.dart' as web;
 import 'dart:ui_web' as ui; // for platformViewRegistry on web
 
 import 'package:flutter/material.dart';
@@ -13,13 +12,13 @@ Widget buildOpenChargeMapEmbed(void Function() onOpenExternal) {
     ui.platformViewRegistry.registerViewFactory(
       'openchargemap-embed',
       (int viewId) {
-        final iframe = html.IFrameElement()
+        final iframe = web.HTMLIFrameElement()
           ..src = 'https://map.openchargemap.io/?mode=embedded'
           ..style.border = '0'
           ..allow = 'geolocation'
           ..height = '500'
           ..width = '100%';
-        return iframe;
+        return iframe as Object;
       },
     );
     _ocmRegistered = true;

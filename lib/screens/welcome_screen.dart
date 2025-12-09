@@ -5,7 +5,7 @@ import '../citysmart/theme.dart';
 import '../providers/user_provider.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -119,7 +119,7 @@ class WelcomeScreen extends StatelessWidget {
                             Text(
                               'Monitor parking rules, permits, vehicles, alerts, and city services with one calm, modern dashboard.',
                               style: TextStyle(
-                                color: CSTheme.text.withOpacity(0.7),
+                                color: CSTheme.text.withValues(alpha: 0.7),
                                 fontSize: 16,
                                 height: 1.5,
                               ),
@@ -207,6 +207,7 @@ class WelcomeScreen extends StatelessWidget {
                                     ? null
                                     : () async {
                                         await provider.continueAsGuest();
+                                        if (!context.mounted) return;
                                         Navigator.pushReplacementNamed(
                                           context,
                                           '/landing',

@@ -33,6 +33,18 @@ import '../services/report_api_service.dart';
 import '../services/ticket_api_service.dart';
 import '../services/user_repository.dart';
 
+class PhoneAuthStartResult {
+  const PhoneAuthStartResult({
+    this.requiresSmsCode = false,
+    this.verificationId,
+    this.error,
+  });
+
+  final bool requiresSmsCode;
+  final String? verificationId;
+  final String? error;
+}
+
 class UserProvider extends ChangeNotifier {
   UserProvider({
     required UserRepository userRepository,
@@ -135,7 +147,8 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> initialize() async {
-    if (_auth == null || !_firebaseEnabled) {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
       await _repository.setActiveUser(null);
       _profile = null;
       _initializing = false;
@@ -147,7 +160,7 @@ class UserProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    final user = _auth!.currentUser;
+    final user = auth.currentUser;
     if (user != null) {
       await _repository.setActiveUser(user.uid);
     } else {
@@ -209,6 +222,11 @@ class UserProvider extends ChangeNotifier {
     return 'CitySmart Driver';
   }
 
+  String _nameFromPhone(String phone) {
+    if (phone.trim().isNotEmpty) return phone.trim();
+    return 'Phone user';
+  }
+
   void muteAlerts(Duration duration) {
     _alertsMutedUntil = DateTime.now().add(duration);
     notifyListeners();
@@ -237,10 +255,11 @@ class UserProvider extends ChangeNotifier {
     required String password,
     String? phone,
   }) async {
-    if (_auth == null || !_firebaseEnabled) {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
       return 'Sign-up is unavailable (Firebase disabled on this build).';
     }
-    if (_auth!.currentUser != null && !_guestMode) {
+    if (auth.currentUser != null && !_guestMode) {
       return 'An account is already signed in on this device.';
     }
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
@@ -248,7 +267,7 @@ class UserProvider extends ChangeNotifier {
     }
 
     try {
-      final credential = await _auth!.createUserWithEmailAndPassword(
+      final credential = await auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -284,11 +303,12 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<String?> login(String email, String password) async {
-    if (_auth == null || !_firebaseEnabled) {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
       return 'Sign-in is unavailable (Firebase disabled on this build).';
     }
     try {
-      final credential = await _auth!.signInWithEmailAndPassword(
+      final credential = await auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -325,13 +345,14 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<String?> signInWithGoogle() async {
-    if (_auth == null || !_firebaseEnabled) {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
       return 'Google sign-in is unavailable (Firebase disabled).';
     }
     try {
       UserCredential credential;
       if (kIsWeb) {
-        credential = await _auth!.signInWithPopup(GoogleAuthProvider());
+        credential = await auth.signInWithPopup(GoogleAuthProvider());
       } else {
         final googleUser = await GoogleSignIn().signIn();
         if (googleUser == null) return 'Sign-in was canceled.';
@@ -340,7 +361,7 @@ class UserProvider extends ChangeNotifier {
           accessToken: googleAuth.accessToken,
           idToken: googleAuth.idToken,
         );
-        credential = await _auth!.signInWithCredential(oauth);
+        credential = await auth.signInWithCredential(oauth);
       }
       final user = credential.user;
       if (user == null) return 'Unable to sign in right now.';
@@ -362,8 +383,119 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  Future<PhoneAuthStartResult> startPhoneSignIn(
+    String phoneNumber,
+  ) async {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
+      return const PhoneAuthStartResult(
+        error: 'Phone sign-in is unavailable (Firebase disabled).',
+      );
+    }
+    if (kIsWeb) {
+      return const PhoneAuthStartResult(
+        error: 'Phone sign-in is not available on web.',
+      );
+    }
+    final completer = Completer<PhoneAuthStartResult>();
+    await auth.verifyPhoneNumber(
+      phoneNumber: phoneNumber,
+      verificationCompleted: (credential) async {
+        try {
+          final result = await auth.signInWithCredential(credential);
+          final user = result.user;
+          if (user != null) {
+            await _ensureProfileForUser(
+              user,
+              fallbackName: _nameFromPhone(user.phoneNumber ?? phoneNumber),
+            );
+          }
+          if (!completer.isCompleted) {
+            completer.complete(const PhoneAuthStartResult());
+          }
+        } catch (e) {
+          if (!completer.isCompleted) {
+            completer.complete(
+              PhoneAuthStartResult(error: 'Phone sign-in failed.'),
+            );
+          }
+        }
+      },
+      verificationFailed: (e) {
+        final message = _mapPhoneError(e);
+        if (!completer.isCompleted) {
+          completer.complete(PhoneAuthStartResult(error: message));
+        }
+      },
+      codeSent: (verificationId, _) {
+        if (!completer.isCompleted) {
+          completer.complete(
+            PhoneAuthStartResult(
+              requiresSmsCode: true,
+              verificationId: verificationId,
+            ),
+          );
+        }
+      },
+      codeAutoRetrievalTimeout: (_) {
+        if (!completer.isCompleted) {
+          completer.complete(
+            const PhoneAuthStartResult(
+              error: 'Verification timed out. Try again.',
+            ),
+          );
+        }
+      },
+      timeout: const Duration(seconds: 60),
+    );
+    return completer.future;
+  }
+
+  Future<String?> confirmPhoneCode({
+    required String verificationId,
+    required String smsCode,
+    String? phoneNumber,
+  }) async {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
+      return 'Phone sign-in is unavailable (Firebase disabled).';
+    }
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      final result = await auth.signInWithCredential(credential);
+      final user = result.user;
+      if (user == null) return 'Unable to sign in right now.';
+      await _ensureProfileForUser(
+        user,
+        fallbackName: _nameFromPhone(phoneNumber ?? user.phoneNumber ?? ''),
+      );
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _mapPhoneError(e);
+    } catch (_) {
+      return 'Unable to verify the code. Try again.';
+    }
+  }
+
+  String _mapPhoneError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-phone-number':
+        return 'The phone number looks invalid.';
+      case 'too-many-requests':
+        return 'Too many attempts. Try again later.';
+      case 'session-expired':
+        return 'Verification expired. Request a new code.';
+      default:
+        return 'Phone verification failed (${e.code}).';
+    }
+  }
+
   Future<String?> signInWithApple() async {
-    if (_auth == null || !_firebaseEnabled) {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
       return 'Apple sign-in is unavailable (Firebase disabled).';
     }
     if (kIsWeb ||
@@ -382,7 +514,7 @@ class UserProvider extends ChangeNotifier {
         idToken: appleId.identityToken,
         accessToken: appleId.authorizationCode,
       );
-      final credential = await _auth!.signInWithCredential(oauth);
+      final credential = await auth.signInWithCredential(oauth);
       final user = credential.user;
       if (user == null) return 'Unable to sign in right now.';
       final name = appleId.givenName?.isNotEmpty == true
@@ -520,8 +652,9 @@ class UserProvider extends ChangeNotifier {
     // Respect toggles: tow alerts for tow, parkingNotifications for enforcer.
     if (report.type == SightingType.towTruck && !prefs.towAlerts) return;
     if (report.type == SightingType.parkingEnforcer &&
-        !prefs.parkingNotifications)
+        !prefs.parkingNotifications) {
       return;
+    }
 
     try {
       final pos = await LocationService().getCurrentPosition();
@@ -976,10 +1109,11 @@ class UserProvider extends ChangeNotifier {
     if (password.isEmpty) {
       return 'Password cannot be empty.';
     }
-    if (_auth == null || !_firebaseEnabled) {
+    final auth = _auth;
+    if (auth == null || !_firebaseEnabled) {
       return 'Password updates unavailable (Firebase disabled on this build).';
     }
-    final user = _auth?.currentUser;
+    final user = auth.currentUser;
     if (user == null) {
       return 'You must be signed in to update your password.';
     }
