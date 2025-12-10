@@ -12,7 +12,7 @@ workflows:
         - ios-signing
         - app-store-connect
       vars:
-        APP_BUNDLE_ID: com.mkeparkapp.app
+        APP_BUNDLE_ID: com.mkecitysmart.app
     scripts:
       - name: Restore Firebase secrets
         script: |

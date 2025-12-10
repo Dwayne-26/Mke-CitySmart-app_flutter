@@ -1,4 +1,4 @@
-Development notes for mkeparkapp_flutter
+Development notes for mkecitysmart
 ---------------------------------------
 
 - Flutter version: uses Flutter 3.29.x locally; run `flutter --version` if needed.

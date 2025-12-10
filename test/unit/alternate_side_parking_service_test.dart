@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mkeparkapp_flutter/services/alternate_side_parking_service.dart';
+import 'package:mkecitysmart/services/alternate_side_parking_service.dart';
 
 void main() {
   group('AlternateSideParkingService', () {

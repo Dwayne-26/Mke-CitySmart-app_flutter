@@ -13,8 +13,8 @@
 set -e
 
 # --------- CONFIG: EDIT THESE ---------
-APP_NAME="mkeparkapp"
-BUNDLE_ID="com.mkeparkapp.app"
+APP_NAME="mkecitysmart"
+BUNDLE_ID="com.mkecitysmart.app"
 APPLE_ID="mkeparkapp@gmail.com"     # your Apple ID (or App Store Connect email)
 TEAM_ID="J8U8FW3PA8"           # Apple Developer Team ID
 ITC_TEAM_ID="J8U8FW3PA8"         # App Store Connect Team ID (iTunes Team ID)

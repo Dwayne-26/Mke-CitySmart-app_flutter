@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mkeparkapp_flutter/main.dart';
-import 'package:mkeparkapp_flutter/services/user_repository.dart';
-import 'package:mkeparkapp_flutter/services/bootstrap_diagnostics.dart';
+import 'package:mkecitysmart/main.dart';
+import 'package:mkecitysmart/services/user_repository.dart';
+import 'package:mkecitysmart/services/bootstrap_diagnostics.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

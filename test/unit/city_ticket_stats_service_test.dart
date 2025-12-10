@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mkeparkapp_flutter/services/city_ticket_stats_service.dart';
+import 'package:mkecitysmart/services/city_ticket_stats_service.dart';
 
 void main() {
   group('CityTicketStatsService', () {

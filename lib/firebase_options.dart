@@ -42,7 +42,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '802081773281',
     projectId: 'mkeparkapp-6edc3',
     storageBucket: 'mkeparkapp-6edc3.firebasestorage.app',
-    iosBundleId: 'com.mkeparkapp.app',
+    iosBundleId: 'com.mkecitysmart.app',
   );
 
   static const FirebaseOptions macos = android;

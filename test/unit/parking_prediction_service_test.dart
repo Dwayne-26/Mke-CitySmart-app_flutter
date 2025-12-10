@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mkeparkapp_flutter/services/parking_prediction_service.dart';
+import 'package:mkecitysmart/services/parking_prediction_service.dart';
 
 void main() {
   group('ParkingPredictionService', () {

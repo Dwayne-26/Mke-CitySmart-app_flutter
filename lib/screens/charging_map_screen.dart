@@ -253,7 +253,7 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                 TileLayer(
                   urlTemplate:
                       'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.mkeparkapp.app',
+                  userAgentPackageName: 'com.mkecitysmart.app',
                 ),
                 if (predictions.isNotEmpty && _mode == _PredictionMode.heatmap)
                   CircleLayer(

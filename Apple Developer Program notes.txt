@@ -34,7 +34,7 @@ UPLOAD SUCCEEDED
 Delivery UUID: 3f574920-63db-479f-9a05-54993107a1fb
 Transferred 26686701 bytes in 7.416 seconds (3.6MB/s)
 ================
-No errors uploading 'build/ios/ipa/mkeparkapp.ipa'
+No errors uploading 'build/ios/ipa/mkecitysmart.ipa'
 
 
  APP_STORE_CONNECT_API_KEY_ID=W7MF924C39 \

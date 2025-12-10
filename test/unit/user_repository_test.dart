@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:mkeparkapp_flutter/models/user_profile.dart';
-import 'package:mkeparkapp_flutter/models/ticket.dart';
-import 'package:mkeparkapp_flutter/models/payment_receipt.dart';
-import 'package:mkeparkapp_flutter/models/sighting_report.dart';
-import 'package:mkeparkapp_flutter/models/maintenance_report.dart';
-import 'package:mkeparkapp_flutter/services/user_repository.dart';
+import 'package:mkecitysmart/models/user_profile.dart';
+import 'package:mkecitysmart/models/ticket.dart';
+import 'package:mkecitysmart/models/payment_receipt.dart';
+import 'package:mkecitysmart/models/sighting_report.dart';
+import 'package:mkecitysmart/models/maintenance_report.dart';
+import 'package:mkecitysmart/services/user_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

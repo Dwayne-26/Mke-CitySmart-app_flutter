@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mkeparkapp_flutter/services/ticket_risk_prediction_service.dart';
+import 'package:mkecitysmart/services/ticket_risk_prediction_service.dart';
 
 void main() {
   group('TicketRiskPredictionService', () {

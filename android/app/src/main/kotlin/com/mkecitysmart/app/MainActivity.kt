@@ -1,4 +1,4 @@
-package com.mkeparkapp.mkeparkapp_flutter
+package com.mkecitysmart.app
 
 import io.flutter.embedding.android.FlutterActivity
 

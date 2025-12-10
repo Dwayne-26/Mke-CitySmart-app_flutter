@@ -4,7 +4,7 @@ set -euo pipefail
 # One-stop iOS release helper:
 #   1. Increments CFBundleVersion in ios/Runner/Info.plist.
 #   2. Runs `flutter build ipa -v --release`.
-#   3. Renames the IPA to mkeparkapp.ipa (unless IPA_NAME is set).
+#   3. Renames the IPA to mkecitysmart.ipa (unless IPA_NAME is set).
 #   4. Uploads to App Store Connect via `xcrun altool`.
 #
 # Requirements:
@@ -14,14 +14,14 @@ set -euo pipefail
 #
 # Optional env vars:
 #   FLUTTER_BIN – override flutter binary (default: flutter)
-#   IPA_NAME – filename for build/ios/ipa/<name>.ipa (default: mkeparkapp.ipa)
+#   IPA_NAME – filename for build/ios/ipa/<name>.ipa (default: mkecitysmart.ipa)
 #   APP_STORE_CONNECT_API_KEY_ID / APP_STORE_CONNECT_API_ISSUER – override values from .env.firebase if needed.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PUBSPEC="$ROOT_DIR/pubspec.yaml"
 INFO_PLIST="$ROOT_DIR/ios/Runner/Info.plist"
 IPA_DIR="$ROOT_DIR/build/ios/ipa"
-IPA_NAME="${IPA_NAME:-mkeparkapp.ipa}"
+IPA_NAME="${IPA_NAME:-mkecitysmart.ipa}"
 IPA_PATH="$IPA_DIR/$IPA_NAME"
 PLIST_BUDDY="/usr/libexec/PlistBuddy"
 FLUTTER_BIN="${FLUTTER_BIN:-flutter}"

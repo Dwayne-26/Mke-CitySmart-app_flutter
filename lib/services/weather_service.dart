@@ -111,6 +111,6 @@ class WeatherService {
 
   Map<String, String> _headers() => const {
         'Accept': 'application/geo+json',
-        'User-Agent': 'mkeparkapp_flutter/1.0 (support@mkeparkapp.com)',
+        'User-Agent': 'mkecitysmart/1.0 (support@mkecitysmart.com)',
       };
 }

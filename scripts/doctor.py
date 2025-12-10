@@ -12,7 +12,7 @@ from typing import Dict
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 ENV_FILE = ROOT_DIR / ".env.firebase"
-IOS_BUNDLE_ID = "com.mkeparkapp.app"
+IOS_BUNDLE_ID = "com.mkecitysmart.app"
 IOS_GOOGLE_PLIST = ROOT_DIR / "ios" / "Runner" / "GoogleService-Info.plist"
 WEB_CONFIG = ROOT_DIR / "web" / "firebase-config.json"
 WEB_CONFIG_EXAMPLE = ROOT_DIR / "web" / "firebase-config.example.json"
