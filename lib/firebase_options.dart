@@ -37,11 +37,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyCM8iSNLw1mX2AxaRSPNeK28Na8lqIRPFA',
-    appId: '1:802081773281:ios:3a6fd889c11c626f0009a0',
-    messagingSenderId: '802081773281',
-    projectId: 'mkeparkapp-6edc3',
-    storageBucket: 'mkeparkapp-6edc3.firebasestorage.app',
+    apiKey: 'AIzaSyB-I3Fa-4bmR-rB-jngHkgWQnjTTHTBZDo',
+    appId: '1:418926446148:ios:1077e2e334de8b7e631e11',
+    messagingSenderId: '418926446148',
+    projectId: 'mkeparkapp-1ad15',
+    storageBucket: 'mkeparkapp-1ad15.firebasestorage.app',
     iosBundleId: 'com.mkecitysmart.app',
   );
 
