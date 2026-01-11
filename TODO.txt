@@ -29,11 +29,12 @@ UNKNOWN / NEEDS CONFIRMATION (we will fill these in as we verify)
 P0 — STABILIZE BACKEND + MAKE CORE LOOP WORK
 --------------------------------------------------------
 
-[F-001] [NEXT] (P0) Verify Firebase project + environment configuration
+[F-001] [DONE] (P0) Verify Firebase project + environment configuration
 - Confirm projectId used by app matches deployed backend
 - Confirm iOS/Android configs match (GoogleService-Info.plist / google-services.json)
 NOTES:
 - 2026-01-08: Created tracking. Need to verify configs.
+- 2026-01-11: Verified app Firebase config points to mkeparkapp-1ad15 (iOS + Android). Verified firebase CLI using prod alias.
 
 [F-002] [NEXT] (P0) Inventory Cloud Functions (prod) and confirm deploy is clean
 - List existing functions and regions
@@ -159,7 +160,10 @@ RUNNING NOTES (quick scratchpad)
 
 ========================================================
 DONE LOG (most recent first)
---------------------------------------------------------
-- YYYY-MM-DD — [F-XXX] Title
+---------------------------------------------------------
+2026-01-11 — [F-001] Verify Firebase project + environment configuration
+  Result: Confirmed app Firebase config points to mkeparkapp-1ad15 (iOS + Android). Firebase CLI using prod alias.
+  Evidence: Config review; firebase alias prod -> mkeparkapp-1ad15
+-- YYYY-MM-DD — [F-XXX] Title
   Result: (1–2 lines describing what changed / verified)
   Evidence: (link to commit/PR, screenshot ref, command output, TestFlight build #, etc.)
