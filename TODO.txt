@@ -156,3 +156,10 @@ RUNNING NOTES (quick scratchpad)
 --------------------------------------------------------
 - Use this section for short notes during implementation.
 - For anything important, also add to PROJECT NOTES.
+
+========================================================
+DONE LOG (most recent first)
+--------------------------------------------------------
+- YYYY-MM-DD — [F-XXX] Title
+  Result: (1–2 lines describing what changed / verified)
+  Evidence: (link to commit/PR, screenshot ref, command output, TestFlight build #, etc.)
