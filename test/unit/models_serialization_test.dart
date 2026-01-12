@@ -174,7 +174,7 @@ void main() {
         tier: SubscriptionTier.pro,
         maxAlertRadiusMiles: 15,
         alertVolumePerDay: 20,
-        feeWaiverPct: 0.35,
+        zeroProcessingFee: true,
         prioritySupport: true,
         monthlyPrice: 14.99,
       );
