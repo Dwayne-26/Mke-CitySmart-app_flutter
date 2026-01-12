@@ -1,4 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+import '../widgets/citysmart_scaffold.dart';
+
+class FeedScreen extends StatelessWidget {
+  const FeedScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const CitySmartScaffold(
+      title: 'MKE CitySmart',
+      currentIndex: 2,
+      body: _FeedBody(),
+    );
+  }
+}
+
 class _FeedBody extends StatelessWidget {
   const _FeedBody();
 
@@ -6,7 +23,6 @@ class _FeedBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    // Simple first pass: show newest sightings
     final query = FirebaseFirestore.instance
         .collection('sightings')
         .orderBy('createdAt', descending: true)
@@ -20,30 +36,26 @@ class _FeedBody extends StatelessWidget {
           children: [
             Text('Feed', style: textTheme.headlineMedium),
             const SizedBox(height: 20),
-
-            // Keep your sponsored card
             SponsoredFeedCard(
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SponsoredDetailScreen()),
               ),
             ),
             const SizedBox(height: 16),
-
             if (snapshot.hasError)
-              Text('Feed error: ${snapshot.error}',
-                  style: textTheme.bodyMedium),
-
+              Text(
+                'Feed error: ${snapshot.error}',
+                style: textTheme.bodyMedium,
+              ),
             if (!snapshot.hasData)
               const Padding(
                 padding: EdgeInsets.only(top: 16),
                 child: Center(child: CircularProgressIndicator()),
               ),
-
             if (snapshot.hasData) ...[
               const SizedBox(height: 16),
               ...snapshot.data!.docs.map((doc) {
                 final d = doc.data();
-
                 final type = (d['type'] ?? 'unknown').toString();
                 final location = (d['location'] ?? '').toString();
                 final notes = (d['notes'] ?? '').toString();
@@ -55,7 +67,9 @@ class _FeedBody extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          type == 'towTruck' ? 'Tow Sighting' : 'Enforcement Sighting',
+                          type == 'towTruck'
+                              ? 'Tow Sighting'
+                              : 'Enforcement Sighting',
                           style: textTheme.titleMedium,
                         ),
                         const SizedBox(height: 6),
@@ -74,6 +88,38 @@ class _FeedBody extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class SponsoredFeedCard extends StatelessWidget {
+  const SponsoredFeedCard({super.key, this.onTap});
+
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.local_offer),
+        title: const Text('Sponsored: City services near you'),
+        subtitle: const Text('Tap to learn more'),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class SponsoredDetailScreen extends StatelessWidget {
+  const SponsoredDetailScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Sponsored Detail')),
+      body: const Center(
+        child: Text('Sponsored content goes here.'),
+      ),
     );
   }
 }
