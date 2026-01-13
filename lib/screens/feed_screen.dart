@@ -24,7 +24,8 @@ class _FeedBody extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     final query = FirebaseFirestore.instance
-        .collection('sightings')
+        .collection('alerts')
+        .where('active', isEqualTo: true)
         .orderBy('createdAt', descending: true)
         .limit(25);
 
@@ -57,8 +58,10 @@ class _FeedBody extends StatelessWidget {
               ...snapshot.data!.docs.map((doc) {
                 final d = doc.data();
                 final type = (d['type'] ?? 'unknown').toString();
+                final title = (d['title'] ?? '').toString();
+                final message = (d['message'] ?? '').toString();
                 final location = (d['location'] ?? '').toString();
-                final notes = (d['notes'] ?? '').toString();
+                final createdAt = d['createdAt'] as Timestamp?;
 
                 return Card(
                   child: Padding(
@@ -67,17 +70,26 @@ class _FeedBody extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          type == 'towTruck'
-                              ? 'Tow Sighting'
-                              : 'Enforcement Sighting',
+                          title.isNotEmpty
+                              ? title
+                              : type == 'tow' || type == 'towTruck'
+                                  ? 'Tow Sighting'
+                                  : 'Enforcement Sighting',
                           style: textTheme.titleMedium,
                         ),
+                        if (message.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(message, style: textTheme.bodyMedium),
+                        ],
                         const SizedBox(height: 6),
                         if (location.isNotEmpty)
                           Text(location, style: textTheme.bodyMedium),
-                        if (notes.isNotEmpty) ...[
+                        if (createdAt != null) ...[
                           const SizedBox(height: 6),
-                          Text(notes, style: textTheme.bodySmall),
+                          Text(
+                            'Posted ${createdAt.toDate()}',
+                            style: textTheme.bodySmall,
+                          ),
                         ],
                       ],
                     ),

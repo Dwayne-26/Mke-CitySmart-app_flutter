@@ -1,4 +1,4 @@
-import {onDocumentCreated} from "firebase-functions/v2/firestore";
+import {onDocumentCreated, onDocumentWritten} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {onRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
@@ -73,3 +73,59 @@ export const cleanupExpiredSightings = onSchedule("every 5 minutes", async () =>
 
   await batch.commit();
 });
+
+export const mirrorSightingToAlerts = onDocumentWritten(
+  "sightings/{sightingId}",
+  async (event) => {
+    const db = admin.firestore();
+    const sightingId = event.params.sightingId as string;
+    const after = event.data?.after;
+
+    // Delete mirrored alert if the sighting was removed.
+    if (after == null || !after.exists) {
+      await db
+        .collection("alerts")
+        .doc(sightingId)
+        .delete()
+        .catch(() => {});
+      return;
+    }
+
+    const data = (after.data() as any) ?? {};
+    const type = (data.type ?? "").toString().toLowerCase();
+    const isTow = type === "tow" || type === "towtruck";
+    const loc = (data.location ?? "Nearby").toString();
+
+    const title = data.title ?? (isTow ? "Tow Sighting" : "Parking Enforcer Sighting");
+    const message = data.message ??
+        (isTow
+            ? `Tow trucks spotted near ${loc}.`
+            : `Parking enforcement spotted near ${loc}.`);
+
+    const now = admin.firestore.Timestamp.now();
+    const createdAt = data.createdAt ?? now;
+    const expiresAt = data.expiresAt ??
+        admin.firestore.Timestamp.fromDate(
+          new Date(Date.now() + 60 * 60 * 1000),
+        );
+
+    const status = (data.status ?? "active").toString().toLowerCase();
+    const alertDoc = {
+      sourceType: "sighting",
+      sightingId,
+      type: isTow ? "tow" : "enforcer",
+      title,
+      message,
+      location: loc,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      createdAt,
+      expiresAt,
+      active: status !== "expired",
+      sourcePath: after.ref.path,
+      mirroredAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    await db.collection("alerts").doc(sightingId).set(alertDoc, {merge: true});
+  },
+);
