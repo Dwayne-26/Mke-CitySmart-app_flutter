@@ -13,12 +13,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
 class DefaultFirebaseOptions {
-  static const String _webApiKey =
-      String.fromEnvironment('FIREBASE_WEB_API_KEY');
-  static const String _androidApiKey =
-      String.fromEnvironment('FIREBASE_ANDROID_API_KEY');
-  static const String _iosApiKey =
-      String.fromEnvironment('FIREBASE_IOS_API_KEY');
+  // Hard-coded API keys to avoid dart-define requirements.
+  // Values sourced from platform configs (GoogleService-Info.plist / google-services.json).
+  static const String _webApiKey = 'AIzaSyB-I3Fa-4bmR-rB-jngHkgWQnjTTHTBZDo';
+  static const String _androidApiKey = 'AIzaSyBaT4ZkDKVhwjiFwYCEhhf8c1Sd0xvnf_g';
+  static const String _iosApiKey = 'AIzaSyB-I3Fa-4bmR-rB-jngHkgWQnjTTHTBZDo';
 
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -35,7 +34,7 @@ class DefaultFirebaseOptions {
   }
 
   static FirebaseOptions get web => FirebaseOptions(
-        apiKey: _requireEnv(_webApiKey, 'FIREBASE_WEB_API_KEY'),
+        apiKey: _webApiKey,
         appId: const String.fromEnvironment(
           'FIREBASE_WEB_APP_ID',
           defaultValue: '1:418926446148:web:0e080d9bf8a7ea04631e11',
@@ -63,7 +62,7 @@ class DefaultFirebaseOptions {
       );
 
   static FirebaseOptions get android => FirebaseOptions(
-        apiKey: _requireEnv(_androidApiKey, 'FIREBASE_ANDROID_API_KEY'),
+        apiKey: _androidApiKey,
         appId: const String.fromEnvironment(
           'FIREBASE_ANDROID_APP_ID',
           defaultValue: '1:802081773281:android:55de0e46223bddcf0009a0',
@@ -83,7 +82,7 @@ class DefaultFirebaseOptions {
       );
 
   static FirebaseOptions get ios => FirebaseOptions(
-        apiKey: _requireEnv(_iosApiKey, 'FIREBASE_IOS_API_KEY'),
+        apiKey: _iosApiKey,
         appId: const String.fromEnvironment(
           'FIREBASE_IOS_APP_ID',
           defaultValue: '1:418926446148:ios:1077e2e334de8b7e631e11',
@@ -110,10 +109,4 @@ class DefaultFirebaseOptions {
   static FirebaseOptions get windows => android;
   static FirebaseOptions get linux => android;
 
-  static String _requireEnv(String value, String name) {
-    if (value.isEmpty) {
-      throw StateError('Missing required --dart-define for $name');
-    }
-    return value;
-  }
 }
