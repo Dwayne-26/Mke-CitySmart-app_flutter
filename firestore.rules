@@ -1,42 +1,37 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() { return request.auth != null; }
-    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
-
-    // Global community feed (backend-only writes)
-    match /sightings/{id} {
-      allow read: if true;
-      allow create, update, delete: if false;
+    // Helper: current user owns the doc?
+    function isOwner(ownerId) {
+      return request.auth != null && request.auth.uid == ownerId;
     }
 
-    // Legacy/optional collection (also backend-only)
-    match /live_sightings/{id} {
-      allow read: if true;
-      allow create, update, delete: if false;
+    // User profiles — only owner
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
     }
 
-    // Alerts mirrored from sightings (read-only)
-    match /alerts/{id} {
-      allow read: if true;
-      allow create, update, delete: if false;
+    // Public-ish city data (alerts/feed) — authenticated read, restricted write
+    match /alerts/{alertId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+                            && request.resource.data.timestamp == request.time;
+      allow delete: if false;  // or only admins
     }
 
-    // User-owned data
-    match /users/{uid} {
-      allow read, write: if isOwner(uid);
-
-      match /{subcollection}/{docId} {
-        allow read, write: if isOwner(uid);
-      }
+    // User reports/sightings — owner can edit
+    match /reports/{reportId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && request.resource.data.reporterId == request.auth.uid;
+      allow update, delete: if resource.data.reporterId == request.auth.uid;
     }
 
-    // Optional: client logs (write-only, authed)
-    match /appLogs/{id} {
-      allow read: if false;
-      allow create: if signedIn();
-      allow update, delete: if false;
+    // Log events, push permissions, etc. — authenticated only
+    match /{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }
