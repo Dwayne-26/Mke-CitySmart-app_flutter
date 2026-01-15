@@ -50,6 +50,7 @@ NOTES:
 - Ensure app hits correct function/URL and handles errors
 NOTES:
 - 2026-01-14: End-to-end app-to-backend write succeeded via iOS simulator submission (temp open rules enabled creation in sightings; mirroring worked). Test doc: notes “Dwayne Jan 14th Test Feed”, location Dretzka Park, expires ~8 PM.
+- 2026-01-15: Permanent app-to-backend connectivity confirmed (docs created in sightings/alerts with mirroring, rate limits, anonymous auth).
 
 [F-004] [DONE] (P0) Finalize Firestore schema used by the app (source of truth)
 - Collections + document fields
@@ -71,11 +72,12 @@ NOTES:
 - Pagination (basic)
 NOTES:
 
-[F-007] [IN-PROGRESS] (P0) Expiration system for “live sightings”
+[F-007] [DONE] (P0) Expiration system for “live sightings”
 - Auto-expire after X minutes/hours
 - Remove from “live” feed without deleting history (optional)
 NOTES:
 - 2026-01-11: Cleanup scheduler function code located (marks expired). Need to confirm deploy + verify it runs against prod data.
+- 2026-01-15: Expiration verified; test doc status flipped to "expired" automatically.
 
 [F-008] [TODO] (P0) Moderation basics
 - Report button
@@ -170,6 +172,12 @@ RUNNING NOTES (quick scratchpad)
 ========================================================
 DONE LOG (most recent first)
 ---------------------------------------------------------
+2026-01-15 — [F-007] Expiration system for “live sightings”
+  Result: Expiration verified; test doc status flipped to "expired" automatically.
+  Evidence: Firestore doc update to status=expired
+2026-01-15 — [F-003] Confirm app-to-backend connectivity (permanent)
+  Result: Docs created in sightings/alerts with mirroring, rate limits, anonymous auth.
+  Evidence: Firestore docs created + submitSighting invocation
 2026-01-14 — [F-003] Confirm app-to-backend connectivity
   Result: End-to-end write succeeded via iOS simulator submission (temp open rules enabled creation in sightings; mirroring worked). Test doc: notes “Dwayne Jan 14th Test Feed”, location Dretzka Park, expires ~8 PM.
   Evidence: iOS simulator test doc in Firestore
