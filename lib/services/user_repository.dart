@@ -121,12 +121,27 @@ class UserRepository {
         fromJson: SightingReport.fromJson,
       );
 
-  Future<void> saveSightings(List<SightingReport> reports) =>
-      _saveSubCollection(
-        collectionName: 'sightings',
-        items: reports,
-        toJson: (r) => r.toJson(),
-      );
+  Future<void> saveSightings(List<SightingReport> reports) async {
+    if (_activeUserId == null) return;
+    final batch = _firestore.batch();
+    final collectionRef = _userDocument().collection('sightings');
+
+    final snapshot = await collectionRef.get();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+
+    for (final report in reports) {
+      final data = {
+        ...report.toJson(),
+        'reporterId': _activeUserId,
+        'timestamp': FieldValue.serverTimestamp(),
+      };
+      batch.set(collectionRef.doc(), data);
+    }
+
+    await batch.commit();
+  }
 
   Future<List<Ticket>> loadTickets() => _loadSubCollection(
         collectionName: 'tickets',

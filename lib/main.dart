@@ -1,12 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'citysmart/branding_preview.dart';
+import 'firebase_bootstrap.dart';
+import 'services/bootstrap_diagnostics.dart';
+import 'services/cloud_log_service.dart';
 import 'providers/user_provider.dart';
-import 'screens/alternate_side_parking_screen.dart';
 import 'screens/auth_screen.dart';
+import 'screens/charging_map_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/landing_screen.dart';
 import 'screens/parking_screen.dart';
@@ -14,185 +17,179 @@ import 'screens/permit_workflow_screen.dart';
 import 'screens/preferences_screen.dart';
 import 'screens/permit_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/report_sighting_screen.dart';
 import 'screens/subscription_screen.dart';
 import 'screens/ticket_workflow_screen.dart';
 import 'screens/street_sweeping_screen.dart';
 import 'screens/vehicle_management_screen.dart';
-import 'screens/welcome_screen.dart';
-import 'services/user_repository.dart';
 import 'screens/history_receipts_screen.dart';
 import 'screens/maintenance_report_screen.dart';
-// charging_map_screen already imported above
 import 'screens/garbage_schedule_screen.dart';
 import 'screens/city_settings_screen.dart';
 import 'services/notification_service.dart';
+import 'services/user_repository.dart';
+import 'screens/alternate_side_parking_screen.dart';
+import 'screens/parking_heatmap_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/map_screen.dart';
+import 'screens/feed_screen.dart';
+import 'screens/alerts_landing_screen.dart';
+import 'screens/alert_detail_screen.dart';
+import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase before any Firebase services are used.
-  await Firebase.initializeApp();
+  // Start UI immediately; bootstrap runs asynchronously to avoid splash hangs.
+  runApp(const _BootstrapApp());
+}
 
-  // Sign in anonymously so the app has a Firebase user available.
-  try {
-    await FirebaseAuth.instance.signInAnonymously();
-    // Print the uid for debugging; in production consider a proper logging solution.
-    print('Signed in anonymously: ${FirebaseAuth.instance.currentUser?.uid}');
-  } catch (e) {
-    // Continue startup even if anonymous sign-in fails; the app can still run.
-    print('Anonymous sign-in failed: $e');
+Future<void> ensureAuthenticated() async {
+  if (FirebaseAuth.instance.currentUser != null) return;
+  await FirebaseAuth.instance.signInAnonymously();
+  debugPrint(
+    'Signed in anonymously with UID: ${FirebaseAuth.instance.currentUser?.uid}',
+  );
+}
+
+class _BootstrapApp extends StatefulWidget {
+  const _BootstrapApp();
+
+  @override
+  State<_BootstrapApp> createState() => _BootstrapAppState();
+}
+
+class _BootstrapAppState extends State<_BootstrapApp> {
+  BootstrapDiagnostics? _diagnostics;
+  UserRepository? _repository;
+  bool _firebaseReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_bootstrap);
   }
 
-  await NotificationService.instance.initialize();
-  final repository = await UserRepository.create();
-  runApp(MKEParkApp(userRepository: repository));
+  Future<void> _bootstrap() async {
+    final diagnostics = BootstrapDiagnostics();
+    bool firebaseReady = false;
+    UserRepository? repo;
+
+    try {
+      firebaseReady = await diagnostics
+          .recordFuture<bool>(
+            'Firebase',
+            initializeFirebaseIfAvailable,
+            onSuccess: (ready, entry) {
+              entry.details = ready ? 'Initialization completed.' : 'Config missing.';
+            },
+          )
+          .timeout(const Duration(seconds: 12), onTimeout: () => false);
+
+      if (firebaseReady) {
+        await diagnostics
+            .recordFuture<void>(
+              'Auth',
+              ensureAuthenticated,
+              onSuccess: (_, entry) =>
+                  entry.details = 'Signed in (anonymous ok).',
+            )
+            .timeout(const Duration(seconds: 8), onTimeout: () async {});
+      }
+
+      if (!kIsWeb) {
+        await diagnostics
+            .recordFuture<void>(
+              'NotificationService',
+              () => NotificationService.instance.initialize(
+                enableRemoteNotifications: true,
+              ),
+              onSuccess: (_, entry) =>
+                  entry.details = 'Permissions/token/handlers configured.',
+            )
+            .timeout(const Duration(seconds: 8), onTimeout: () async {});
+      }
+
+      await diagnostics
+          .recordFuture<void>(
+            'CloudLogService',
+            () => CloudLogService.instance.initialize(firebaseReady: firebaseReady),
+          )
+          .timeout(const Duration(seconds: 8), onTimeout: () async {});
+    } catch (e, st) {
+      debugPrint('BOOT ERROR: $e');
+      debugPrint('$st');
+      firebaseReady = false;
+    }
+
+    try {
+      repo = await diagnostics
+          .recordFuture<UserRepository>(
+            'UserRepository',
+            () async => UserRepository(),
+            onSuccess: (_, entry) => entry.details = 'Repository ready.',
+          )
+          .timeout(const Duration(seconds: 8), onTimeout: () => UserRepository());
+    } catch (_) {
+      repo = UserRepository();
+    }
+
+    setState(() {
+      _diagnostics = diagnostics;
+      _repository = repo;
+      _firebaseReady = firebaseReady;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_repository == null || _diagnostics == null) {
+      return const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    return MKEParkApp(
+      userRepository: _repository!,
+      diagnostics: _diagnostics!,
+      firebaseReady: _firebaseReady,
+    );
+  }
 }
 
 class MKEParkApp extends StatelessWidget {
-  const MKEParkApp({super.key, required this.userRepository});
+  const MKEParkApp({
+    super.key,
+    required this.userRepository,
+    required this.diagnostics,
+    required this.firebaseReady,
+  });
 
   final UserRepository userRepository;
+  final BootstrapDiagnostics diagnostics;
+  final bool firebaseReady;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => UserProvider(userRepository: userRepository)..initialize(),
+      create: (_) => UserProvider(
+        userRepository: userRepository,
+        firebaseReady: firebaseReady,
+      )..initialize(),
       child: MaterialApp(
-        title: 'MKEPark',
-        theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF5E8A45),
-            primary: const Color(0xFF5E8A45),
-            secondary: const Color(0xFF7CA726),
-            tertiary: const Color(0xFFE0B000),
-            surface: Colors.white,
-            background: const Color(0xFFF5F7FA),
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: const Color(0xFFF5F7FA),
-          cardTheme: CardTheme(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            color: Colors.white,
-          ),
-          appBarTheme: const AppBarTheme(
-            elevation: 0,
-            centerTitle: false,
-            backgroundColor: Colors.white,
-            foregroundColor: Color(0xFF1A1A1A),
-            titleTextStyle: TextStyle(
-              color: Color(0xFF1A1A1A),
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Inter',
-            ),
-          ),
-          textTheme: const TextTheme(
-            displayLarge: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A1A),
-              letterSpacing: -0.5,
-            ),
-            displayMedium: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A1A1A),
-              letterSpacing: -0.5,
-            ),
-            displaySmall: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
-            ),
-            headlineMedium: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
-            ),
-            titleLarge: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A1A),
-            ),
-            titleMedium: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF1A1A1A),
-            ),
-            bodyLarge: TextStyle(
-              fontSize: 16,
-              color: Color(0xFF2D3748),
-              height: 1.5,
-            ),
-            bodyMedium: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF4A5568),
-              height: 1.5,
-            ),
-            bodySmall: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF718096),
-            ),
-          ),
-          chipTheme: ChipThemeData(
-            backgroundColor: const Color(0xFFE8F5E9),
-            labelStyle: const TextStyle(
-              color: Color(0xFF2E7D32),
-              fontWeight: FontWeight.w500,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF5E8A45), width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          ),
-          fontFamily: 'Inter',
-        ),
         debugShowCheckedModeBanner: false,
-        initialRoute: '/',
+        title: 'MKE CitySmart',
+        theme: buildCitySmartTheme(),
+        initialRoute: '/dashboard',
         routes: {
-          '/': (context) => const WelcomeScreen(),
+          '/': (context) => const DashboardScreen(),
+          '/dashboard': (context) => const DashboardScreen(),
+          '/landing': (context) => const LandingScreen(),
           '/auth': (context) => const AuthScreen(),
-          '/landing': (context) => LandingScreen(),
+          '/register': (context) => const RegisterScreen(),
           '/parking': (context) => const ParkingScreen(),
           '/permit': (context) => const PermitScreen(),
           '/permit-workflow': (context) => const PermitWorkflowScreen(),
@@ -203,6 +200,7 @@ class MKEParkApp extends StatelessWidget {
           '/profile': (context) => const ProfileScreen(),
           '/vehicles': (context) => const VehicleManagementScreen(),
           '/preferences': (context) => const PreferencesScreen(),
+          '/alerts': (context) => const AlertsLandingScreen(),
           '/charging': (context) => const ChargingMapScreen(),
           '/report-sighting': (context) => const ReportSightingScreen(),
           '/tickets': (context) => const TicketWorkflowScreen(),
@@ -211,7 +209,22 @@ class MKEParkApp extends StatelessWidget {
           '/predictions': (context) => const ChargingMapScreen(),
           '/garbage': (context) => const GarbageScheduleScreen(),
           '/city-settings': (context) => const CitySettingsScreen(),
-          '/alternate-side-parking': (context) => const AlternateSideParkingScreen(),
+          '/alternate-parking': (context) =>
+              const AlternateSideParkingScreen(),
+          '/parking-heatmap': (context) => const ParkingHeatmapScreen(),
+          '/citysmart-dashboard': (context) => const DashboardScreen(),
+          '/citysmart-map': (context) => const MapScreen(),
+          '/citysmart-feed': (context) => const FeedScreen(),
+          '/feed': (context) => const FeedScreen(),
+          '/alert-detail': (context) {
+            final alertId = ModalRoute.of(context)?.settings.arguments as String?;
+            if (alertId == null) {
+              return const Scaffold(
+                body: Center(child: Text('Alert ID missing')),
+              );
+            }
+            return AlertDetailScreen(alertId: alertId);
+          },
         },
       ),
     );
