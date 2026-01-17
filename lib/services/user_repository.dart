@@ -141,6 +141,25 @@ class UserRepository {
     }
 
     await batch.commit();
+
+    // Ensure the parent user document has a reports counter field and
+    // increment the reportCount. This helps quickly show counts without
+    // querying the subcollection.
+    try {
+      // Ensure a baseline field exists (no-op if already present).
+      await _userDocument().set({'reports': 0}, SetOptions(merge: true));
+
+      // Try to increment the reportCount by the number of reports added.
+      await _userDocument().update({'reportCount': FieldValue.increment(reports.length)});
+    } catch (e) {
+      // If update fails (for example the document didn't exist concurrently),
+      // try to set the count explicitly as a fallback.
+      try {
+        await _userDocument().set({'reportCount': reports.length}, SetOptions(merge: true));
+      } catch (_) {
+        // Swallow — this counter is a convenience and should not prevent app flow.
+      }
+    }
   }
 
   Future<List<Ticket>> loadTickets() => _loadSubCollection(
