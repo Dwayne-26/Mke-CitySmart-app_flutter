@@ -6,6 +6,8 @@ import '../services/risk_alert_service.dart';
 import '../widgets/alternate_side_parking_card.dart';
 
 class LandingScreen extends StatelessWidget {
+  const LandingScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
