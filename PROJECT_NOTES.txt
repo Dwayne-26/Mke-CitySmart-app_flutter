@@ -3,6 +3,7 @@ Development notes for mkecitysmart
 
 Change log (most recent first)
 - 2026-01-15 [EMULATORS] Wired debug-only emulators for Functions/Firestore/Auth in main bootstrap; TODO: add Storage emulator wiring (FirebaseStorage.useStorageEmulator).
+- 2026-01-15 [EMULATORS] Storage emulator note: FirebaseStorage.instance.useStorageEmulator('localhost', 9199).
 - 2026-01-15/16 [F-404] Release build uploaded to App Store Connect; TestFlight internal testing enabled and functioning; iOS build confirmed production-ready.
 - 2026-01-15 [F-007] Expiration system verified: test doc flipped to status="expired"; cleanupExpiredSightings runs on schedule; no manual intervention required.
 - 2026-01-15 [F-003] Permanent app-to-backend connectivity confirmed: end-to-end app→backend→Firestore→mirror chain; sightings created; functions mirror to alerts/global; anonymous auth and rate limits verified; no crashes or silent failures.
