@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "mkecitysmart",
-      "version": "1.0.0+1",
+      "version": "1.0.21+23",
       "dependencies": [
         "cloud_firestore",
         "cupertino_icons",
@@ -40,7 +40,6 @@
         "build_runner",
         "drift_dev",
         "fake_cloud_firestore",
-        "firebase_auth_mocks",
         "flutter_lints",
         "flutter_test",
         "mockito"
@@ -145,21 +144,6 @@
         "quiver",
         "rx",
         "rxdart"
-      ]
-    },
-    {
-      "name": "firebase_auth_mocks",
-      "version": "0.14.2",
-      "dependencies": [
-        "dart_jsonwebtoken",
-        "equatable",
-        "firebase_auth",
-        "firebase_auth_platform_interface",
-        "firebase_core",
-        "flutter",
-        "meta",
-        "mock_exceptions",
-        "uuid"
       ]
     },
     {
@@ -917,37 +901,6 @@
       ]
     },
     {
-      "name": "firebase_auth_platform_interface",
-      "version": "7.7.3",
-      "dependencies": [
-        "_flutterfire_internals",
-        "collection",
-        "firebase_core",
-        "flutter",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "uuid",
-      "version": "4.5.2",
-      "dependencies": [
-        "crypto",
-        "fixnum",
-        "meta"
-      ]
-    },
-    {
-      "name": "dart_jsonwebtoken",
-      "version": "3.3.1",
-      "dependencies": [
-        "clock",
-        "convert",
-        "ed25519_edwards",
-        "pointycastle"
-      ]
-    },
-    {
       "name": "lints",
       "version": "6.0.0",
       "dependencies": []
@@ -1195,6 +1148,18 @@
       ]
     },
     {
+      "name": "firebase_auth_platform_interface",
+      "version": "7.7.3",
+      "dependencies": [
+        "_flutterfire_internals",
+        "collection",
+        "firebase_core",
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
       "name": "firebase_core_web",
       "version": "2.24.1",
       "dependencies": [
@@ -1425,6 +1390,15 @@
       ]
     },
     {
+      "name": "uuid",
+      "version": "4.5.2",
+      "dependencies": [
+        "crypto",
+        "fixnum",
+        "meta"
+      ]
+    },
+    {
       "name": "proj4dart",
       "version": "2.1.0",
       "dependencies": [
@@ -1492,9 +1466,11 @@
     },
     {
       "name": "path_provider_foundation",
-      "version": "2.5.1",
+      "version": "2.6.0",
       "dependencies": [
+        "ffi",
         "flutter",
+        "objective_c",
         "path_provider_platform_interface"
       ]
     },
@@ -1653,24 +1629,6 @@
       ]
     },
     {
-      "name": "ed25519_edwards",
-      "version": "0.3.1",
-      "dependencies": [
-        "adaptive_number",
-        "collection",
-        "convert",
-        "crypto"
-      ]
-    },
-    {
-      "name": "pointycastle",
-      "version": "4.0.0",
-      "dependencies": [
-        "collection",
-        "convert"
-      ]
-    },
-    {
       "name": "leak_tracker_testing",
       "version": "3.0.2",
       "dependencies": [
@@ -1811,6 +1769,19 @@
       "dependencies": []
     },
     {
+      "name": "objective_c",
+      "version": "9.2.2",
+      "dependencies": [
+        "code_assets",
+        "collection",
+        "ffi",
+        "hooks",
+        "logging",
+        "native_toolchain_c",
+        "pub_semver"
+      ]
+    },
+    {
       "name": "sqflite_common",
       "version": "2.5.6",
       "dependencies": [
@@ -1852,13 +1823,6 @@
       ]
     },
     {
-      "name": "adaptive_number",
-      "version": "1.0.0",
-      "dependencies": [
-        "fixnum"
-      ]
-    },
-    {
       "name": "vm_service",
       "version": "15.0.2",
       "dependencies": []
@@ -1876,6 +1840,38 @@
       "version": "0.3.1",
       "dependencies": [
         "lists"
+      ]
+    },
+    {
+      "name": "native_toolchain_c",
+      "version": "0.17.2",
+      "dependencies": [
+        "code_assets",
+        "glob",
+        "hooks",
+        "logging",
+        "meta",
+        "pub_semver"
+      ]
+    },
+    {
+      "name": "hooks",
+      "version": "0.20.5",
+      "dependencies": [
+        "collection",
+        "crypto",
+        "logging",
+        "meta",
+        "pub_semver",
+        "yaml"
+      ]
+    },
+    {
+      "name": "code_assets",
+      "version": "0.19.10",
+      "dependencies": [
+        "collection",
+        "hooks"
       ]
     },
     {

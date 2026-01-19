@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -97,7 +98,7 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           print('Anonymous sign-in failed: $e');
           // Log to cloud if available; ignore failures here.
           try {
-            log('Anonymous sign-in failed: $e', stackTrace: st);
+            developer.log('Anonymous sign-in failed: $e', stackTrace: st);
           } catch (_) {}
         }
       }

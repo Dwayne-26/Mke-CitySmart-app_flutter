@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+
+
 /// Alternate Side Parking Service
 /// 
 /// Determines which side of the street to park on based on odd/even day rules.
@@ -7,6 +9,10 @@ import 'package:flutter/foundation.dart';
 class AlternateSideParkingService {
   AlternateSideParkingService._();
   static final AlternateSideParkingService instance = AlternateSideParkingService._();
+
+  /// Public factory so existing call sites that use `AlternateSideParkingService()`
+  /// continue to work and receive the singleton instance.
+  factory AlternateSideParkingService() => instance;
 
   /// Get parking instructions for a specific date
   ParkingInstructions getParkingInstructions(DateTime date) {
@@ -21,6 +27,8 @@ class AlternateSideParkingService {
       nextSwitchDate: _getNextSwitchDate(date),
     );
   }
+
+
 
   /// Get parking instructions for today
   ParkingInstructions getTodayInstructions() {
@@ -84,6 +92,13 @@ class AlternateSideParkingService {
     }
     
     return 'Park on the $side-numbered side today ($dayName, ${instructions.dayOfMonth})';
+  }
+
+  /// UI-friendly status object. Kept intentionally small so callers
+  /// can ask for `service.status(addressNumber: 123).sideToday`.
+  AlternateSideStatus status({int? addressNumber}) {
+    final instructions = getTodayInstructions();
+    return AlternateSideStatus(sideToday: instructions.parkingSide);
   }
 
   /// Format date for display
@@ -225,6 +240,13 @@ class NotificationMessage {
     required this.body,
     required this.priority,
   });
+}
+
+/// Minimal status object used by UI helpers that expect a
+/// `status(...).sideToday` shape.
+class AlternateSideStatus {
+  final ParkingSide sideToday;
+  AlternateSideStatus({required this.sideToday});
 }
 
 /// Notification priority
