@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/user_provider.dart';
@@ -21,7 +20,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _addressController;
 
   bool _saving = false;
-  String _version = '';
 
   @override
   void initState() {
@@ -31,7 +29,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _emailController = TextEditingController(text: profile?.email ?? '');
     _phoneController = TextEditingController(text: profile?.phone ?? '');
     _addressController = TextEditingController(text: profile?.address ?? '');
-    _loadVersion();
   }
 
   @override
@@ -41,13 +38,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _phoneController.dispose();
     _addressController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    setState(() {
-      _version = 'Version ${info.version}+${info.buildNumber}';
-    });
   }
 
   Future<void> _save() async {
@@ -220,12 +210,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    Text(
-                      _version,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
-                    ),
                   ],
                 ),
               ),
