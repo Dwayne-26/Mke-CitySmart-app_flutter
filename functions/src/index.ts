@@ -11,7 +11,6 @@ import {
   Timestamp,
   getFirestore,
 } from "firebase-admin/firestore";
-import {getMessaging} from "firebase-admin/messaging";
 import * as logger from "firebase-functions/logger";
 
 type DevicePlatform = "ios" | "android" | "web" | "unknown";
@@ -904,7 +903,7 @@ export const unregisterDevice = onCall(async (request) => {
 });
 
 // Run with firebase-adminsdk service account for FCM permissions
-// Uses secret to get explicit credentials
+// Uses secret to get explicit credentials and raw HTTP for FCM
 export const testPushToSelf = onCall(
   {
     serviceAccount: "firebase-adminsdk-fbsvc@mkeparkapp-1ad15.iam.gserviceaccount.com",
@@ -923,29 +922,54 @@ export const testPushToSelf = onCall(
     const body = (request.data?.body ?? "Test notification").toString();
 
     try {
-      // Initialize a separate app with explicit credentials from secret
-      const serviceAccountKey = JSON.parse(firebaseAdminSdkKey.value());
-      let fcmApp: admin.app.App;
-      try {
-        fcmApp = admin.app("fcm");
-      } catch {
-        fcmApp = admin.initializeApp(
-          {
-            credential: admin.credential.cert(serviceAccountKey),
-            projectId: "mkeparkapp-1ad15",
-          },
-          "fcm"
-        );
-      }
-
-      const messaging = getMessaging(fcmApp);
-      const resp = await messaging.send({
-        token,
-        notification: {title, body},
-        data: {kind: "test"},
+      // Use google-auth-library to get access token directly
+      const {GoogleAuth} = await import("google-auth-library");
+      
+      const secretValue = firebaseAdminSdkKey.value();
+      logger.info("Secret loaded", {secretLength: secretValue?.length ?? 0});
+      
+      const serviceAccountKey = JSON.parse(secretValue);
+      logger.info("Parsed service account key", {
+        projectId: serviceAccountKey.project_id,
+        clientEmail: serviceAccountKey.client_email,
       });
 
-      return {success: true, messageId: resp};
+      // Create auth client with explicit credentials
+      const auth = new GoogleAuth({
+        credentials: serviceAccountKey,
+        scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
+      });
+
+      const accessToken = await auth.getAccessToken();
+      logger.info("Got access token", {tokenLength: accessToken?.length ?? 0});
+
+      // Send FCM message via HTTP API
+      const fcmResponse = await fetch(
+        `https://fcm.googleapis.com/v1/projects/${serviceAccountKey.project_id}/messages:send`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: {
+              token,
+              notification: {title, body},
+              data: {kind: "test"},
+            },
+          }),
+        }
+      );
+
+      const fcmResult = await fcmResponse.json();
+      logger.info("FCM response", {status: fcmResponse.status, result: fcmResult});
+
+      if (!fcmResponse.ok) {
+        throw new Error(`FCM error: ${JSON.stringify(fcmResult)}`);
+      }
+
+      return {success: true, messageId: fcmResult.name};
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error("testPushToSelf failed", {
