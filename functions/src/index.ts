@@ -11,6 +11,7 @@ import {
   Timestamp,
   getFirestore,
 } from "firebase-admin/firestore";
+import {getMessaging} from "firebase-admin/messaging";
 import * as logger from "firebase-functions/logger";
 
 type DevicePlatform = "ios" | "android" | "web" | "unknown";
@@ -201,10 +202,12 @@ const determineApprovalTier = (report: {
   return {tier: "auto"};
 };
 
-// Use the Firebase Admin SDK service account for proper FCM permissions
-admin.initializeApp({
-  serviceAccountId: "firebase-adminsdk-fbsvc@mkeparkapp-1ad15.iam.gserviceaccount.com",
-});
+// Initialize with default credentials - Cloud Functions provides these automatically
+admin.initializeApp();
+
+// Define a secret reference for service account key
+import {defineSecret} from "firebase-functions/params";
+const firebaseAdminSdkKey = defineSecret("firebase-adminsdk-key");
 
 export const mirrorUserSightingToGlobal = onDocumentCreated(
   "users/{uid}/sightings/{sightingId}",
@@ -901,9 +904,11 @@ export const unregisterDevice = onCall(async (request) => {
 });
 
 // Run with firebase-adminsdk service account for FCM permissions
+// Uses secret to get explicit credentials
 export const testPushToSelf = onCall(
   {
     serviceAccount: "firebase-adminsdk-fbsvc@mkeparkapp-1ad15.iam.gserviceaccount.com",
+    secrets: [firebaseAdminSdkKey],
   },
   async (request) => {
     if (!request.auth?.uid) {
@@ -918,7 +923,23 @@ export const testPushToSelf = onCall(
     const body = (request.data?.body ?? "Test notification").toString();
 
     try {
-      const resp = await admin.messaging().send({
+      // Initialize a separate app with explicit credentials from secret
+      const serviceAccountKey = JSON.parse(firebaseAdminSdkKey.value());
+      let fcmApp: admin.app.App;
+      try {
+        fcmApp = admin.app("fcm");
+      } catch {
+        fcmApp = admin.initializeApp(
+          {
+            credential: admin.credential.cert(serviceAccountKey),
+            projectId: "mkeparkapp-1ad15",
+          },
+          "fcm"
+        );
+      }
+
+      const messaging = getMessaging(fcmApp);
+      const resp = await messaging.send({
         token,
         notification: {title, body},
         data: {kind: "test"},
