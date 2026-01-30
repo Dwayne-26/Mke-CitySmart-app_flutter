@@ -18,6 +18,12 @@ class AuthDiagnosticsScreen extends StatelessWidget {
 
     final providerIds = user?.providerData.map((e) => e.providerId).toList();
     final perm = pushDiag.lastPermission;
+    final locationDiag = pushDiag.lastLocationDiagnostics;
+    String locationValue(String key, {String fallback = '(unknown)'}) {
+      return locationDiag == null
+          ? fallback
+          : (locationDiag[key]?.toString() ?? fallback);
+    }
 
     String permLabel(NotificationSettings? s) {
       if (s == null) return '(unknown - tap Refresh)';
@@ -52,6 +58,10 @@ class AuthDiagnosticsScreen extends StatelessWidget {
           _kv('Device register last', pushDiag.lastRegisterAttemptTime?.toIso8601String() ?? '(none)'),
           _kv('Device register OK', pushDiag.lastRegisterSuccess == null ? '(none)' : (pushDiag.lastRegisterSuccess! ? 'yes' : 'no')),
           _kv('Register error', pushDiag.lastRegisterError?.toString() ?? '(none)'),
+          _kv('Location service', locationValue('locationServiceEnabled')),
+          _kv('Location permission before', locationValue('locationPermissionBefore')),
+          _kv('Location permission after', locationValue('locationPermissionAfter')),
+          _kv('Location error', locationValue('locationError', fallback: '(none)')),
 
           const SizedBox(height: 12),
           Wrap(
@@ -133,6 +143,10 @@ class AuthDiagnosticsScreen extends StatelessWidget {
                 'deviceRegisterTime=${pushDiag.lastRegisterAttemptTime?.toIso8601String()}',
                 'deviceRegisterOK=${pushDiag.lastRegisterSuccess}',
                 'deviceRegisterErr=${pushDiag.lastRegisterError}',
+                'locationServiceEnabled=${locationValue('locationServiceEnabled')}',
+                'locationPermissionBefore=${locationValue('locationPermissionBefore')}',
+                'locationPermissionAfter=${locationValue('locationPermissionAfter')}',
+                'locationError=${locationValue('locationError', fallback: '(none)')}',
               ].join('\n');
               showDialog<void>(
                 context: context,

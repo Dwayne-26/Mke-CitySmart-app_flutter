@@ -784,48 +784,69 @@ export const registerDevice = onCall(async (request) => {
   if (!token) {
     throw new HttpsError("invalid-argument", "FCM token required.");
   }
-
-  const platform = ((data.platform ?? "unknown").toString().toLowerCase() as DevicePlatform) ||
+  const platform =
+    ((data.platform ?? "unknown").toString().toLowerCase() as DevicePlatform) ||
     "unknown";
   const latitude = Number(data.latitude);
   const longitude = Number(data.longitude);
   const hasGeo = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const radiusRaw = Number(data.radiusMiles ?? DEFAULT_NEARBY_RADIUS_MILES);
   const radiusMiles = Math.min(
-    Math.max(Number(data.radiusMiles ?? DEFAULT_NEARBY_RADIUS_MILES), 0.1),
+    Math.max(Number.isFinite(radiusRaw) ? radiusRaw : DEFAULT_NEARBY_RADIUS_MILES, 0.1),
     MAX_NEARBY_RADIUS_MILES,
   );
-  const precision = data.locationPrecisionMeters;
+  const precisionRaw = Number(data.locationPrecisionMeters);
+  const precision = Number.isFinite(precisionRaw) ? precisionRaw : null;
 
-  const db = getFirestore();
-  const now = Timestamp.now();
+  try {
+    const db = getFirestore();
+    const now = Timestamp.now();
 
-  // One device record per token; users may reinstall so uid can change.
-  const docId = token.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 200);
-  const ref = db.collection("devices").doc(docId);
+    // One device record per token; users may reinstall so uid can change.
+    const docId = token.replace(/[^A-Za-z0-9_.-]/g, "_").slice(0, 200);
+    const ref = db.collection("devices").doc(docId);
 
-  const payload: Partial<DeviceDoc> = {
-    uid: request.auth.uid,
-    token,
-    platform,
-    radiusMiles,
-    locationPrecisionMeters: precision ?? null,
-    updatedAt: now,
-    lastSeenAt: now,
-  };
-  if (hasGeo) {
-    payload.location = new GeoPoint(latitude, longitude);
-    payload.geohash = encodeGeohash(latitude, longitude, 8);
+    const payload: Partial<DeviceDoc> = {
+      uid: request.auth.uid,
+      token,
+      platform,
+      radiusMiles,
+      locationPrecisionMeters: precision,
+      updatedAt: now,
+      lastSeenAt: now,
+    };
+    if (hasGeo) {
+      payload.location = new GeoPoint(latitude, longitude);
+      payload.geohash = encodeGeohash(latitude, longitude, 8);
+    }
+
+    await ref.set(
+      {
+        ...payload,
+        createdAt: FieldValue.serverTimestamp(),
+      },
+      {merge: true},
+    );
+
+    return {success: true};
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error("registerDevice failed", {
+      uid: request.auth.uid,
+      tokenPrefix: token.slice(0, 10),
+      platform,
+      hasGeo,
+      latitude,
+      longitude,
+      radiusMiles,
+      locationPrecisionMeters: precision,
+      message,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    throw new HttpsError("internal", "registerDevice failed", {
+      message,
+    });
   }
-
-  await ref.set(
-    {
-      ...payload,
-      createdAt: FieldValue.serverTimestamp(),
-    },
-    {merge: true},
-  );
-
-  return {success: true};
 });
 
 export const approveAlert = onCall(async (request) => {
@@ -888,13 +909,28 @@ export const testPushToSelf = onCall(async (request) => {
   const title = (request.data?.title ?? "CitySmart test").toString();
   const body = (request.data?.body ?? "Test notification").toString();
 
-  const resp = await admin.messaging().send({
-    token,
-    notification: {title, body},
-    data: {kind: "test"},
-  });
+  try {
+    const resp = await admin.messaging().send({
+      token,
+      notification: {title, body},
+      data: {kind: "test"},
+    });
 
-  return {success: true, messageId: resp};
+    return {success: true, messageId: resp};
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error("testPushToSelf failed", {
+      uid: request.auth.uid,
+      tokenPrefix: token.slice(0, 10),
+      title,
+      body,
+      message,
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    throw new HttpsError("internal", "testPushToSelf failed", {
+      message,
+    });
+  }
 });
 
 export const notifyOnApproval = onDocumentWritten(

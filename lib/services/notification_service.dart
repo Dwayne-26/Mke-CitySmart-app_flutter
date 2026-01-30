@@ -155,6 +155,9 @@ class NotificationService {
       PushDiagnosticsService.instance.recordFcmToken(token);
 
       final positionResult = await _getBestEffortPositionWithDiagnostics();
+      PushDiagnosticsService.instance.recordLocationDiagnostics(
+        positionResult.diagnostics,
+      );
       final position = positionResult.position;
       final callable = FirebaseFunctions.instance.httpsCallable('registerDevice');
       await callable.call({
@@ -205,6 +208,9 @@ class NotificationService {
       try {
         PushDiagnosticsService.instance.recordFcmToken(token);
         final positionResult = await _getBestEffortPositionWithDiagnostics();
+        PushDiagnosticsService.instance.recordLocationDiagnostics(
+          positionResult.diagnostics,
+        );
         final position = positionResult.position;
         final callable = FirebaseFunctions.instance.httpsCallable('registerDevice');
         await callable.call({
