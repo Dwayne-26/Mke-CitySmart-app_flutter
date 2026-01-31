@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 import '../services/location_service.dart';
 import '../services/parking_prediction_service.dart';
+import '../services/parking_risk_service.dart';
+import '../widgets/parking_risk_badge.dart';
 
 class ParkingHeatmapScreen extends StatefulWidget {
   const ParkingHeatmapScreen({super.key});
@@ -14,12 +16,18 @@ class ParkingHeatmapScreen extends StatefulWidget {
 
 class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   final _service = ParkingPredictionService();
+  final _riskService = ParkingRiskService.instance;
   double _centerLat = 43.0389;
   double _centerLng = -87.9065;
   final _eventLoad = 0.2;
   List<PredictedPoint> _points = const [];
   bool _loading = true;
   String? _error;
+  
+  // Citation-based risk data
+  LocationRisk? _locationRisk;
+  List<RiskZone> _riskZones = [];
+  bool _showCitationRisk = true; // Toggle between prediction and citation data
 
   @override
   void initState() {
@@ -45,6 +53,8 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
       _error = 'Location unavailable; showing defaults.';
     }
     if (!mounted) return;
+    
+    // Load prediction points (local)
     final cityBias = _cityBias(userProvider.cityId);
     _points = _service.predictNearby(
       when: DateTime.now(),
@@ -54,6 +64,24 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
       samples: 60,
       cityBias: cityBias,
     );
+    
+    // Load citation-based risk data (from backend)
+    try {
+      final results = await Future.wait([
+        _riskService.getRiskForLocation(lat, lng),
+        _riskService.getRiskZones(
+          minLat: lat - 0.05,
+          maxLat: lat + 0.05,
+          minLng: lng - 0.05,
+          maxLng: lng + 0.05,
+        ),
+      ]);
+      _locationRisk = results[0] as LocationRisk?;
+      _riskZones = results[1] as List<RiskZone>;
+    } catch (e) {
+      debugPrint('Failed to load citation risk: $e');
+    }
+    
     setState(() {
       _centerLat = lat;
       _centerLng = lng;
@@ -76,15 +104,28 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Parking Heatmap'),
+        actions: [
+          // Toggle between prediction and citation risk views
+          IconButton(
+            icon: Icon(_showCitationRisk ? Icons.warning : Icons.map),
+            tooltip: _showCitationRisk ? 'Show availability' : 'Show risk zones',
+            onPressed: () => setState(() => _showCitationRisk = !_showCitationRisk),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Predicted availability',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            // Risk badge at top when we have location risk data
+            if (_locationRisk != null && _showCitationRisk) ...[
+              ParkingRiskBadge(risk: _locationRisk!),
+              const SizedBox(height: 16),
+            ],
+            Text(
+              _showCitationRisk ? 'Citation Risk Zones' : 'Predicted availability',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
             if (_error != null)
@@ -104,10 +145,10 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   // Map coords to a simple grid for demo purposes.
-                  final minLat = _centerLat - 0.002;
-                  final maxLat = _centerLat + 0.002;
-                  final minLng = _centerLng - 0.002;
-                  final maxLng = _centerLng + 0.002;
+                  final minLat = _centerLat - 0.02;
+                  final maxLat = _centerLat + 0.02;
+                  final minLng = _centerLng - 0.02;
+                  final maxLng = _centerLng + 0.02;
 
                   double toX(double lng) =>
                       ((lng - minLng) / (maxLng - minLng)) *
@@ -125,34 +166,72 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      ..._points.map((p) {
-                        final x = toX(p.longitude);
-                        final y = toY(p.latitude);
-                        return Positioned(
-                          left: x - 10,
-                          top: y - 10,
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: _scoreColor(p.score),
-                              shape: BoxShape.circle,
+                      // Show citation risk zones when toggled
+                      if (_showCitationRisk)
+                        ..._riskZones.map((zone) {
+                          final x = toX(zone.lng);
+                          final y = toY(zone.lat);
+                          if (x < 0 || x > constraints.maxWidth || 
+                              y < 0 || y > constraints.maxHeight) {
+                            return const SizedBox.shrink();
+                          }
+                          return Positioned(
+                            left: x - 25,
+                            top: y - 25,
+                            child: _RiskZoneCircle(zone: zone),
+                          );
+                        })
+                      else
+                        ..._points.map((p) {
+                          final x = toX(p.longitude);
+                          final y = toY(p.latitude);
+                          return Positioned(
+                            left: x - 10,
+                            top: y - 10,
+                            child: Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: _scoreColor(p.score),
+                                shape: BoxShape.circle,
+                              ),
                             ),
+                          );
+                        }),
+                      // Current location marker
+                      Positioned(
+                        left: toX(_centerLng) - 8,
+                        top: toY(_centerLat) - 8,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
-                        );
-                      }),
+                        ),
+                      ),
                       Positioned(
                         right: 12,
                         top: 12,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
-                          children: const [
-                            _LegendDot(color: Colors.greenAccent, label: 'High chance'),
-                            SizedBox(height: 6),
-                            _LegendDot(color: Colors.orangeAccent, label: 'Medium'),
-                            SizedBox(height: 6),
-                            _LegendDot(color: Colors.redAccent, label: 'Lower'),
-                          ],
+                          children: _showCitationRisk
+                              ? const [
+                                  _LegendDot(color: Color(0xFFE53935), label: 'High risk'),
+                                  SizedBox(height: 6),
+                                  _LegendDot(color: Color(0xFFFFA726), label: 'Medium'),
+                                  SizedBox(height: 6),
+                                  _LegendDot(color: Color(0xFF66BB6A), label: 'Low risk'),
+                                ]
+                              : const [
+                                  _LegendDot(color: Colors.greenAccent, label: 'High chance'),
+                                  SizedBox(height: 6),
+                                  _LegendDot(color: Colors.orangeAccent, label: 'Medium'),
+                                  SizedBox(height: 6),
+                                  _LegendDot(color: Colors.redAccent, label: 'Lower'),
+                                ],
                         ),
                       ),
                     ],
@@ -164,6 +243,53 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Circle widget for risk zones
+class _RiskZoneCircle extends StatelessWidget {
+  const _RiskZoneCircle({required this.zone});
+  final RiskZone zone;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Color(_getColorValue());
+    // Size based on citation count (more citations = larger circle)
+    final size = 30.0 + (zone.totalCitations / 10000).clamp(0, 30);
+    
+    return Tooltip(
+      message: '${zone.riskScore}% risk (${zone.totalCitations} citations)',
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.6),
+          shape: BoxShape.circle,
+          border: Border.all(color: color, width: 2),
+        ),
+        child: Center(
+          child: Text(
+            '${zone.riskScore}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  int _getColorValue() {
+    switch (zone.riskLevel) {
+      case RiskLevel.high:
+        return 0xFFE53935; // Red
+      case RiskLevel.medium:
+        return 0xFFFFA726; // Orange
+      case RiskLevel.low:
+        return 0xFF66BB6A; // Green
+    }
   }
 }
 
