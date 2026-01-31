@@ -843,7 +843,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> reportSighting({
+  Future<String?> reportSighting({
     required SightingType type,
     required String location,
     String notes = '',
@@ -862,8 +862,15 @@ class UserProvider extends ChangeNotifier {
     final deduped = _dedupeSighting(report);
     _sightings = deduped;
     await _repository.saveSightings(_sightings);
-    _reportApi.sendSighting(report);
+    
+    // Send to Cloud Function for server-side processing and nearby fanout
+    final result = await _reportApi.sendSighting(report);
+    final success = result['success'] == true;
+    final message = result['message']?.toString();
+    
+    // Also show local notification if nearby (for immediate feedback)
     _maybeNotifyNearbySighting(report);
+    
     notifyListeners();
     unawaited(
       CloudLogService.instance.logEvent(
@@ -871,9 +878,12 @@ class UserProvider extends ChangeNotifier {
         data: {
           'type': report.type.name,
           'hasLocation': report.latitude != null && report.longitude != null,
+          'serverSuccess': success,
         },
       ),
     );
+    
+    return message;
   }
 
   Future<void> _maybeNotifyNearbySighting(SightingReport report) async {
