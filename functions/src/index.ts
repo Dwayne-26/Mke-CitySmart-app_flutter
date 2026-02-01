@@ -1456,6 +1456,47 @@ export const getRiskForLocation = onCall(async (request) => {
 });
 
 /**
+ * Decode a geohash to its center lat/lng coordinates.
+ */
+const decodeGeohash = (geohash: string): {lat: number; lng: number} => {
+  let latMin = -90.0;
+  let latMax = 90.0;
+  let lonMin = -180.0;
+  let lonMax = 180.0;
+  let evenBit = true;
+  
+  for (const char of geohash.toLowerCase()) {
+    const idx = GEOHASH_BASE32.indexOf(char);
+    if (idx === -1) continue;
+    
+    for (let bit = 4; bit >= 0; bit--) {
+      const bitN = (idx >> bit) & 1;
+      if (evenBit) {
+        const lonMid = (lonMin + lonMax) / 2;
+        if (bitN === 1) {
+          lonMin = lonMid;
+        } else {
+          lonMax = lonMid;
+        }
+      } else {
+        const latMid = (latMin + latMax) / 2;
+        if (bitN === 1) {
+          latMin = latMid;
+        } else {
+          latMax = latMid;
+        }
+      }
+      evenBit = !evenBit;
+    }
+  }
+  
+  return {
+    lat: (latMin + latMax) / 2,
+    lng: (lonMin + lonMax) / 2,
+  };
+};
+
+/**
  * Get all risk zones for map overlay (heatmap data).
  * Returns simplified data suitable for client-side rendering.
  */
@@ -1478,21 +1519,22 @@ export const getRiskZones = onCall(async (request) => {
   const zones = snap.docs
     .map(doc => {
       const data = doc.data();
-      const location = data.location as {lat: number; lng: number} | undefined;
-      if (!location) return null;
+      // Decode geohash to get center coordinates
+      const geohash = doc.id;
+      const {lat, lng} = decodeGeohash(geohash);
       
       // Filter by bounds if provided
       if (hasBounds) {
-        if (location.lat < minLat || location.lat > maxLat ||
-            location.lng < minLng || location.lng > maxLng) {
+        if (lat < minLat || lat > maxLat ||
+            lng < minLng || lng > maxLng) {
           return null;
         }
       }
       
       return {
-        geohash: doc.id,
-        lat: location.lat,
-        lng: location.lng,
+        geohash,
+        lat,
+        lng,
         riskScore: data.riskScore ?? 0,
         riskLevel: data.riskLevel ?? "low",
         totalCitations: data.totalCitations ?? 0,
