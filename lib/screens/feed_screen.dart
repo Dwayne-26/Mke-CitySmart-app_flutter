@@ -3,8 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../services/analytics_service.dart';
 import '../services/feed_filter_service.dart';
-import '../theme/citysmart_theme.dart';
+import '../theme/app_theme.dart';
 import '../widgets/citysmart_scaffold.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -46,6 +47,7 @@ class _FeedBodyState extends State<_FeedBody> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.instance.logScreenView('FeedScreen');
     _loadFeed();
   }
 
@@ -138,6 +140,15 @@ class _FeedBodyState extends State<_FeedBody> {
   }
 
   void _updateFilters(FeedFilters newFilters) {
+    // Track filter changes for analytics
+    AnalyticsService.instance.logEvent('feed_filters_changed', parameters: {
+      'radius_miles': newFilters.radiusMiles?.toString() ?? 'all',
+      'time_window_hours': newFilters.timeWindow != null 
+          ? (newFilters.timeWindow!.inMinutes / 60).toString()
+          : 'all',
+      'sighting_type': newFilters.typeFilter.name,
+    });
+    
     setState(() {
       _filters = newFilters;
     });
