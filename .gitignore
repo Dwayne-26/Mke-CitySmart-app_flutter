@@ -60,3 +60,4 @@ macos/Runner/GoogleService-Info.plist
 private_keys/
 web/firebase-config.json
 AuthKey_937GPQ4M9B.p8
+ios/build/
