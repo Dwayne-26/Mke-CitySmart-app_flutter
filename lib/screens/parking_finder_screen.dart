@@ -188,8 +188,8 @@ class _ParkingFinderScreenState extends State<ParkingFinderScreen> {
         _currentLocation.latitude,
         _currentLocation.longitude,
       );
-      if (mounted) {
-        setState(() => _currentRiskLevel = risk.riskLevel);
+      if (mounted && risk != null) {
+        setState(() => _currentRiskLevel = risk.riskLevel.name);
       }
     } catch (_) {
       // Ignore risk loading errors
