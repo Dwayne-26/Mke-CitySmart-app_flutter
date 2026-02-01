@@ -103,13 +103,15 @@ NOTES:
 - 2026-01-18: Push notification infrastructure completed (FCM tokens, APNs forwarding, sendNearbyAlerts callable). Emulator testing with rate limits/audit logs; ready for production activation.
 - 2026-01-31: Added sendHighRiskAlerts Cloud Function for citation-based risk zone alerts. Integrated with parking risk heatmap system.
 
-[F-103] [TODO] (P1) Saved places (home/work/favorites)
+[F-103] [DONE] (P1) Saved places (home/work/favorites)
 - Custom radius per place
 NOTES:
+- 2026-01-31: Implemented SavedPlace model + SavedPlacesService with Firestore persistence, local caching, geohash encoding. SavedPlacesScreen with home/work cards, favorites list, place editor sheet. Per-place notification radius settings. Linked from Profile screen.
 
-[F-104] [TODO] (P1) Tow / impound helper flow
+[F-104] [DONE] (P1) Tow / impound helper flow
 - Steps/checklist + quick links
 NOTES:
+- 2026-01-31: Created TowHelperScreen with Recovery Guide (5-step process) and Tow Lots directory. Milwaukee tow lot data with phone/address/hours. Quick-dial phone integration, Google/Apple Maps directions. Fee estimator breakdown. Tips to avoid future tows. Dashboard tile added.
 
 [F-105] [DONE] (P1) User onboarding flow
 - First-time user experience
@@ -181,12 +183,14 @@ NOTES:
 - 2026-01-11: Added firestore target to firebase.json, created firestore.rules, fixed compilation error, deployed Firestore rules successfully to prod.
 - 2026-01-14: Updated alerts rules for public reads + admin deletes, added firestore.indexes.json reference, deployed rules + indexes.
 
-[F-402] [TODO] (P1) Performance (geo queries, feed pagination, caching)
+[F-402] [DONE] (P1) Performance (geo queries, feed pagination, caching)
 NOTES:
+- 2026-01-31: Enabled Firestore persistence (100MB cache) for offline-first experience. Created CacheService with LRU eviction, TTL support, and namespaced storage (feed, riskZones, parking, userPreferences). Geohash-based querying in FeedFilterService for scalable geo-queries. Ready for larger data volumes.
 
-[F-403] [TODO] (P1) Crash + analytics instrumentation
+[F-403] [DONE] (P1) Crash + analytics instrumentation
 - Track post success/fail, feed latency, subscription funnel
 NOTES:
+- 2026-01-31: Added firebase_analytics + firebase_crashlytics dependencies. Created AnalyticsService with screen tracking, event logging, error recording, user ID binding. Wired FlutterError.onError and PlatformDispatcher.onError for automatic crash reporting. Analytics tracking in FeedScreen, SavedPlacesScreen, TowHelperScreen.
 
 [F-404] [DONE] (P0) iOS TestFlight readiness checklist (backend + config)
 - Ensure release build points to correct env
