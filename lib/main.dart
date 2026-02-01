@@ -8,6 +8,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'services/analytics_service.dart';
+import 'services/saved_places_service.dart';
 
 import 'citysmart/branding_preview.dart';
 import 'firebase_bootstrap.dart';
@@ -47,6 +48,7 @@ import 'screens/alert_detail_screen.dart';
 import 'screens/auth_diagnostics_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/parking_finder_screen.dart';
+import 'screens/saved_places_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -168,6 +170,16 @@ class _BootstrapAppState extends State<_BootstrapApp> {
         if (uid != null) {
           AnalyticsService.instance.setUserId(uid);
         }
+        
+        // Initialize SavedPlacesService for location-based alerts
+        await diagnostics
+            .recordFuture<void>(
+              'SavedPlaces',
+              () => SavedPlacesService.instance.initialize(),
+              onSuccess: (_, entry) =>
+                  entry.details = 'Saved places loaded.',
+            )
+            .timeout(const Duration(seconds: 5), onTimeout: () async {});
       }
 
       if (!kIsWeb) {
@@ -296,6 +308,7 @@ class MKEParkApp extends StatelessWidget {
           '/alternate-parking': (context) => const AlternateSideParkingScreen(),
           '/parking-heatmap': (context) => const ParkingHeatmapScreen(),
           '/parking-finder': (context) => const ParkingFinderScreen(),
+          '/saved-places': (context) => const SavedPlacesScreen(),
           '/citysmart-dashboard': (context) => const DashboardScreen(),
           '/citysmart-map': (context) => const MapScreen(),
           '/citysmart-feed': (context) => const FeedScreen(),
