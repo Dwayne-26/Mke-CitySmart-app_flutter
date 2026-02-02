@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_provider.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({Key? key}) : super(key: key);
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +14,7 @@ class WelcomeScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFF5E8A45),
-              const Color(0xFF7CA726),
-            ],
+            colors: [const Color(0xFF5E8A45), const Color(0xFF7CA726)],
           ),
         ),
         child: SafeArea(
@@ -126,7 +123,7 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 48),
-                      
+
                       // Main CTA Button
                       SizedBox(
                         width: double.infinity,
@@ -134,8 +131,13 @@ class WelcomeScreen extends StatelessWidget {
                           onPressed: isLoading
                               ? null
                               : () {
-                                  final route = isLoggedIn ? '/landing' : '/auth';
-                                  Navigator.pushReplacementNamed(context, route);
+                                  final route = isLoggedIn
+                                      ? '/landing'
+                                      : '/auth';
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    route,
+                                  );
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
@@ -165,7 +167,7 @@ class WelcomeScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      
+
                       if (!isLoggedIn) ...[
                         const SizedBox(height: 16),
                         SizedBox(
@@ -234,7 +236,8 @@ class WelcomeScreen extends StatelessWidget {
                         ),
                       ] else
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/profile'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/profile'),
                           child: Text(
                             'Manage Profile',
                             style: TextStyle(

@@ -8,7 +8,6 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/permit.dart';
-import '../models/parking_event.dart';
 import '../models/payment_receipt.dart';
 import '../models/permit_eligibility.dart';
 import '../models/reservation.dart';
@@ -53,9 +52,9 @@ class UserProvider extends ChangeNotifier {
     required UserRepository userRepository,
     FirebaseAuth? auth,
     required bool firebaseReady,
-  })  : _repository = userRepository,
-        _firebaseEnabled = firebaseReady,
-        _auth = firebaseReady ? (auth ?? FirebaseAuth.instance) : null;
+  }) : _repository = userRepository,
+       _firebaseEnabled = firebaseReady,
+       _auth = firebaseReady ? (auth ?? FirebaseAuth.instance) : null;
 
   final UserRepository _repository;
   final FirebaseAuth? _auth;
@@ -341,11 +340,7 @@ class UserProvider extends ChangeNotifier {
         notifyListeners();
         return null;
       }
-      await _ensureProfileForUser(
-        user,
-        fallbackName: name,
-        phone: phone,
-      );
+      await _ensureProfileForUser(user, fallbackName: name, phone: phone);
       unawaited(
         CloudLogService.instance.logEvent(
           'user_register',
@@ -356,16 +351,22 @@ class UserProvider extends ChangeNotifier {
       return null;
     } on FirebaseAuthException catch (e) {
       unawaited(
-        CloudLogService.instance
-            .recordError('register_auth_error', e, StackTrace.current),
+        CloudLogService.instance.recordError(
+          'register_auth_error',
+          e,
+          StackTrace.current,
+        ),
       );
       final msg = _mapAuthError(e);
       _setLastAuthError(msg);
       return msg;
     } catch (err, stack) {
       unawaited(
-        CloudLogService.instance
-            .recordError('register_generic_error', err, stack),
+        CloudLogService.instance.recordError(
+          'register_generic_error',
+          err,
+          stack,
+        ),
       );
       const msg = 'Unable to create account right now.';
       _setLastAuthError(msg);
@@ -412,10 +413,10 @@ class UserProvider extends ChangeNotifier {
             ? user.displayName!.trim()
             : _nameFromEmail(email),
       );
-      
+
       // Re-register FCM token with the new UID after successful sign-in
       unawaited(NotificationService.instance.reregisterTokenAfterSignIn());
-      
+
       unawaited(
         CloudLogService.instance.logEvent(
           'user_login',
@@ -426,16 +427,18 @@ class UserProvider extends ChangeNotifier {
       return null;
     } on FirebaseAuthException catch (e) {
       unawaited(
-        CloudLogService.instance
-            .recordError('login_auth_error', e, StackTrace.current),
+        CloudLogService.instance.recordError(
+          'login_auth_error',
+          e,
+          StackTrace.current,
+        ),
       );
       final msg = _mapAuthError(e);
       _setLastAuthError(msg);
       return msg;
     } catch (err, stack) {
       unawaited(
-        CloudLogService.instance
-            .recordError('login_generic_error', err, stack),
+        CloudLogService.instance.recordError('login_generic_error', err, stack),
       );
       const msg = 'Unable to sign in right now.';
       _setLastAuthError(msg);
@@ -508,10 +511,10 @@ class UserProvider extends ChangeNotifier {
         user,
         fallbackName: user.displayName ?? 'Google user',
       );
-      
+
       // Re-register FCM token with the new UID after successful sign-in
       unawaited(NotificationService.instance.reregisterTokenAfterSignIn());
-      
+
       unawaited(
         CloudLogService.instance.logEvent(
           'user_login',
@@ -554,9 +557,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  Future<PhoneAuthStartResult> startPhoneSignIn(
-    String phoneNumber,
-  ) async {
+  Future<PhoneAuthStartResult> startPhoneSignIn(String phoneNumber) async {
     final auth = _auth;
     if (auth == null || !_firebaseEnabled) {
       _setLastAuthError('Phone sign-in is unavailable (Firebase disabled).');
@@ -570,9 +571,9 @@ class UserProvider extends ChangeNotifier {
         error: 'Phone sign-in is not available on web.',
       );
     }
-    
+
     debugPrint('[PhoneAuth] Starting verification for: $phoneNumber');
-    
+
     final completer = Completer<PhoneAuthStartResult>();
     await auth.verifyPhoneNumber(
       phoneNumber: phoneNumber,
@@ -587,7 +588,9 @@ class UserProvider extends ChangeNotifier {
               fallbackName: _nameFromPhone(user.phoneNumber ?? phoneNumber),
             );
             // Re-register FCM token with the new UID after successful sign-in
-            unawaited(NotificationService.instance.reregisterTokenAfterSignIn());
+            unawaited(
+              NotificationService.instance.reregisterTokenAfterSignIn(),
+            );
           }
           if (!completer.isCompleted) {
             completer.complete(const PhoneAuthStartResult());
@@ -612,7 +615,9 @@ class UserProvider extends ChangeNotifier {
         _setLastAuthError(message);
       },
       codeSent: (verificationId, resendToken) {
-        debugPrint('[PhoneAuth] SMS code sent, verificationId: $verificationId');
+        debugPrint(
+          '[PhoneAuth] SMS code sent, verificationId: $verificationId',
+        );
         if (!completer.isCompleted) {
           completer.complete(
             PhoneAuthStartResult(
@@ -667,10 +672,10 @@ class UserProvider extends ChangeNotifier {
         user,
         fallbackName: _nameFromPhone(phoneNumber ?? user.phoneNumber ?? ''),
       );
-      
+
       // Re-register FCM token with the new UID after successful sign-in
       unawaited(NotificationService.instance.reregisterTokenAfterSignIn());
-      
+
       _setLastAuthError(null);
       return null;
     } on FirebaseAuthException catch (e) {
@@ -753,10 +758,10 @@ class UserProvider extends ChangeNotifier {
           ? '${appleId.givenName} ${appleId.familyName ?? ''}'.trim()
           : user.displayName ?? 'Apple user';
       await _ensureProfileForUser(user, fallbackName: name);
-      
+
       // Re-register FCM token with the new UID after successful sign-in
       unawaited(NotificationService.instance.reregisterTokenAfterSignIn());
-      
+
       unawaited(
         CloudLogService.instance.logEvent(
           'user_login',
@@ -891,24 +896,28 @@ class UserProvider extends ChangeNotifier {
     final deduped = _dedupeSighting(report);
     _sightings = deduped;
     await _repository.saveSightings(_sightings);
-    
+
     // Send to Cloud Function for server-side processing and nearby fanout
     final result = await _reportApi.sendSighting(report);
     final success = result['success'] == true;
     final message = result['message']?.toString();
-    
+
     // Also show local notification if nearby (for immediate feedback)
     _maybeNotifyNearbySighting(report);
-    
+
     // Log to parking history
-    unawaited(ParkingHistoryService.instance.logSightingReported(
-      sightingType: type == SightingType.towTruck ? 'Tow Truck' : 'Parking Enforcer',
-      location: location,
-      latitude: latitude,
-      longitude: longitude,
-      notes: notes.isNotEmpty ? notes : null,
-    ));
-    
+    unawaited(
+      ParkingHistoryService.instance.logSightingReported(
+        sightingType: type == SightingType.towTruck
+            ? 'Tow Truck'
+            : 'Parking Enforcer',
+        location: location,
+        latitude: latitude,
+        longitude: longitude,
+        notes: notes.isNotEmpty ? notes : null,
+      ),
+    );
+
     notifyListeners();
     unawaited(
       CloudLogService.instance.logEvent(
@@ -920,7 +929,7 @@ class UserProvider extends ChangeNotifier {
         },
       ),
     );
-    
+
     return message;
   }
 
@@ -955,15 +964,17 @@ class UserProvider extends ChangeNotifier {
             : 'Enforcer sighting nearby';
         final body = '${report.location} • ${miles.toStringAsFixed(1)} mi away';
         await NotificationService.instance.showLocal(title: title, body: body);
-        
+
         // Log to parking history
-        unawaited(ParkingHistoryService.instance.logEnforcementAlert(
-          isTowTruck: report.type == SightingType.towTruck,
-          description: body,
-          location: report.location,
-          latitude: report.latitude,
-          longitude: report.longitude,
-        ));
+        unawaited(
+          ParkingHistoryService.instance.logEnforcementAlert(
+            isTowTruck: report.type == SightingType.towTruck,
+            description: body,
+            location: report.location,
+            latitude: report.latitude,
+            longitude: report.longitude,
+          ),
+        );
       }
     } catch (_) {
       // Silent failure; best-effort.
@@ -1258,11 +1269,11 @@ class UserProvider extends ChangeNotifier {
   }) async {
     // Cancel any existing garbage reminders first
     await NotificationService.instance.cancelAllScheduled();
-    
+
     final now = DateTime.now();
     final upcoming = _garbageSchedules.where((g) => g.pickupDate.isAfter(now));
     var scheduleIndex = 0;
-    
+
     for (final sched in upcoming) {
       final pickupTime = sched.pickupDate;
       final nightBeforeTime = pickupTime.subtract(nightBefore);
@@ -1270,32 +1281,37 @@ class UserProvider extends ChangeNotifier {
       final typeLabel = _pickupLabel(sched.type, languageCode);
       final address = sched.address;
       final routeId = sched.routeId;
-      
+
       // Format pickup time for display
-      final pickupTimeStr = '${pickupTime.hour.toString().padLeft(2, '0')}:${pickupTime.minute.toString().padLeft(2, '0')}';
-      
+      final pickupTimeStr =
+          '${pickupTime.hour.toString().padLeft(2, '0')}:${pickupTime.minute.toString().padLeft(2, '0')}';
+
       // Night before reminder
       if (nightBeforeTime.isAfter(now)) {
         await NotificationService.instance.scheduleLocal(
           title: _translate('Reminder', languageCode),
-          body: '$typeLabel pickup tomorrow at $pickupTimeStr (Route $routeId) - $address',
+          body:
+              '$typeLabel pickup tomorrow at $pickupTimeStr (Route $routeId) - $address',
           when: nightBeforeTime,
           id: 100000 + scheduleIndex * 100,
         );
         // Log to parking history (only once, not for each reminder)
         if (scheduleIndex == 0) {
-          unawaited(ParkingHistoryService.instance.logGarbageReminder(
-            collectionType: typeLabel,
-            collectionDate: pickupTime,
-          ));
+          unawaited(
+            ParkingHistoryService.instance.logGarbageReminder(
+              collectionType: typeLabel,
+              collectionDate: pickupTime,
+            ),
+          );
         }
       }
-      
+
       // Morning of - use repeating reminders every 30 min until pickup time
       if (useRepeatingReminders && morningOfTime.isAfter(now)) {
         await NotificationService.instance.scheduleRepeatingReminders(
           title: '🚛 $typeLabel ${_translate('Pickup', languageCode)}',
-          body: '$typeLabel truck coming at $pickupTimeStr - $address (Route $routeId)',
+          body:
+              '$typeLabel truck coming at $pickupTimeStr - $address (Route $routeId)',
           startTime: morningOfTime,
           cutoffTime: pickupTime,
           baseId: 200000 + scheduleIndex * 100,
@@ -1309,7 +1325,7 @@ class UserProvider extends ChangeNotifier {
           id: 200000 + scheduleIndex * 100,
         );
       }
-      
+
       scheduleIndex++;
     }
   }
@@ -1460,7 +1476,8 @@ class UserProvider extends ChangeNotifier {
   }) async {
     var stored = await _repository.loadProfile();
     if (stored == null) {
-      final name = fallbackName ??
+      final name =
+          fallbackName ??
           user.displayName?.trim() ??
           _nameFromEmail(user.email ?? '');
       stored = UserProfile(

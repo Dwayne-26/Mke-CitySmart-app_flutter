@@ -10,13 +10,13 @@ import '../models/saved_place.dart';
 import 'analytics_service.dart';
 
 /// Service for managing saved places (home, work, favorites)
-/// 
+///
 /// Features:
 /// - Firestore persistence with offline support
 /// - Local caching for fast access
 /// - Real-time sync via stream
 /// - Geohash encoding for efficient geo-queries
-/// 
+///
 /// Scalability design:
 /// - Supports unlimited favorites per user
 /// - Efficient queries via compound indexes
@@ -30,7 +30,7 @@ class SavedPlacesService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  
+
   static const String _collection = 'savedPlaces';
   static const String _localKey = 'saved_places_cache';
   static const int _maxFavoritesPerUser = 50; // Scalable limit
@@ -57,14 +57,16 @@ class SavedPlacesService {
 
     // Load from local cache first (instant)
     await _loadFromCache();
-    
+
     // Then sync from Firestore
     await _syncFromFirestore();
-    
+
     // Set up real-time listener
     _setupListener();
-    
-    debugPrint('[SavedPlacesService] Initialized with ${_places.length} places');
+
+    debugPrint(
+      '[SavedPlacesService] Initialized with ${_places.length} places',
+    );
   }
 
   /// Dispose of resources
@@ -91,7 +93,9 @@ class SavedPlacesService {
 
     // Check limits for favorites
     if (type == PlaceType.favorite) {
-      final favoriteCount = _places.where((p) => p.type == PlaceType.favorite).length;
+      final favoriteCount = _places
+          .where((p) => p.type == PlaceType.favorite)
+          .length;
       if (favoriteCount >= _maxFavoritesPerUser) {
         debugPrint('[SavedPlacesService] Max favorites limit reached');
         return null;
@@ -119,7 +123,7 @@ class SavedPlacesService {
     try {
       final now = DateTime.now();
       final docRef = _firestore.collection(_collection).doc();
-      
+
       final place = SavedPlace(
         id: docRef.id,
         userId: userId,
@@ -137,12 +141,15 @@ class SavedPlacesService {
       );
 
       await docRef.set(place.toFirestore());
-      
+
       // Track analytics
-      AnalyticsService.instance.logEvent('saved_place_added', parameters: {
-        'type': type.name,
-        'notifications_enabled': notificationsEnabled.toString(),
-      });
+      AnalyticsService.instance.logEvent(
+        'saved_place_added',
+        parameters: {
+          'type': type.name,
+          'notifications_enabled': notificationsEnabled.toString(),
+        },
+      );
 
       // Update local cache
       _places.add(place);
@@ -153,7 +160,10 @@ class SavedPlacesService {
       return place;
     } catch (e) {
       debugPrint('[SavedPlacesService] Error adding place: $e');
-      AnalyticsService.instance.recordError(e, reason: 'Failed to add saved place');
+      AnalyticsService.instance.recordError(
+        e,
+        reason: 'Failed to add saved place',
+      );
       return null;
     }
   }
@@ -197,15 +207,19 @@ class SavedPlacesService {
       _controller.add(_places);
       await _saveToCache();
 
-      AnalyticsService.instance.logEvent('saved_place_updated', parameters: {
-        'type': updated.type.name,
-      });
+      AnalyticsService.instance.logEvent(
+        'saved_place_updated',
+        parameters: {'type': updated.type.name},
+      );
 
       debugPrint('[SavedPlacesService] Updated place: ${updated.displayName}');
       return updated;
     } catch (e) {
       debugPrint('[SavedPlacesService] Error updating place: $e');
-      AnalyticsService.instance.recordError(e, reason: 'Failed to update saved place');
+      AnalyticsService.instance.recordError(
+        e,
+        reason: 'Failed to update saved place',
+      );
       return null;
     }
   }
@@ -220,15 +234,19 @@ class SavedPlacesService {
       _controller.add(_places);
       await _saveToCache();
 
-      AnalyticsService.instance.logEvent('saved_place_deleted', parameters: {
-        'type': removed.type.name,
-      });
+      AnalyticsService.instance.logEvent(
+        'saved_place_deleted',
+        parameters: {'type': removed.type.name},
+      );
 
       debugPrint('[SavedPlacesService] Deleted place: ${removed.displayName}');
       return true;
     } catch (e) {
       debugPrint('[SavedPlacesService] Error deleting place: $e');
-      AnalyticsService.instance.recordError(e, reason: 'Failed to delete saved place');
+      AnalyticsService.instance.recordError(
+        e,
+        reason: 'Failed to delete saved place',
+      );
       return false;
     }
   }
@@ -236,10 +254,12 @@ class SavedPlacesService {
   // ==================== Query Methods ====================
 
   /// Get home location
-  SavedPlace? get home => _places.where((p) => p.type == PlaceType.home).firstOrNull;
+  SavedPlace? get home =>
+      _places.where((p) => p.type == PlaceType.home).firstOrNull;
 
   /// Get work location
-  SavedPlace? get work => _places.where((p) => p.type == PlaceType.work).firstOrNull;
+  SavedPlace? get work =>
+      _places.where((p) => p.type == PlaceType.work).firstOrNull;
 
   /// Get all favorites
   List<SavedPlace> get favorites =>
@@ -260,11 +280,17 @@ class SavedPlacesService {
   bool get hasWork => work != null;
 
   /// Get places near a location (for alerts)
-  List<SavedPlace> getPlacesNear(double lat, double lon, {double maxMiles = 10}) {
+  List<SavedPlace> getPlacesNear(
+    double lat,
+    double lon, {
+    double maxMiles = 10,
+  }) {
     return _places.where((place) {
       final distance = _calculateDistance(
-        lat, lon,
-        place.latitude, place.longitude,
+        lat,
+        lon,
+        place.latitude,
+        place.longitude,
       );
       return distance <= maxMiles;
     }).toList();
@@ -308,10 +334,14 @@ class SavedPlacesService {
           .orderBy('createdAt')
           .get();
 
-      _places = snapshot.docs.map((doc) => SavedPlace.fromFirestore(doc)).toList();
+      _places = snapshot.docs
+          .map((doc) => SavedPlace.fromFirestore(doc))
+          .toList();
       _controller.add(_places);
       await _saveToCache();
-      debugPrint('[SavedPlacesService] Synced ${_places.length} from Firestore');
+      debugPrint(
+        '[SavedPlacesService] Synced ${_places.length} from Firestore',
+      );
     } catch (e) {
       debugPrint('[SavedPlacesService] Firestore sync error: $e');
     }
@@ -326,20 +356,25 @@ class SavedPlacesService {
         .collection(_collection)
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .listen((snapshot) {
-      _places = snapshot.docs.map((doc) => SavedPlace.fromFirestore(doc)).toList();
-      _controller.add(_places);
-      _saveToCache();
-    }, onError: (e) {
-      debugPrint('[SavedPlacesService] Listener error: $e');
-    });
+        .listen(
+          (snapshot) {
+            _places = snapshot.docs
+                .map((doc) => SavedPlace.fromFirestore(doc))
+                .toList();
+            _controller.add(_places);
+            _saveToCache();
+          },
+          onError: (e) {
+            debugPrint('[SavedPlacesService] Listener error: $e');
+          },
+        );
   }
 
   /// Encode lat/lon to geohash (precision 7 for ~150m accuracy)
   String _encodeGeohash(double lat, double lon) {
     const base32 = '0123456789bcdefghjkmnpqrstuvwxyz';
     const precision = 7;
-    
+
     var minLat = -90.0, maxLat = 90.0;
     var minLon = -180.0, maxLon = 180.0;
     var hash = StringBuffer();
@@ -378,13 +413,21 @@ class SavedPlacesService {
   }
 
   /// Calculate distance in miles between two points
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double earthRadiusMiles = 3958.8;
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
-    final a = _sin(dLat / 2) * _sin(dLat / 2) +
-        _cos(_toRadians(lat1)) * _cos(_toRadians(lat2)) *
-        _sin(dLon / 2) * _sin(dLon / 2);
+    final a =
+        _sin(dLat / 2) * _sin(dLat / 2) +
+        _cos(_toRadians(lat1)) *
+            _cos(_toRadians(lat2)) *
+            _sin(dLon / 2) *
+            _sin(dLon / 2);
     final c = 2 * _atan2(_sqrt(a), _sqrt(1 - a));
     return earthRadiusMiles * c;
   }
@@ -397,8 +440,12 @@ class SavedPlacesService {
 
   double _taylorSin(double x) {
     // Normalize to [-π, π]
-    while (x > 3.141592653589793) x -= 6.283185307179586;
-    while (x < -3.141592653589793) x += 6.283185307179586;
+    while (x > 3.141592653589793) {
+      x -= 6.283185307179586;
+    }
+    while (x < -3.141592653589793) {
+      x += 6.283185307179586;
+    }
     final x2 = x * x;
     return x * (1 - x2 / 6 * (1 - x2 / 20 * (1 - x2 / 42)));
   }

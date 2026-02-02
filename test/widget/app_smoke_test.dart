@@ -1,5 +1,4 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -14,9 +13,7 @@ import 'app_smoke_test.mocks.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('App boots into shell and allows tab switching', (
-    tester,
-  ) async {
+  testWidgets('App boots into shell and allows tab switching', (tester) async {
     final auth = MockFirebaseAuth();
     final user = MockUser();
     final repository = MockUserRepository();

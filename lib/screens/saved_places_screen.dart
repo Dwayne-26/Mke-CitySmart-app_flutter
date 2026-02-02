@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/citysmart_scaffold.dart';
 
 /// Screen for managing saved places (home, work, favorites)
-/// 
+///
 /// Features:
 /// - Add/edit/delete places
 /// - Quick set from current location
@@ -68,24 +68,27 @@ class _SavedPlacesBodyState extends State<_SavedPlacesBody> {
           _PrimaryPlaceCard(
             type: PlaceType.home,
             place: _service.home,
-            onEdit: () => _showPlaceEditor(context, PlaceType.home, _service.home),
+            onEdit: () =>
+                _showPlaceEditor(context, PlaceType.home, _service.home),
           ),
           const SizedBox(height: 12),
           _PrimaryPlaceCard(
             type: PlaceType.work,
             place: _service.work,
-            onEdit: () => _showPlaceEditor(context, PlaceType.work, _service.work),
+            onEdit: () =>
+                _showPlaceEditor(context, PlaceType.work, _service.work),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Favorites section
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _SectionHeader(title: 'Favorites'),
               IconButton(
-                onPressed: () => _showPlaceEditor(context, PlaceType.favorite, null),
+                onPressed: () =>
+                    _showPlaceEditor(context, PlaceType.favorite, null),
                 icon: const Icon(Icons.add_circle_outline),
                 color: kCitySmartYellow,
                 tooltip: 'Add favorite',
@@ -93,7 +96,7 @@ class _SavedPlacesBodyState extends State<_SavedPlacesBody> {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           if (_service.favorites.isEmpty)
             _EmptyFavoritesCard(
               onAdd: () => _showPlaceEditor(context, PlaceType.favorite, null),
@@ -105,19 +108,24 @@ class _SavedPlacesBodyState extends State<_SavedPlacesBody> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _FavoriteCard(
                   place: place,
-                  onEdit: () => _showPlaceEditor(context, PlaceType.favorite, place),
+                  onEdit: () =>
+                      _showPlaceEditor(context, PlaceType.favorite, place),
                   onDelete: () => _confirmDelete(context, place),
                 ),
               );
             }),
-          
+
           const SizedBox(height: 80), // Bottom padding for FAB
         ],
       ),
     );
   }
 
-  void _showPlaceEditor(BuildContext context, PlaceType type, SavedPlace? existing) {
+  void _showPlaceEditor(
+    BuildContext context,
+    PlaceType type,
+    SavedPlace? existing,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -128,42 +136,45 @@ class _SavedPlacesBodyState extends State<_SavedPlacesBody> {
       builder: (ctx) => _PlaceEditorSheet(
         type: type,
         existing: existing,
-        onSave: (name, nickname, lat, lon, address, radius, notifications) async {
-          Navigator.pop(ctx);
-          
-          if (existing != null) {
-            await _service.updatePlace(
-              existing.id,
-              name: name,
-              nickname: nickname,
-              latitude: lat,
-              longitude: lon,
-              address: address,
-              notifyRadiusMiles: radius,
-              notificationsEnabled: notifications,
-            );
-          } else {
-            await _service.addPlace(
-              name: name,
-              nickname: nickname,
-              type: type,
-              latitude: lat,
-              longitude: lon,
-              address: address,
-              notifyRadiusMiles: radius,
-              notificationsEnabled: notifications,
-            );
-          }
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(existing != null ? 'Place updated' : 'Place saved'),
-                backgroundColor: Colors.green.shade700,
-              ),
-            );
-          }
-        },
+        onSave:
+            (name, nickname, lat, lon, address, radius, notifications) async {
+              Navigator.pop(ctx);
+
+              if (existing != null) {
+                await _service.updatePlace(
+                  existing.id,
+                  name: name,
+                  nickname: nickname,
+                  latitude: lat,
+                  longitude: lon,
+                  address: address,
+                  notifyRadiusMiles: radius,
+                  notificationsEnabled: notifications,
+                );
+              } else {
+                await _service.addPlace(
+                  name: name,
+                  nickname: nickname,
+                  type: type,
+                  latitude: lat,
+                  longitude: lon,
+                  address: address,
+                  notifyRadiusMiles: radius,
+                  notificationsEnabled: notifications,
+                );
+              }
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      existing != null ? 'Place updated' : 'Place saved',
+                    ),
+                    backgroundColor: Colors.green.shade700,
+                  ),
+                );
+              }
+            },
       ),
     );
   }
@@ -173,7 +184,10 @@ class _SavedPlacesBodyState extends State<_SavedPlacesBody> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: kCitySmartGreen,
-        title: const Text('Delete Place?', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Delete Place?',
+          style: TextStyle(color: Colors.white),
+        ),
         content: Text(
           'Remove "${place.displayName}" from your saved places?',
           style: const TextStyle(color: Colors.white70),
@@ -208,7 +222,7 @@ class _SavedPlacesBodyState extends State<_SavedPlacesBody> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  
+
   const _SectionHeader({required this.title});
 
   @override
@@ -248,7 +262,9 @@ class _PrimaryPlaceCard extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: isSet ? kCitySmartYellow.withValues(alpha: 0.5) : Colors.white24,
+          color: isSet
+              ? kCitySmartYellow.withValues(alpha: 0.5)
+              : Colors.white24,
         ),
       ),
       child: InkWell(
@@ -289,7 +305,8 @@ class _PrimaryPlaceCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       isSet
-                          ? (place!.address ?? '${place!.latitude.toStringAsFixed(4)}, ${place!.longitude.toStringAsFixed(4)}')
+                          ? (place!.address ??
+                                '${place!.latitude.toStringAsFixed(4)}, ${place!.longitude.toStringAsFixed(4)}')
                           : 'Tap to set your $label location',
                       style: TextStyle(
                         color: isSet ? Colors.white70 : Colors.white38,
@@ -302,7 +319,11 @@ class _PrimaryPlaceCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.notifications_active, size: 14, color: kCitySmartYellow.withValues(alpha: 0.7)),
+                          Icon(
+                            Icons.notifications_active,
+                            size: 14,
+                            color: kCitySmartYellow.withValues(alpha: 0.7),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Alerts within ${place!.notifyRadiusMiles} mi',
@@ -413,7 +434,11 @@ class _FavoriteCard extends StatelessWidget {
                   ),
                 ),
                 if (place.notificationsEnabled)
-                  Icon(Icons.notifications_active, size: 16, color: kCitySmartYellow.withValues(alpha: 0.5)),
+                  Icon(
+                    Icons.notifications_active,
+                    size: 16,
+                    color: kCitySmartYellow.withValues(alpha: 0.5),
+                  ),
                 const SizedBox(width: 8),
                 const Icon(Icons.chevron_right, color: Colors.white38),
               ],
@@ -463,9 +488,7 @@ class _EmptyFavoritesCard extends StatelessWidget {
                 onPressed: onAdd,
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text('Add Favorite'),
-                style: TextButton.styleFrom(
-                  foregroundColor: kCitySmartYellow,
-                ),
+                style: TextButton.styleFrom(foregroundColor: kCitySmartYellow),
               ),
             ],
           ),
@@ -480,7 +503,16 @@ class _EmptyFavoritesCard extends StatelessWidget {
 class _PlaceEditorSheet extends StatefulWidget {
   final PlaceType type;
   final SavedPlace? existing;
-  final Function(String name, String? nickname, double lat, double lon, String? address, double radius, bool notifications) onSave;
+  final Function(
+    String name,
+    String? nickname,
+    double lat,
+    double lon,
+    String? address,
+    double radius,
+    bool notifications,
+  )
+  onSave;
 
   const _PlaceEditorSheet({
     required this.type,
@@ -520,8 +552,8 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
       _nameController.text = widget.type == PlaceType.home
           ? 'Home'
           : widget.type == PlaceType.work
-              ? 'Work'
-              : '';
+          ? 'Work'
+          : '';
     }
   }
 
@@ -535,7 +567,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
 
   Future<void> _useCurrentLocation() async {
     setState(() => _loading = true);
-    
+
     try {
       final position = await LocationService().getCurrentPosition();
       if (position != null) {
@@ -544,7 +576,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
           _longitude = position.longitude;
           _locationSet = true;
         });
-        
+
         // Try to get address (reverse geocode would go here in full implementation)
         // For now, just show coordinates
         if (mounted) {
@@ -563,32 +595,36 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
         );
       }
     }
-    
+
     setState(() => _loading = false);
   }
 
   void _save() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a name')));
       return;
     }
-    
+
     if (!_locationSet) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set a location')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please set a location')));
       return;
     }
 
     widget.onSave(
       name,
-      _nicknameController.text.trim().isEmpty ? null : _nicknameController.text.trim(),
+      _nicknameController.text.trim().isEmpty
+          ? null
+          : _nicknameController.text.trim(),
       _latitude,
       _longitude,
-      _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+      _addressController.text.trim().isEmpty
+          ? null
+          : _addressController.text.trim(),
       _notifyRadius,
       _notificationsEnabled,
     );
@@ -599,8 +635,8 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
     final typeLabel = widget.type == PlaceType.home
         ? 'Home'
         : widget.type == PlaceType.work
-            ? 'Work'
-            : 'Favorite';
+        ? 'Work'
+        : 'Favorite';
     final isEditing = widget.existing != null;
 
     return DraggableScrollableSheet(
@@ -624,7 +660,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Title
           Text(
             isEditing ? 'Edit $typeLabel' : 'Add $typeLabel',
@@ -635,7 +671,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Name field
           _buildTextField(
             controller: _nameController,
@@ -644,7 +680,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             icon: Icons.label_outline,
           ),
           const SizedBox(height: 16),
-          
+
           // Nickname (optional)
           if (widget.type == PlaceType.favorite) ...[
             _buildTextField(
@@ -655,7 +691,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             ),
             const SizedBox(height: 16),
           ],
-          
+
           // Address field
           _buildTextField(
             controller: _addressController,
@@ -664,11 +700,13 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             icon: Icons.location_on_outlined,
           ),
           const SizedBox(height: 16),
-          
+
           // Location picker
           Card(
             color: Colors.white10,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -685,16 +723,25 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
                       decoration: BoxDecoration(
                         color: kCitySmartYellow.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: kCitySmartYellow.withValues(alpha: 0.3)),
+                        border: Border.all(
+                          color: kCitySmartYellow.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.check_circle, color: kCitySmartYellow, size: 20),
+                          Icon(
+                            Icons.check_circle,
+                            color: kCitySmartYellow,
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               '${_latitude.toStringAsFixed(5)}, ${_longitude.toStringAsFixed(5)}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
                             ),
                           ),
                         ],
@@ -717,10 +764,16 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.my_location),
-                      label: Text(_loading ? 'Getting location...' : 'Use Current Location'),
+                      label: Text(
+                        _loading
+                            ? 'Getting location...'
+                            : 'Use Current Location',
+                      ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: kCitySmartYellow,
-                        side: BorderSide(color: kCitySmartYellow.withValues(alpha: 0.5)),
+                        side: BorderSide(
+                          color: kCitySmartYellow.withValues(alpha: 0.5),
+                        ),
                       ),
                     ),
                   ),
@@ -729,11 +782,13 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Notification settings
           Card(
             color: Colors.white10,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -748,8 +803,9 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
                       ),
                       Switch(
                         value: _notificationsEnabled,
-                        onChanged: (v) => setState(() => _notificationsEnabled = v),
-                        activeColor: kCitySmartYellow,
+                        onChanged: (v) =>
+                            setState(() => _notificationsEnabled = v),
+                        activeThumbColor: kCitySmartYellow,
                       ),
                     ],
                   ),
@@ -757,7 +813,10 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
                     const SizedBox(height: 8),
                     Text(
                       'Alert radius: ${_notifyRadius.toStringAsFixed(1)} miles',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                     ),
                     Slider(
                       value: _notifyRadius,
@@ -778,7 +837,7 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
             ),
           ),
           const SizedBox(height: 24),
-          
+
           // Save button
           SizedBox(
             width: double.infinity,
@@ -788,15 +847,20 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: kCitySmartYellow,
                 foregroundColor: kCitySmartGreen,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text(
                 isEditing ? 'Update Place' : 'Save Place',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-          
+
           const SizedBox(height: 32),
         ],
       ),
@@ -826,7 +890,9 @@ class _PlaceEditorSheetState extends State<_PlaceEditorSheet> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: kCitySmartYellow.withValues(alpha: 0.5)),
+          borderSide: BorderSide(
+            color: kCitySmartYellow.withValues(alpha: 0.5),
+          ),
         ),
       ),
     );
