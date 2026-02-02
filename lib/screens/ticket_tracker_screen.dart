@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../models/ticket.dart';
 import '../providers/user_provider.dart';
+import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/citysmart_scaffold.dart';
 
@@ -93,6 +94,7 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                               ticket: openTickets[index],
                               onPay: () => _showPayDialog(context, provider, openTickets[index]),
                               onContest: () => _showContestDialog(context, openTickets[index]),
+                              onSetReminder: () => _showReminderDialog(context, openTickets[index]),
                             ),
                           ),
                     
@@ -191,6 +193,132 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
       ),
     );
   }
+
+  void _showReminderDialog(BuildContext context, Ticket ticket) {
+    final daysUntilDue = ticket.dueDate.difference(DateTime.now()).inDays;
+    final dueDateFormatted = DateFormat('MMM d, yyyy').format(ticket.dueDate);
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kCitySmartCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4FC3F7).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.notifications_active, color: Color(0xFF4FC3F7), size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Set Payment Reminder',
+                        style: TextStyle(
+                          color: kCitySmartText,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ticket #${ticket.id} • Due $dueDateFormatted',
+                        style: const TextStyle(color: kCitySmartMuted, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Late fees add \$15 after the due date. Don\'t let a forgotten ticket cost you more!',
+                      style: TextStyle(fontSize: 13, color: Colors.orange.shade700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Choose reminder timing:',
+              style: TextStyle(color: kCitySmartText, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            _ReminderOption(
+              icon: Icons.today,
+              title: '1 day before',
+              subtitle: daysUntilDue > 1 ? 'Recommended' : 'Not available',
+              enabled: daysUntilDue > 1,
+              onTap: () => _scheduleReminder(context, ticket, 1),
+            ),
+            _ReminderOption(
+              icon: Icons.date_range,
+              title: '3 days before',
+              subtitle: daysUntilDue > 3 ? 'Good for planning' : 'Not available',
+              enabled: daysUntilDue > 3,
+              onTap: () => _scheduleReminder(context, ticket, 3),
+            ),
+            _ReminderOption(
+              icon: Icons.calendar_month,
+              title: '1 week before',
+              subtitle: daysUntilDue > 7 ? 'Early heads up' : 'Not available',
+              enabled: daysUntilDue > 7,
+              onTap: () => _scheduleReminder(context, ticket, 7),
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _scheduleReminder(BuildContext context, Ticket ticket, int daysBefore) async {
+    final reminderDate = ticket.dueDate.subtract(Duration(days: daysBefore));
+    final reminderTime = DateTime(reminderDate.year, reminderDate.month, reminderDate.day, 9, 0); // 9 AM
+    
+    await NotificationService.instance.scheduleLocal(
+      title: '💳 Parking Ticket Due Soon!',
+      body: 'Ticket #${ticket.id} for \$${ticket.amount.toStringAsFixed(2)} is due in $daysBefore day${daysBefore == 1 ? '' : 's'}. Pay now to avoid \$15 late fee!',
+      when: reminderTime,
+      id: ticket.id.hashCode + daysBefore,
+    );
+    
+    if (context.mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Reminder set for ${DateFormat('MMM d').format(reminderTime)} at 9:00 AM'),
+          backgroundColor: const Color(0xFF4FC3F7),
+        ),
+      );
+    }
+  }
 }
 
 class _TicketSummaryCard extends StatelessWidget {
@@ -281,11 +409,13 @@ class _TicketCard extends StatelessWidget {
   final Ticket ticket;
   final VoidCallback onPay;
   final VoidCallback onContest;
+  final VoidCallback? onSetReminder;
 
   const _TicketCard({
     required this.ticket,
     required this.onPay,
     required this.onContest,
+    this.onSetReminder,
   });
 
   @override
@@ -433,6 +563,28 @@ class _TicketCard extends StatelessWidget {
                 ),
               ],
             ),
+            // Reminder button - help avoid late fees
+            if (!ticket.isOverdue && onSetReminder != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onSetReminder,
+                  icon: const Icon(Icons.notifications_active, size: 18),
+                  label: Text(
+                    daysUntilDue <= 3
+                        ? 'Set reminder - Due soon!'
+                        : 'Set payment reminder',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: daysUntilDue <= 3 ? Colors.orange : const Color(0xFF4FC3F7),
+                    side: BorderSide(
+                      color: daysUntilDue <= 3 ? Colors.orange : const Color(0xFF4FC3F7),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -934,6 +1086,84 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 4),
           Text(subtitle, style: const TextStyle(color: kCitySmartMuted)),
         ],
+      ),
+    );
+  }
+}
+
+class _ReminderOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _ReminderOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: BoxDecoration(
+            color: enabled ? kCitySmartGreen.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: enabled ? kCitySmartGreen.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: enabled ? const Color(0xFF4FC3F7).withOpacity(0.2) : Colors.grey.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: enabled ? const Color(0xFF4FC3F7) : Colors.grey,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: enabled ? kCitySmartText : kCitySmartMuted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: enabled ? kCitySmartMuted : Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (enabled)
+                const Icon(Icons.chevron_right, color: kCitySmartMuted),
+            ],
+          ),
+        ),
       ),
     );
   }

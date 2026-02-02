@@ -170,6 +170,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     title: 'Saved Places',
                     onTap: () => Navigator.pushNamed(context, '/saved-places'),
                   ),
+                  HomeTile(
+                    icon: Icons.local_offer,
+                    title: 'Deals & Sponsors',
+                    onTap: () => Navigator.pushNamed(context, '/sponsors'),
+                  ),
                 ],
               ),
             ),

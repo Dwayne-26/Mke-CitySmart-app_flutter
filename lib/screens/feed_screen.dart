@@ -298,30 +298,36 @@ class _FilterDropdown<T> extends StatelessWidget {
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: kCitySmartGreen.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kCitySmartGreen.withValues(alpha: 0.3)),
+          color: const Color(0xFF1565C0), // Strong blue background
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1565C0).withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: kCitySmartGreen),
-            const SizedBox(width: 6),
+            Icon(icon, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
                 label,
-                style: TextStyle(
-                  color: kCitySmartGreen,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_drop_down, size: 18, color: kCitySmartGreen),
+            const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
           ],
         ),
       ),
@@ -332,11 +338,17 @@ class _FilterDropdown<T> extends StatelessWidget {
           child: Row(
             children: [
               if (isSelected)
-                Icon(Icons.check, size: 18, color: kCitySmartGreen)
+                const Icon(Icons.check, size: 18, color: Color(0xFF1565C0))
               else
                 const SizedBox(width: 18),
               const SizedBox(width: 8),
-              Text(itemLabel(item)),
+              Text(
+                itemLabel(item),
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF1565C0) : null,
+                ),
+              ),
             ],
           ),
         );

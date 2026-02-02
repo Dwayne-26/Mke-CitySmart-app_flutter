@@ -83,11 +83,28 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   Color _getRiskColor(RiskLevel level) {
     switch (level) {
       case RiskLevel.high:
-        return const Color(0xFFE53935); // Red
+        return const Color(0xFFD32F2F); // Brighter Red
       case RiskLevel.medium:
-        return const Color(0xFFFFA726); // Orange
+        return const Color(0xFFFF9800); // Brighter Orange
       case RiskLevel.low:
-        return const Color(0xFF66BB6A); // Green
+        return const Color(0xFF4CAF50); // Brighter Green
+    }
+  }
+
+  // Get contrasting text color for risk badges
+  Color _getRiskTextColor(RiskLevel level) {
+    return Colors.white;
+  }
+
+  // Get background color for risk toggles (more visible)
+  Color _getRiskBackgroundColor(RiskLevel level) {
+    switch (level) {
+      case RiskLevel.high:
+        return const Color(0xFFFFCDD2); // Light red background
+      case RiskLevel.medium:
+        return const Color(0xFFFFE0B2); // Light orange background
+      case RiskLevel.low:
+        return const Color(0xFFC8E6C9); // Light green background
     }
   }
 
@@ -245,58 +262,89 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                         right: 12,
                         top: 12,
                         child: Container(
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
+                            border: Border.all(color: Colors.grey.shade300),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Text(
+                            children: [
+                              const Text(
                                 'Risk Level',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                  fontSize: 14,
+                                  color: Colors.black87,
                                 ),
                               ),
-                              SizedBox(height: 6),
-                              _LegendItem(color: Color(0xFFE53935), label: 'High (50%+)'),
-                              SizedBox(height: 4),
-                              _LegendItem(color: Color(0xFFFFA726), label: 'Medium (30-49%)'),
-                              SizedBox(height: 4),
-                              _LegendItem(color: Color(0xFF66BB6A), label: 'Low (<30%)'),
+                              const SizedBox(height: 8),
+                              _LegendItem(color: const Color(0xFFD32F2F), label: 'High (50%+)', textColor: Colors.black87),
+                              const SizedBox(height: 6),
+                              _LegendItem(color: const Color(0xFFFF9800), label: 'Medium (30-49%)', textColor: Colors.black87),
+                              const SizedBox(height: 6),
+                              _LegendItem(color: const Color(0xFF4CAF50), label: 'Low (<30%)', textColor: Colors.black87),
                             ],
                           ),
                         ),
                       ),
                       
-                      // Zone stats
+                      // Zone stats - more visible
                       Positioned(
                         left: 12,
                         bottom: 12,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.95),
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 4,
+                                color: Colors.black.withOpacity(0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
                             ],
+                            border: Border.all(color: Colors.grey.shade300),
                           ),
-                          child: Text(
-                            '\${_riskZones.length} risk zones • Based on 466K+ citations',
-                            style: const TextStyle(fontSize: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.map_outlined, size: 18, color: Colors.blue.shade700),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${_riskZones.length} risk zones',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                                width: 1,
+                                height: 16,
+                                color: Colors.grey.shade300,
+                              ),
+                              Icon(Icons.receipt_long, size: 16, color: Colors.orange.shade700),
+                              const SizedBox(width: 6),
+                              Text(
+                                '466K+ citations',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -341,9 +389,10 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
 }
 
 class _LegendItem extends StatelessWidget {
-  const _LegendItem({required this.color, required this.label});
+  const _LegendItem({required this.color, required this.label, this.textColor});
   final Color color;
   final String label;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -351,17 +400,29 @@ class _LegendItem extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 14,
-          height: 14,
+          width: 16,
+          height: 16,
           decoration: BoxDecoration(
             color: color,
             shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.4),
+                blurRadius: 4,
+                spreadRadius: 1,
+              ),
+            ],
           ),
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8),
         Text(
           label,
-          style: const TextStyle(fontSize: 11),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: textColor ?? Colors.black87,
+          ),
         ),
       ],
     );
