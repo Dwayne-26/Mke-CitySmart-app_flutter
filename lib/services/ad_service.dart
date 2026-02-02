@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/ad_preferences.dart';
 import '../models/subscription_plan.dart';
-import 'subscription_service.dart';
 
 /// Service for managing ads with frequency capping and premium user handling
 class AdService {
@@ -53,6 +52,7 @@ class AdService {
 
   bool get isInitialized => _initialized;
   bool get shouldShowAds => _userTier == SubscriptionTier.free;
+  AdPreferences get preferences => _preferences;
 
   String get _bannerAdUnitId =>
       _isTestMode ? _testBannerAdUnitId : _prodBannerAdUnitId;
