@@ -159,18 +159,21 @@ NOTES:
 P1 — MONETIZATION + GROWTH
 --------------------------------------------------------
 
-[F-301] [TODO] (P1) Subscription tiers definition + gating
+[F-301] [DONE] (P1) Subscription tiers definition + gating
 - Free vs premium
 - Premium: smart alerts, heatmaps, expanded radius/time, ad-free
 NOTES:
+- 2026-02-01: Implemented subscription_service.dart with RevenueCat integration, paywall_widget.dart, feature_gate.dart. Updated subscription_plan.dart with extended features (adFree, heatmapAccess, smartAlerts, historyDays). Updated subscription_screen.dart with plan comparison, current plan display, restore purchases. Gated parking heatmap behind premium.
 
-[F-302] [TODO] (P1) Ads (optional)
+[F-302] [DONE] (P1) Ads (optional)
 - Placement + frequency caps
 NOTES:
+- 2026-02-01: Implemented ad_service.dart with Google Mobile Ads (AdMob). Frequency capping: max 3/hour, 8/day, 5min between interstitials. Created ad_widgets.dart with AdBannerWidget, NativeAdCard, WatchAdButton, BottomBannerContainer. Integrated native ads into feed every 5 items for free users.
 
-[F-303] [TODO] (P1) Referral / invite system
+[F-303] [DONE] (P1) Referral / invite system
 - Premium trial reward for referrals
 NOTES:
+- 2026-02-01: Implemented referral_service.dart with Firestore tracking. Unique code generation (MKE + 6 alphanumeric). 7-day premium trial for both referrer and referred. Max 10 rewards per user. Created referral_screen.dart with share functionality, stats display, code entry.
 
 ========================================================
 P0/P1 — QUALITY / SECURITY / RELEASE READINESS
