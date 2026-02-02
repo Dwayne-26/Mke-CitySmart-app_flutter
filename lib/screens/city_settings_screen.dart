@@ -14,7 +14,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
   late String _cityId;
   late String _languageCode;
   String? _selectedCity;
-  
+
   // Milwaukee County municipalities - all covered by the app's data
   static const List<Map<String, dynamic>> _milwaukeeCountyCities = [
     {'name': 'Milwaukee', 'id': 'milwaukee', 'isMain': true},
@@ -63,7 +63,9 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF1565C0).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
+                  border: Border.all(
+                    color: const Color(0xFF1565C0).withOpacity(0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -95,7 +97,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               Text('Your City', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
@@ -104,10 +106,15 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _selectedCity,
+                initialValue: _selectedCity,
                 decoration: InputDecoration(
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
                 items: _milwaukeeCountyCities
                     .map(
@@ -119,14 +126,20 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                             if (city['isMain'] == true) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF1565C0),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
                                   'MAIN',
-                                  style: TextStyle(fontSize: 10, color: Colors.white),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ],
@@ -144,7 +157,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
               Text('Language', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _languageCode,
+                initialValue: _languageCode,
                 items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
                   DropdownMenuItem(value: 'es', child: Text('Español')),
@@ -152,7 +165,8 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                   DropdownMenuItem(value: 'ar', child: Text('العربية')),
                   DropdownMenuItem(value: 'fr', child: Text('Français')),
                 ],
-                onChanged: (value) => setState(() => _languageCode = value ?? 'en'),
+                onChanged: (value) =>
+                    setState(() => _languageCode = value ?? 'en'),
               ),
               const SizedBox(height: 16),
               FilledButton(
@@ -177,8 +191,10 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Rule pack (${pack.displayName})',
-                          style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Rule pack (${pack.displayName})',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 8),
                       _RuleItem(
                         label: 'Max vehicles',

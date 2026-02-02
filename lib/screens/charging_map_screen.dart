@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
@@ -118,7 +117,11 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                 ],
                 const Spacer(),
                 if (_stationError != null)
-                  const Icon(Icons.warning_amber, size: 14, color: Colors.orange)
+                  const Icon(
+                    Icons.warning_amber,
+                    size: 14,
+                    color: Colors.orange,
+                  )
                 else if (!_loadingStations)
                   const Icon(Icons.check_circle, size: 14, color: Colors.green),
               ],
@@ -135,7 +138,10 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                 children: [
                   FilterChip(
                     selected: _showAvailableOnly,
-                    label: const Text('Available', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Available',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     avatar: const Icon(Icons.check_circle, size: 16),
                     onSelected: (v) => setState(() => _showAvailableOnly = v),
                     visualDensity: VisualDensity.compact,
@@ -149,7 +155,10 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                   ),
                   FilterChip(
                     selected: _showSightings,
-                    label: const Text('Sightings', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Sightings',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     avatar: const Icon(Icons.visibility_outlined, size: 16),
                     onSelected: (v) => setState(() => _showSightings = v),
                     visualDensity: VisualDensity.compact,
@@ -164,7 +173,11 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
               color: Colors.red.shade900,
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber, color: Colors.white, size: 16),
+                  const Icon(
+                    Icons.warning_amber,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
@@ -188,10 +201,12 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.mkecitysmart.app',
                     ),
-                    if (predictions.isNotEmpty && _mode == _PredictionMode.heatmap)
+                    if (predictions.isNotEmpty &&
+                        _mode == _PredictionMode.heatmap)
                       CircleLayer(
                         circles: predictions
                             .map(
@@ -199,7 +214,9 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                                 point: LatLng(p.lat, p.lng),
                                 radius: (50 + (p.score * 80)).clamp(40, 120),
                                 useRadiusInMeter: false,
-                                color: _scoreColor(p.score).withValues(alpha: 0.35),
+                                color: _scoreColor(
+                                  p.score,
+                                ).withValues(alpha: 0.35),
                                 borderColor: _scoreColor(p.score),
                                 borderStrokeWidth: 1.5,
                               ),
@@ -212,10 +229,14 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                             (station) => Marker(
                               width: 42,
                               height: 42,
-                              point: LatLng(station.latitude, station.longitude),
+                              point: LatLng(
+                                station.latitude,
+                                station.longitude,
+                              ),
                               alignment: Alignment.center,
                               child: GestureDetector(
-                                onTap: () => setState(() => _selected = station),
+                                onTap: () =>
+                                    setState(() => _selected = station),
                                 child: _StationMarker(
                                   station: station,
                                   isSelected: _selected?.id == station.id,
@@ -234,12 +255,15 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                             height: 36,
                             point: LatLng(s.latitude!, s.longitude!),
                             child: Tooltip(
-                              message: '${isTow ? 'Tow' : 'Enforcer'} • ${s.location}',
+                              message:
+                                  '${isTow ? 'Tow' : 'Enforcer'} • ${s.location}',
                               child: Icon(
                                 isTow
                                     ? Icons.local_shipping_outlined
                                     : Icons.shield_moon_outlined,
-                                color: isTow ? Colors.redAccent : Colors.blueGrey,
+                                color: isTow
+                                    ? Colors.redAccent
+                                    : Colors.blueGrey,
                                 size: 32,
                               ),
                             ),
@@ -329,10 +353,11 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
     final baseHour = now.hour;
     return List<ParkingPrediction>.generate(mockEvStations.length, (index) {
       final station = mockEvStations[index];
-      final score = (0.6 +
-              0.25 * (index % 3 == 0 ? 1 : -1) +
-              0.05 * (baseHour >= 17 && baseHour <= 19 ? -1 : 1))
-          .clamp(0.05, 0.95);
+      final score =
+          (0.6 +
+                  0.25 * (index % 3 == 0 ? 1 : -1) +
+                  0.05 * (baseHour >= 17 && baseHour <= 19 ? -1 : 1))
+              .clamp(0.05, 0.95);
       return ParkingPrediction(
         id: 'pred-$index',
         blockId: 'B-${index + 1}',
@@ -369,8 +394,11 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
     _currentLng = lng;
 
     try {
-      final stations =
-          await _ocm.fetchStations(lat: lat, lng: lng, distanceKm: 15);
+      final stations = await _ocm.fetchStations(
+        lat: lat,
+        lng: lng,
+        distanceKm: 15,
+      );
       if (!mounted) return;
       setState(() {
         _stations = stations.isEmpty ? mockEvStations : stations;
@@ -389,10 +417,14 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
 
   Future<void> _loadWeather() async {
     try {
-      final summary =
-          await _weather.fetchCurrent(lat: _currentLat, lng: _currentLng);
-      final alerts =
-          await _weather.fetchAlerts(lat: _currentLat, lng: _currentLng);
+      final summary = await _weather.fetchCurrent(
+        lat: _currentLat,
+        lng: _currentLng,
+      );
+      final alerts = await _weather.fetchAlerts(
+        lat: _currentLat,
+        lng: _currentLng,
+      );
       if (!mounted) return;
       setState(() {
         _weatherSummary = summary;
@@ -438,11 +470,10 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
                 (station) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(
-                    station.hasFastCharging
-                        ? Icons.flash_on
-                        : Icons.ev_station,
-                    color:
-                        station.hasAvailability ? Colors.green : Colors.orange,
+                    station.hasFastCharging ? Icons.flash_on : Icons.ev_station,
+                    color: station.hasAvailability
+                        ? Colors.green
+                        : Colors.orange,
                   ),
                   title: Text(station.name),
                   subtitle: Text(
@@ -485,10 +516,7 @@ class _LegendItem extends StatelessWidget {
           Container(
             width: 12,
             height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
           const SizedBox(width: 4),
           Text(
@@ -515,8 +543,8 @@ class _StationMarker extends StatelessWidget {
     final color = isFast
         ? Colors.blueAccent
         : station.hasAvailability
-            ? Colors.green
-            : Colors.orange;
+        ? Colors.green
+        : Colors.orange;
     return AnimatedScale(
       scale: isSelected ? 1.1 : 1.0,
       duration: const Duration(milliseconds: 150),
@@ -541,15 +569,8 @@ class _StationMarker extends StatelessWidget {
           Container(
             width: 26,
             height: 26,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.ev_station,
-              size: 16,
-              color: Colors.white,
-            ),
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: const Icon(Icons.ev_station, size: 16, color: Colors.white),
           ),
           if (isFast)
             Positioned(
@@ -587,12 +608,12 @@ class _StationDetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final availability =
-        '${station.availablePorts}/${station.totalPorts} open';
+    final availability = '${station.availablePorts}/${station.totalPorts} open';
     final price = station.pricePerKwh.toStringAsFixed(2);
     final connectors = station.connectorTypes.join(', ');
-    final chipColor =
-        station.hasAvailability ? Colors.green.shade50 : Colors.orange.shade50;
+    final chipColor = station.hasAvailability
+        ? Colors.green.shade50
+        : Colors.orange.shade50;
 
     return Container(
       width: double.infinity,
@@ -619,25 +640,16 @@ class _StationDetailCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              IconButton(
-                onPressed: onClose,
-                icon: const Icon(Icons.close),
-              ),
+              IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
             ],
           ),
-          Text(
-            station.address,
-            style: const TextStyle(color: Colors.black54),
-          ),
+          Text(station.address, style: const TextStyle(color: Colors.black54)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              Chip(
-                label: Text(availability),
-                backgroundColor: chipColor,
-              ),
+              Chip(label: Text(availability), backgroundColor: chipColor),
               Chip(
                 avatar: const Icon(Icons.flash_on, size: 18),
                 label: Text('${station.maxPowerKw.toStringAsFixed(0)} kW max'),
@@ -659,10 +671,7 @@ class _StationDetailCard extends StatelessWidget {
           ),
           if (station.notes != null) ...[
             const SizedBox(height: 4),
-            Text(
-              station.notes!,
-              style: const TextStyle(color: Colors.black87),
-            ),
+            Text(station.notes!, style: const TextStyle(color: Colors.black87)),
           ],
           const SizedBox(height: 8),
           FilledButton.icon(
@@ -681,14 +690,11 @@ extension on _ChargingMapScreenState {
     final uri = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=${station.latitude},${station.longitude}',
     );
-    final opened = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open maps app.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open maps app.')));
     }
   }
 }

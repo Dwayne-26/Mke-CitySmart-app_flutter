@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
@@ -142,9 +141,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   // Active reward badge
                   if (_stats?.hasActiveReward == true) ...[
                     const SizedBox(height: 24),
-                    _ActiveRewardBadge(
-                      expiresAt: _stats!.premiumTrialEnd!,
-                    ),
+                    _ActiveRewardBadge(expiresAt: _stats!.premiumTrialEnd!),
                   ],
                 ],
               ),
@@ -178,32 +175,26 @@ class _HeroSection extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: kCitySmartYellow.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: kCitySmartYellow.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.card_giftcard,
-            size: 56,
-            color: kCitySmartYellow,
-          ),
+          const Icon(Icons.card_giftcard, size: 56, color: kCitySmartYellow),
           const SizedBox(height: 16),
           Text(
             'Give 7 Days, Get 7 Days',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: kCitySmartYellow,
-                ),
+              fontWeight: FontWeight.bold,
+              color: kCitySmartYellow,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Share your code with friends. When they sign up, you both get 7 days of Premium access!',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: kCitySmartText.withValues(alpha: 0.8),
-                ),
+              color: kCitySmartText.withValues(alpha: 0.8),
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -223,10 +214,10 @@ class _HeroSection extends StatelessWidget {
                 Text(
                   referralCode,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                        color: kCitySmartYellow,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                    color: kCitySmartYellow,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 IconButton(
@@ -277,8 +268,8 @@ class _StatsSection extends StatelessWidget {
                 Text(
                   'Your Referral Stats',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -318,10 +309,7 @@ class _StatsSection extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.emoji_events,
-                      color: kCitySmartYellow,
-                    ),
+                    const Icon(Icons.emoji_events, color: kCitySmartYellow),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -362,15 +350,15 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: kCitySmartMuted,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: kCitySmartMuted),
           textAlign: TextAlign.center,
         ),
       ],
@@ -394,8 +382,8 @@ class _HowItWorksSection extends StatelessWidget {
                 Text(
                   'How It Works',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -514,8 +502,8 @@ class _ApplyCodeSection extends StatelessWidget {
                 Text(
                   'Have a Referral Code?',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -602,9 +590,7 @@ class _ActiveRewardBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.green.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.green.withValues(alpha: 0.3),
-        ),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -644,10 +630,7 @@ class _ActiveRewardBadge extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: Colors.green,
               borderRadius: BorderRadius.circular(12),

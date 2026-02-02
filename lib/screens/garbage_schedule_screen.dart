@@ -40,10 +40,7 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'Address',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Address', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               TextField(
                 controller: _addressController,
@@ -92,36 +89,44 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Get notified with 30-minute intervals on pickup day until the truck arrives',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[400],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[400]),
                       ),
                       const SizedBox(height: 8),
                       SwitchListTile(
                         title: const Text('Night before'),
                         subtitle: const Text('Reminder at 7 PM'),
                         value: _nightBefore,
-                        onChanged: (value) => setState(() => _nightBefore = value),
+                        onChanged: (value) =>
+                            setState(() => _nightBefore = value),
                       ),
                       SwitchListTile(
                         title: const Text('Morning of'),
                         subtitle: const Text('Every 30 min until pickup'),
                         value: _morningOf,
-                        onChanged: (value) => setState(() => _morningOf = value),
+                        onChanged: (value) =>
+                            setState(() => _morningOf = value),
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _language,
-                        decoration: const InputDecoration(labelText: 'Language'),
+                        initialValue: _language,
+                        decoration: const InputDecoration(
+                          labelText: 'Language',
+                        ),
                         items: const [
                           DropdownMenuItem(value: 'en', child: Text('English')),
                           DropdownMenuItem(value: 'zh', child: Text('中文')),
-                          DropdownMenuItem(value: 'fr', child: Text('Français')),
+                          DropdownMenuItem(
+                            value: 'fr',
+                            child: Text('Français'),
+                          ),
                           DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
-                          DropdownMenuItem(value: 'el', child: Text('Ελληνικά')),
+                          DropdownMenuItem(
+                            value: 'el',
+                            child: Text('Ελληνικά'),
+                          ),
                         ],
-                        onChanged: (value) => setState(() => _language = value ?? 'en'),
+                        onChanged: (value) =>
+                            setState(() => _language = value ?? 'en'),
                       ),
                       const SizedBox(height: 16),
                       FilledButton.icon(
@@ -139,7 +144,9 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Reminders scheduled! You\'ll get 30-min alerts on pickup day.'),
+                                content: Text(
+                                  'Reminders scheduled! You\'ll get 30-min alerts on pickup day.',
+                                ),
                               ),
                             );
                           }
@@ -149,16 +156,21 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
-                        onPressed: schedules.isEmpty ? null : () async {
-                          await CalendarService.instance.addAllPickupsToCalendar(schedules);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Pickup events added to your calendar!'),
-                              ),
-                            );
-                          }
-                        },
+                        onPressed: schedules.isEmpty
+                            ? null
+                            : () async {
+                                await CalendarService.instance
+                                    .addAllPickupsToCalendar(schedules);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Pickup events added to your calendar!',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                         icon: const Icon(Icons.calendar_month),
                         label: const Text('Add to system calendar'),
                       ),
@@ -166,11 +178,11 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                   ),
                 ),
               ),
-          const SizedBox(height: 12),
-          Text(
-            'Upcoming pickups (${schedules.length})',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+              const SizedBox(height: 12),
+              Text(
+                'Upcoming pickups (${schedules.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               if (_loading)
                 const Center(child: CircularProgressIndicator())

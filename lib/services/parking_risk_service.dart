@@ -82,11 +82,13 @@ class LocationRisk {
       message: map['message'] ?? '',
       currentHour: hourlyRisk?['currentHour'] as int?,
       hourlyMultiplier: (hourlyRisk?['hourlyMultiplier'] as num?)?.toDouble(),
-      peakHours: (map['peakHours'] as List<dynamic>?)
+      peakHours:
+          (map['peakHours'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           [],
-      topViolations: (map['topViolations'] as List<dynamic>?)
+      topViolations:
+          (map['topViolations'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -169,7 +171,7 @@ class ParkingRiskService {
     try {
       final callable = _functions.httpsCallable('getRiskZones');
       final params = <String, dynamic>{};
-      
+
       if (minLat != null) params['minLat'] = minLat;
       if (maxLat != null) params['maxLat'] = maxLat;
       if (minLng != null) params['minLng'] = minLng;
@@ -183,7 +185,8 @@ class ParkingRiskService {
         return _cachedZones ?? [];
       }
 
-      final zones = (data['zones'] as List<dynamic>?)
+      final zones =
+          (data['zones'] as List<dynamic>?)
               ?.map((z) => RiskZone.fromMap(z as Map<String, dynamic>))
               .toList() ??
           [];
@@ -212,19 +215,19 @@ class ParkingRiskService {
   static String formatRiskNotification(LocationRisk risk) {
     final percentage = risk.riskPercentage;
     final level = risk.riskLevel.name.toUpperCase();
-    
+
     String warning = '';
     if (risk.topViolations.isNotEmpty) {
       final top = risk.topViolations.first.replaceAll('_', ' ');
       warning = ' Watch for: $top.';
     }
-    
+
     String peakWarning = '';
     if (risk.peakHours.isNotEmpty) {
-      final peaks = risk.peakHours.take(3).map((h) => '${h}:00').join(', ');
+      final peaks = risk.peakHours.take(3).map((h) => '$h:00').join(', ');
       peakWarning = ' Peak times: $peaks.';
     }
-    
+
     return '$level RISK ($percentage%): ${risk.message}$warning$peakWarning';
   }
 }
