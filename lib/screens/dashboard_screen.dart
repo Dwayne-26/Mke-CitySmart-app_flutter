@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:geolocator/geolocator.dart';
 
 import '../providers/user_provider.dart';
 import '../services/alternate_side_parking_service.dart';
@@ -65,10 +64,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('Dashboard', style: textTheme.headlineMedium),
             const SizedBox(height: 12),
             // Risk Badge Card
-            if (!_loadingRisk && _locationRisk != null)
+            if (_loadingRisk)
+              const _RiskBadgeCardLoading()
+            else if (_locationRisk != null)
               _RiskBadgeCard(risk: _locationRisk!)
-            else if (_loadingRisk)
-              const _RiskBadgeCardLoading(),
+            else
+              _RiskBadgeCardError(onRetry: _loadRiskData),
             const SizedBox(height: 16),
             Expanded(
               child: GridView.count(
@@ -167,6 +168,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: Icons.place,
                     title: 'Saved Places',
                     onTap: () => Navigator.pushNamed(context, '/saved-places'),
+                  ),
+                  HomeTile(
+                    icon: Icons.local_offer,
+                    title: 'Deals & Sponsors',
+                    onTap: () => Navigator.pushNamed(context, '/sponsors'),
+                  ),
+                  HomeTile(
+                    icon: Icons.card_giftcard,
+                    title: 'Invite Friends',
+                    subtitle: 'Earn free Premium',
+                    onTap: () => Navigator.pushNamed(context, '/referrals'),
                   ),
                 ],
               ),
@@ -283,19 +295,6 @@ class PromoBannerCard extends StatelessWidget {
       ),
     );
   }
-}
-
-int _addressNumber(String? address) {
-  if (address == null) return 0;
-  final match = RegExp(r'(\d+)').firstMatch(address);
-  if (match == null) return 0;
-  return int.tryParse(match.group(0) ?? '0') ?? 0;
-}
-
-int _addressFromPosition(Position position) {
-  final val = (position.latitude.abs() * 10000).round() +
-      (position.longitude.abs() * 10000).round();
-  return val % 10000 == 0 ? 101 : val % 10000;
 }
 
 Future<String> _resolveAltSubtitle(UserProvider provider) async {
@@ -446,6 +445,67 @@ class _RiskBadgeCardLoading extends StatelessWidget {
               fontSize: 13,
               color: Colors.grey[400],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiskBadgeCardError extends StatelessWidget {
+  const _RiskBadgeCardError({required this.onRetry});
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.orange.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.orange.withOpacity(0.3),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.location_off_rounded, color: Colors.orange, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Unable to load citation risk',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[300],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Check location permissions and try again',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onRetry,
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.orange,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            child: const Text('Retry'),
           ),
         ],
       ),

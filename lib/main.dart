@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'services/analytics_service.dart';
+import 'services/ad_service.dart';
 import 'services/saved_places_service.dart';
+import 'services/subscription_service.dart';
 
 import 'citysmart/branding_preview.dart';
 import 'firebase_bootstrap.dart';
@@ -35,7 +35,6 @@ import 'screens/history_receipts_screen.dart';
 import 'screens/maintenance_report_screen.dart';
 import 'screens/garbage_schedule_screen.dart';
 import 'screens/city_settings_screen.dart';
-import 'screens/local_alerts_screen.dart';
 import 'services/notification_service.dart';
 import 'services/user_repository.dart';
 import 'screens/alternate_side_parking_screen.dart';
@@ -48,8 +47,10 @@ import 'screens/alert_detail_screen.dart';
 import 'screens/auth_diagnostics_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/parking_finder_screen.dart';
+import 'screens/referral_screen.dart';
 import 'screens/saved_places_screen.dart';
 import 'screens/tow_helper_screen.dart';
+import 'screens/sponsors_screen.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
@@ -194,6 +195,26 @@ class _BootstrapAppState extends State<_BootstrapApp> {
                   entry.details = 'Permissions/token/handlers configured.',
             )
             .timeout(const Duration(seconds: 8), onTimeout: () async {});
+
+        // Initialize subscription service (RevenueCat)
+        await diagnostics
+            .recordFuture<void>(
+              'SubscriptionService',
+              () => SubscriptionService.instance.initialize(),
+              onSuccess: (_, entry) =>
+                  entry.details = 'RevenueCat configured.',
+            )
+            .timeout(const Duration(seconds: 5), onTimeout: () async {});
+
+        // Initialize ad service (Google Mobile Ads)
+        await diagnostics
+            .recordFuture<void>(
+              'AdService',
+              () => AdService.instance.initialize(testMode: kDebugMode),
+              onSuccess: (_, entry) =>
+                  entry.details = 'AdMob configured.',
+            )
+            .timeout(const Duration(seconds: 5), onTimeout: () async {});
       }
 
       await diagnostics
@@ -265,19 +286,32 @@ class MKEParkApp extends StatelessWidget {
         userRepository: userRepository,
         firebaseReady: firebaseReady,
       )..initialize(),
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'MKE CitySmart',
-        theme: buildCitySmartTheme(),
-        initialRoute: '/',
-        onUnknownRoute: (settings) => MaterialPageRoute(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: Text('Route not found: ${settings.name}'),
+      child: Consumer<UserProvider>(
+        builder: (context, provider, _) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'MKE CitySmart',
+            theme: buildCitySmartTheme(),
+            locale: Locale(provider.languageCode),
+            supportedLocales: const [
+              Locale('en'),
+              Locale('es'),
+              Locale('hmn'),
+              Locale('ar'),
+              Locale('fr'),
+              Locale('zh'),
+              Locale('hi'),
+              Locale('el'),
+            ],
+            initialRoute: '/',
+            onUnknownRoute: (settings) => MaterialPageRoute(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: Text('Route not found: ${settings.name}'),
+                ),
+              ),
             ),
-          ),
-        ),
-        routes: {
+            routes: {
           '/': (context) => const _InitialRouteDecider(),
           '/onboarding': (context) => const OnboardingScreen(),
           '/dashboard': (context) => const DashboardScreen(),
@@ -311,6 +345,8 @@ class MKEParkApp extends StatelessWidget {
           '/parking-finder': (context) => const ParkingFinderScreen(),
           '/saved-places': (context) => const SavedPlacesScreen(),
           '/tow-helper': (context) => const TowHelperScreen(),
+          '/sponsors': (context) => const SponsorsScreen(),
+          '/referrals': (context) => const ReferralScreen(),
           '/citysmart-dashboard': (context) => const DashboardScreen(),
           '/citysmart-map': (context) => const MapScreen(),
           '/citysmart-feed': (context) => const FeedScreen(),
@@ -324,6 +360,8 @@ class MKEParkApp extends StatelessWidget {
             }
             return AlertDetailScreen(alertId: alertId);
           },
+        },
+          );
         },
       ),
     );

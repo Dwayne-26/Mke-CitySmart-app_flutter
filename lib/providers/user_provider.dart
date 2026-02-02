@@ -30,6 +30,7 @@ import '../services/cloud_log_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/report_api_service.dart';
+import '../services/subscription_service.dart';
 import '../services/ticket_api_service.dart';
 import '../services/user_repository.dart';
 
@@ -1207,28 +1208,56 @@ class UserProvider extends ChangeNotifier {
     Duration nightBefore = const Duration(hours: 12),
     Duration morningOf = const Duration(hours: 2),
     String languageCode = 'en',
+    bool useRepeatingReminders = true,
   }) async {
+    // Cancel any existing garbage reminders first
+    await NotificationService.instance.cancelAllScheduled();
+    
     final now = DateTime.now();
     final upcoming = _garbageSchedules.where((g) => g.pickupDate.isAfter(now));
+    var scheduleIndex = 0;
+    
     for (final sched in upcoming) {
-      final before = sched.pickupDate.subtract(nightBefore);
-      final morning = sched.pickupDate.subtract(morningOf);
+      final pickupTime = sched.pickupDate;
+      final nightBeforeTime = pickupTime.subtract(nightBefore);
+      final morningOfTime = pickupTime.subtract(morningOf);
       final typeLabel = _pickupLabel(sched.type, languageCode);
       final address = sched.address;
-      if (before.isAfter(now)) {
+      final routeId = sched.routeId;
+      
+      // Format pickup time for display
+      final pickupTimeStr = '${pickupTime.hour.toString().padLeft(2, '0')}:${pickupTime.minute.toString().padLeft(2, '0')}';
+      
+      // Night before reminder
+      if (nightBeforeTime.isAfter(now)) {
         await NotificationService.instance.scheduleLocal(
           title: _translate('Reminder', languageCode),
-          body: '$typeLabel pickup soon near $address',
-          when: before,
+          body: '$typeLabel pickup tomorrow at $pickupTimeStr (Route $routeId) - $address',
+          when: nightBeforeTime,
+          id: 100000 + scheduleIndex * 100,
         );
       }
-      if (morning.isAfter(now)) {
+      
+      // Morning of - use repeating reminders every 30 min until pickup time
+      if (useRepeatingReminders && morningOfTime.isAfter(now)) {
+        await NotificationService.instance.scheduleRepeatingReminders(
+          title: '🚛 $typeLabel ${_translate('Pickup', languageCode)}',
+          body: '$typeLabel truck coming at $pickupTimeStr - $address (Route $routeId)',
+          startTime: morningOfTime,
+          cutoffTime: pickupTime,
+          baseId: 200000 + scheduleIndex * 100,
+        );
+      } else if (morningOfTime.isAfter(now)) {
+        // Single morning reminder if repeating is disabled
         await NotificationService.instance.scheduleLocal(
           title: _translate('Reminder', languageCode),
-          body: '$typeLabel pickup today near $address',
-          when: morning,
+          body: '$typeLabel pickup today at $pickupTimeStr - $address',
+          when: morningOfTime,
+          id: 200000 + scheduleIndex * 100,
         );
       }
+      
+      scheduleIndex++;
     }
   }
 
@@ -1254,6 +1283,13 @@ class UserProvider extends ChangeNotifier {
         'zh': '提醒',
         'hi': 'स्मरण',
         'el': 'Υπενθύμιση',
+      },
+      'Pickup': {
+        'en': 'Pickup',
+        'fr': 'Ramassage',
+        'zh': '收集',
+        'hi': 'संग्रह',
+        'el': 'Συλλογή',
       },
     };
     final translations = dict[text];
@@ -1324,35 +1360,13 @@ class UserProvider extends ChangeNotifier {
   double _degToRad(double deg) => deg * (pi / 180);
 
   SubscriptionPlan _planForTier(SubscriptionTier tier) {
-    switch (tier) {
-      case SubscriptionTier.free:
-        return const SubscriptionPlan(
-          tier: SubscriptionTier.free,
-          maxAlertRadiusMiles: 3,
-          alertVolumePerDay: 3,
-          zeroProcessingFee: false,
-          prioritySupport: false,
-          monthlyPrice: 0,
-        );
-      case SubscriptionTier.plus:
-        return const SubscriptionPlan(
-          tier: SubscriptionTier.plus,
-          maxAlertRadiusMiles: 8,
-          alertVolumePerDay: 10,
-          zeroProcessingFee: true,
-          prioritySupport: false,
-          monthlyPrice: 6.99,
-        );
-      case SubscriptionTier.pro:
-        return const SubscriptionPlan(
-          tier: SubscriptionTier.pro,
-          maxAlertRadiusMiles: 15,
-          alertVolumePerDay: 25,
-          zeroProcessingFee: true,
-          prioritySupport: true,
-          monthlyPrice: 14.99,
-        );
-    }
+    // Delegate to the subscription service for consistent plan definitions
+    return SubscriptionService.getPlanForTier(tier);
+  }
+
+  /// Check if user has access to a specific premium feature
+  bool hasFeature(PremiumFeature feature) {
+    return subscriptionPlan.hasFeature(feature);
   }
 
   Future<String?> changePassword(String password) async {

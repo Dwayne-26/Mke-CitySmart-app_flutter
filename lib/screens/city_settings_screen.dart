@@ -13,8 +13,30 @@ class CitySettingsScreen extends StatefulWidget {
 class _CitySettingsScreenState extends State<CitySettingsScreen> {
   late String _cityId;
   late String _languageCode;
-  late List<String> _cities;
-  String? _selectedOption;
+  String? _selectedCity;
+  
+  // Milwaukee County municipalities - all covered by the app's data
+  static const List<Map<String, dynamic>> _milwaukeeCountyCities = [
+    {'name': 'Milwaukee', 'id': 'milwaukee', 'isMain': true},
+    {'name': 'West Allis', 'id': 'west_allis', 'isMain': false},
+    {'name': 'Wauwatosa', 'id': 'wauwatosa', 'isMain': false},
+    {'name': 'Greenfield', 'id': 'greenfield', 'isMain': false},
+    {'name': 'Oak Creek', 'id': 'oak_creek', 'isMain': false},
+    {'name': 'South Milwaukee', 'id': 'south_milwaukee', 'isMain': false},
+    {'name': 'Cudahy', 'id': 'cudahy', 'isMain': false},
+    {'name': 'Franklin', 'id': 'franklin', 'isMain': false},
+    {'name': 'Glendale', 'id': 'glendale', 'isMain': false},
+    {'name': 'Shorewood', 'id': 'shorewood', 'isMain': false},
+    {'name': 'Whitefish Bay', 'id': 'whitefish_bay', 'isMain': false},
+    {'name': 'Brown Deer', 'id': 'brown_deer', 'isMain': false},
+    {'name': 'St. Francis', 'id': 'st_francis', 'isMain': false},
+    {'name': 'Bayside', 'id': 'bayside', 'isMain': false},
+    {'name': 'Fox Point', 'id': 'fox_point', 'isMain': false},
+    {'name': 'River Hills', 'id': 'river_hills', 'isMain': false},
+    {'name': 'Hales Corners', 'id': 'hales_corners', 'isMain': false},
+    {'name': 'Greendale', 'id': 'greendale', 'isMain': false},
+    {'name': 'West Milwaukee', 'id': 'west_milwaukee', 'isMain': false},
+  ];
 
   @override
   void initState() {
@@ -22,27 +44,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
     final provider = context.read<UserProvider>();
     _cityId = provider.cityId;
     _languageCode = provider.languageCode;
-    _cities = const [
-      'Milwaukee',
-      'West Allis',
-      'Wauwatosa',
-      'Greenfield',
-      'Oak Creek',
-      'South Milwaukee',
-      'Cudahy',
-      'Franklin',
-      'Glendale',
-      'Shorewood',
-      'Whitefish Bay',
-      'Brown Deer',
-      'St. Francis',
-      'Bayside',
-      'Fox Point',
-      'Brookfield',
-      'Madison',
-      'Green Bay',
-    ];
-    _selectedOption = _cities.isNotEmpty ? _cities.first : null;
+    _selectedCity = _cityId.isEmpty ? 'milwaukee' : _cityId;
   }
 
   @override
@@ -55,32 +57,94 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('City', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (_cities.isEmpty)
-                const Center(child: CircularProgressIndicator())
-              else
-                DropdownButton<String>(
-                  value: _selectedOption,
-                  hint: const Text('Select a city'),
-                  items: _cities
-                      .map(
-                        (city) => DropdownMenuItem(
-                          value: city,
-                          child: Text(city),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) => setState(() {
-                    _selectedOption = value;
-                    _cityId = value ?? 'default';
-                  }),
+              // Milwaukee County info banner
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF1565C0).withOpacity(0.3)),
                 ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: const Color(0xFF1565C0)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Milwaukee County Coverage',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1565C0),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'All ${_milwaukeeCountyCities.length} municipalities in Milwaukee County are supported.',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              Text('Your City', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 4),
+              Text(
+                'Select your primary city for localized parking rules and alerts.',
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedCity,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                items: _milwaukeeCountyCities
+                    .map(
+                      (city) => DropdownMenuItem(
+                        value: city['id'] as String,
+                        child: Row(
+                          children: [
+                            Text(city['name'] as String),
+                            if (city['isMain'] == true) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1565C0),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'MAIN',
+                                  style: TextStyle(fontSize: 10, color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) => setState(() {
+                  _selectedCity = value;
+                  _cityId = value ?? 'milwaukee';
+                }),
+              ),
               const SizedBox(height: 12),
               Text('Language', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                initialValue: _languageCode,
+                value: _languageCode,
                 items: const [
                   DropdownMenuItem(value: 'en', child: Text('English')),
                   DropdownMenuItem(value: 'es', child: Text('Español')),

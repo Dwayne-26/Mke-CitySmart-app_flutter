@@ -2,10 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 
+import '../models/subscription_plan.dart';
+import '../providers/user_provider.dart';
 import '../services/analytics_service.dart';
 import '../services/feed_filter_service.dart';
-import '../theme/app_theme.dart';
+import '../widgets/ad_widgets.dart';
 import '../widgets/citysmart_scaffold.dart';
 
 class FeedScreen extends StatelessWidget {
@@ -179,27 +182,105 @@ class _FeedBodyState extends State<_FeedBody> {
                       onRefresh: () => _loadFeed(),
                       child: _docs.isEmpty
                           ? _EmptyFeedView(filters: _filters)
-                          : ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-                              itemCount: _docs.length + (_hasMore ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                if (index == _docs.length) {
-                                  return _LoadMoreButton(
-                                    loading: _loadingMore,
-                                    onTap: _loadMore,
-                                  );
-                                }
-                                
-                                return _SightingCard(
-                                  doc: _docs[index],
-                                  userPosition: _userPosition,
-                                  filterService: _filterService,
-                                );
-                              },
+                          : _FeedListView(
+                              docs: _docs,
+                              hasMore: _hasMore,
+                              loadingMore: _loadingMore,
+                              userPosition: _userPosition,
+                              filterService: _filterService,
+                              onLoadMore: _loadMore,
                             ),
                     ),
         ),
       ],
+    );
+  }
+}
+
+/// Feed list view with ad integration
+class _FeedListView extends StatelessWidget {
+  const _FeedListView({
+    required this.docs,
+    required this.hasMore,
+    required this.loadingMore,
+    required this.userPosition,
+    required this.filterService,
+    required this.onLoadMore,
+  });
+
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+  final bool hasMore;
+  final bool loadingMore;
+  final Position? userPosition;
+  final FeedFilterService filterService;
+  final VoidCallback onLoadMore;
+
+  // Show an ad every N items (for free users)
+  static const int _adInterval = 5;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<UserProvider>(
+      builder: (context, provider, _) {
+        final showAds = provider.tier == SubscriptionTier.free;
+        
+        // Calculate total items including ads
+        final adCount = showAds ? (docs.length / _adInterval).floor() : 0;
+        final totalItems = docs.length + adCount + (hasMore ? 1 : 0);
+
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+          itemCount: totalItems,
+          itemBuilder: (context, index) {
+            // Check if this is the load more button
+            final loadMoreIndex = docs.length + adCount;
+            if (index == loadMoreIndex && hasMore) {
+              return _LoadMoreButton(
+                loading: loadingMore,
+                onTap: onLoadMore,
+              );
+            }
+
+            // Calculate actual doc index accounting for ads
+            int docIndex;
+            bool isAdSlot;
+            
+            if (showAds) {
+              // Every (_adInterval + 1)th position after _adInterval items is an ad
+              final itemsBeforeIndex = index;
+              final adsBeforeIndex = (itemsBeforeIndex / (_adInterval + 1)).floor();
+              docIndex = index - adsBeforeIndex;
+              
+              // Check if this specific index is an ad slot
+              isAdSlot = index > 0 && 
+                  ((index + 1) % (_adInterval + 1) == 0) && 
+                  docIndex <= docs.length;
+            } else {
+              docIndex = index;
+              isAdSlot = false;
+            }
+
+            // Show ad at ad slots
+            if (isAdSlot) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: NativeAdCard(),
+              );
+            }
+
+            // Show regular sighting card
+            if (docIndex < docs.length) {
+              return _SightingCard(
+                doc: docs[docIndex],
+                userPosition: userPosition,
+                filterService: filterService,
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
+        );
+      },
     );
   }
 }
@@ -298,30 +379,36 @@ class _FilterDropdown<T> extends StatelessWidget {
       offset: const Offset(0, 40),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: kCitySmartGreen.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kCitySmartGreen.withValues(alpha: 0.3)),
+          color: const Color(0xFF1565C0), // Strong blue background
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1565C0).withValues(alpha: 0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: kCitySmartGreen),
-            const SizedBox(width: 6),
+            Icon(icon, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
                 label,
-                style: TextStyle(
-                  color: kCitySmartGreen,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(Icons.arrow_drop_down, size: 18, color: kCitySmartGreen),
+            const Icon(Icons.arrow_drop_down, size: 20, color: Colors.white),
           ],
         ),
       ),
@@ -332,11 +419,17 @@ class _FilterDropdown<T> extends StatelessWidget {
           child: Row(
             children: [
               if (isSelected)
-                Icon(Icons.check, size: 18, color: kCitySmartGreen)
+                const Icon(Icons.check, size: 18, color: Color(0xFF1565C0))
               else
                 const SizedBox(width: 18),
               const SizedBox(width: 8),
-              Text(itemLabel(item)),
+              Text(
+                itemLabel(item),
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF1565C0) : null,
+                ),
+              ),
             ],
           ),
         );
