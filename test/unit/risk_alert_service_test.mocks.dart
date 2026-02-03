@@ -129,13 +129,54 @@ class MockNotificationService extends _i1.Mock
     required String? title,
     required String? body,
     required DateTime? when,
+    int? id,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#scheduleLocal, [], {
               #title: title,
               #body: body,
               #when: when,
+              #id: id,
             }),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
+
+  @override
+  _i11.Future<void> scheduleRepeatingReminders({
+    required String? title,
+    required String? body,
+    required DateTime? startTime,
+    required DateTime? cutoffTime,
+    required int? baseId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#scheduleRepeatingReminders, [], {
+              #title: title,
+              #body: body,
+              #startTime: startTime,
+              #cutoffTime: cutoffTime,
+              #baseId: baseId,
+            }),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
+
+  @override
+  _i11.Future<void> cancelAllScheduled() =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelAllScheduled, []),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
+
+  @override
+  _i11.Future<void> cancelScheduled(int? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelScheduled, [id]),
             returnValue: _i11.Future<void>.value(),
             returnValueForMissingStub: _i11.Future<void>.value(),
           )
@@ -147,6 +188,15 @@ class MockNotificationService extends _i1.Mock
         Invocation.method(#setAlertLimitCallback, [callback]),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i11.Future<void> reregisterTokenAfterSignIn() =>
+      (super.noSuchMethod(
+            Invocation.method(#reregisterTokenAfterSignIn, []),
+            returnValue: _i11.Future<void>.value(),
+            returnValueForMissingStub: _i11.Future<void>.value(),
+          )
+          as _i11.Future<void>);
 }
 
 /// A class which mocks [LocationService].
@@ -277,6 +327,33 @@ class MockTicketRiskPredictionService extends _i1.Mock
             ),
           )
           as String);
+
+  @override
+  String getEnforcementSummary() =>
+      (super.noSuchMethod(
+            Invocation.method(#getEnforcementSummary, []),
+            returnValue: _i16.dummyValue<String>(
+              this,
+              Invocation.method(#getEnforcementSummary, []),
+            ),
+          )
+          as String);
+
+  @override
+  List<String> getTopViolations() =>
+      (super.noSuchMethod(
+            Invocation.method(#getTopViolations, []),
+            returnValue: <String>[],
+          )
+          as List<String>);
+
+  @override
+  List<Map<String, dynamic>> getPeakHours() =>
+      (super.noSuchMethod(
+            Invocation.method(#getPeakHours, []),
+            returnValue: <Map<String, dynamic>>[],
+          )
+          as List<Map<String, dynamic>>);
 }
 
 /// A class which mocks [CityTicketStatsService].
@@ -322,6 +399,14 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
   MockUserProvider() {
     _i1.throwOnMissingStub(this);
   }
+
+  @override
+  bool get firebaseEnabled =>
+      (super.noSuchMethod(
+            Invocation.getter(#firebaseEnabled),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   bool get isInitializing =>
@@ -694,7 +779,7 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
           as _i11.Future<void>);
 
   @override
-  _i11.Future<void> reportSighting({
+  _i11.Future<String?> reportSighting({
     required _i21.SightingType? type,
     required String? location,
     String? notes = '',
@@ -709,10 +794,9 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
               #latitude: latitude,
               #longitude: longitude,
             }),
-            returnValue: _i11.Future<void>.value(),
-            returnValueForMissingStub: _i11.Future<void>.value(),
+            returnValue: _i11.Future<String?>.value(),
           )
-          as _i11.Future<void>);
+          as _i11.Future<String?>);
 
   @override
   _i7.PermitEligibilityResult evaluatePermitEligibility({
@@ -814,6 +898,12 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
           as _i20.Ticket?);
 
   @override
+  void addTicket(_i20.Ticket? ticket) => super.noSuchMethod(
+    Invocation.method(#addTicket, [ticket]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i8.PaymentReceipt settleTicket({
     required _i20.Ticket? ticket,
     required String? method,
@@ -890,17 +980,27 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
     Duration? nightBefore = const Duration(hours: 12),
     Duration? morningOf = const Duration(hours: 2),
     String? languageCode = 'en',
+    bool? useRepeatingReminders = true,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#scheduleGarbageReminders, [], {
               #nightBefore: nightBefore,
               #morningOf: morningOf,
               #languageCode: languageCode,
+              #useRepeatingReminders: useRepeatingReminders,
             }),
             returnValue: _i11.Future<void>.value(),
             returnValueForMissingStub: _i11.Future<void>.value(),
           )
           as _i11.Future<void>);
+
+  @override
+  bool hasFeature(_i4.PremiumFeature? feature) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasFeature, [feature]),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   _i11.Future<String?> changePassword(String? password) =>

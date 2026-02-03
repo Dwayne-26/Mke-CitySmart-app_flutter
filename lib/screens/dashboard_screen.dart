@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/user_provider.dart';
-import '../services/alternate_side_parking_service.dart';
 import '../services/location_service.dart';
 import '../services/parking_risk_service.dart';
 import '../theme/app_theme.dart';
@@ -51,7 +50,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final provider = context.watch<UserProvider>();
+    // Watch the provider for reactive updates
+    context.watch<UserProvider>();
 
     return CitySmartScaffold(
       title: 'MKE CitySmart',
@@ -88,18 +88,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     title: 'Garbage Day',
                     onTap: () => Navigator.pushNamed(context, '/garbage'),
                   ),
-                  FutureBuilder<String>(
-                    future: _resolveAltSubtitle(provider),
-                    builder: (context, snapshot) {
-                      return HomeTile(
-                        icon: Icons.compare_arrows,
-                        title: 'Alt-side parking',
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          '/alternate-parking',
-                        ),
-                      );
-                    },
+                  HomeTile(
+                    icon: Icons.compare_arrows,
+                    title: 'Alt-side parking',
+                    subtitle: 'Odd/Even side',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/alternate-parking'),
                   ),
                   HomeTile(
                     icon: Icons.notifications_active_outlined,
@@ -132,16 +126,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     icon: Icons.workspace_premium,
                     title: 'Subscriptions',
                     subtitle: 'Plans & perks',
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/subscriptions'),
+                    onTap: () => Navigator.pushNamed(context, '/subscriptions'),
                   ),
                   HomeTile(
                     icon: Icons.build_circle_outlined,
                     title: 'Report maintenance',
-                    onTap: () => Navigator.pushNamed(
-                      context,
-                      '/maintenance',
-                    ),
+                    onTap: () => Navigator.pushNamed(context, '/maintenance'),
                   ),
                   HomeTile(
                     icon: Icons.history,
@@ -151,8 +141,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   HomeTile(
                     icon: Icons.settings,
                     title: 'City settings',
-                    onTap: () =>
-                        Navigator.pushNamed(context, '/city-settings'),
+                    onTap: () => Navigator.pushNamed(context, '/city-settings'),
                   ),
                   HomeTile(
                     icon: Icons.ev_station_outlined,
@@ -262,11 +251,7 @@ class HomeTile extends StatelessWidget {
 }
 
 class PromoBannerCard extends StatelessWidget {
-  const PromoBannerCard({
-    super.key,
-    required this.text,
-    required this.onTap,
-  });
+  const PromoBannerCard({super.key, required this.text, required this.onTap});
 
   final String text;
   final VoidCallback onTap;
@@ -275,9 +260,7 @@ class PromoBannerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       color: kCitySmartYellow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
@@ -295,15 +278,6 @@ class PromoBannerCard extends StatelessWidget {
       ),
     );
   }
-}
-
-Future<String> _resolveAltSubtitle(UserProvider provider) async {
-  final service = AlternateSideParkingService.instance;
-  // Service only uses date-based odd/even; location is not needed here.
-  final instructions = service.getTodayInstructions();
-  return instructions.parkingSide == ParkingSide.odd
-      ? 'Odd side today'
-      : 'Even side today';
 }
 
 /// Risk badge card for dashboard
@@ -357,10 +331,7 @@ class _RiskBadgeCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: _color,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: _color, shape: BoxShape.circle),
             child: Icon(_icon, color: Colors.white, size: 22),
           ),
           const SizedBox(width: 14),
@@ -371,7 +342,10 @@ class _RiskBadgeCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: _color,
                         borderRadius: BorderRadius.circular(4),
@@ -398,10 +372,7 @@ class _RiskBadgeCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Your current location • Based on 466K+ citations',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[400],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[400]),
                 ),
               ],
             ),
@@ -441,10 +412,7 @@ class _RiskBadgeCardLoading extends StatelessWidget {
           const SizedBox(width: 14),
           Text(
             'Loading citation risk for your area...',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[400],
-            ),
+            style: TextStyle(fontSize: 13, color: Colors.grey[400]),
           ),
         ],
       ),
@@ -473,7 +441,11 @@ class _RiskBadgeCardError extends StatelessWidget {
               color: Colors.orange.withOpacity(0.3),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.location_off_rounded, color: Colors.orange, size: 22),
+            child: const Icon(
+              Icons.location_off_rounded,
+              color: Colors.orange,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -491,10 +463,7 @@ class _RiskBadgeCardError extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Check location permissions and try again',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                 ),
               ],
             ),

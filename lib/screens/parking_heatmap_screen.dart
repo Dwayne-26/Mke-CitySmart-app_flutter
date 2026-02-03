@@ -18,10 +18,10 @@ class ParkingHeatmapScreen extends StatefulWidget {
 class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   final _riskService = ParkingRiskService.instance;
   final _mapController = MapController();
-  
+
   double _centerLat = 43.0389; // Milwaukee default
   double _centerLng = -87.9065;
-  
+
   List<RiskZone> _riskZones = [];
   LocationRisk? _locationRisk;
   bool _loading = true;
@@ -51,10 +51,10 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
       _loading = true;
       _error = null;
     });
-    
+
     double lat = _centerLat;
     double lng = _centerLng;
-    
+
     // Get current location
     try {
       final loc = await LocationService().getCurrentPosition();
@@ -65,9 +65,9 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
     } catch (e) {
       debugPrint('Location unavailable: \$e');
     }
-    
+
     if (!mounted) return;
-    
+
     // Load citation risk data from backend
     try {
       final results = await Future.wait([
@@ -77,16 +77,21 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
       _locationRisk = results[0] as LocationRisk?;
       _riskZones = results[1] as List<RiskZone>;
       debugPrint('Loaded ${_riskZones.length} risk zones');
-      
-      // If no zones loaded, show error
+
+      // If no zones loaded, show friendly fallback message
       if (_riskZones.isEmpty) {
-        _error = 'No risk zone data available. The backend may be unavailable.';
+        final fallbackMessages = [
+          "Good news: No parking risk zones in your area.",
+          "No risk zones found. Enjoy worry-free parking!",
+        ];
+        _error = (fallbackMessages..shuffle()).first;
+        _locationRisk = null;
       }
     } catch (e) {
       debugPrint('Failed to load citation risk: $e');
       _error = 'Failed to load risk data: $e';
     }
-    
+
     setState(() {
       _centerLat = lat;
       _centerLng = lng;
@@ -109,7 +114,10 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   Widget build(BuildContext context) {
     // Check if user has premium access to heatmaps
     final hasAccess = FeatureGate.hasAccess(context, PremiumFeature.heatmap);
-    final isTrialAccess = FeatureGate.isTrialAccess(context, PremiumFeature.heatmap);
+    final isTrialAccess = FeatureGate.isTrialAccess(
+      context,
+      PremiumFeature.heatmap,
+    );
     final trialDaysRemaining = FeatureGate.getTrialDaysRemaining(context);
 
     return Scaffold(
@@ -125,10 +133,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
             IconButton(
               icon: const Icon(Icons.my_location),
               onPressed: () {
-                _mapController.move(
-                  LatLng(_centerLat, _centerLng),
-                  12.0,
-                );
+                _mapController.move(LatLng(_centerLat, _centerLng), 12.0);
               },
               tooltip: 'My location',
             ),
@@ -141,90 +146,100 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
               child: const SizedBox.shrink(), // Won't be shown
             )
           : _loading
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  children: [
-                    // Free trial banner
-                    if (isTrialAccess)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF5E8A45),
-                              const Color(0xFF7CA726),
-                            ],
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // Free trial banner
+                if (isTrialAccess)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF5E8A45),
+                          const Color(0xFF7CA726),
+                        ],
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.star, color: Colors.white, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Free Trial: $trialDaysRemaining day${trialDaysRemaining == 1 ? '' : 's'} remaining',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.white, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Free Trial: $trialDaysRemaining day${trialDaysRemaining == 1 ? '' : 's'} remaining',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/subscriptions'),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
                             ),
-                            TextButton(
-                              onPressed: () => Navigator.pushNamed(context, '/subscription'),
-                              style: TextButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              ),
-                              child: const Text(
-                                'Upgrade',
-                                style: TextStyle(
-                                  color: Color(0xFF5E8A45),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                          ),
+                          child: const Text(
+                            'Upgrade',
+                            style: TextStyle(
+                              color: Color(0xFF5E8A45),
+                              fontWeight: FontWeight.bold,
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    
-                    // Risk badge at top
-                    if (_locationRisk != null)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        color: Color(_locationRisk!.colorValue).withOpacity(0.1),
-                        child: ParkingRiskBadge(risk: _locationRisk!),
-                      ),
-                    
-                    // Map
-                    Expanded(
-                      child: Stack(
+                      ],
+                    ),
+                  ),
+
+                // Risk badge at top
+                if (_locationRisk != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    color: Color(_locationRisk!.colorValue).withOpacity(0.1),
+                    child: ParkingRiskBadge(risk: _locationRisk!),
+                  ),
+
+                // Map
+                Expanded(
+                  child: Stack(
+                    children: [
+                      FlutterMap(
+                        mapController: _mapController,
+                        options: MapOptions(
+                          initialCenter: LatLng(_centerLat, _centerLng),
+                          initialZoom: 11.5,
+                          minZoom: 9,
+                          maxZoom: 18,
+                          onTap: (_, __) {
+                            setState(() => _selectedZone = null);
+                          },
+                        ),
                         children: [
-                          FlutterMap(
-                            mapController: _mapController,
-                            options: MapOptions(
-                              initialCenter: LatLng(_centerLat, _centerLng),
-                              initialZoom: 11.5,
-                              minZoom: 9,
-                              maxZoom: 18,
-                              onTap: (_, __) {
-                                setState(() => _selectedZone = null);
-                              },
-                            ),
-                            children: [
-                              // OpenStreetMap tile layer
-                              TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          // OpenStreetMap tile layer
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                             userAgentPackageName: 'com.mkecitysmart.app',
                           ),
-                          
+
                           // Risk zone circles
                           CircleLayer(
                             circles: _riskZones.map((zone) {
                               final color = _getRiskColor(zone.riskLevel);
                               // Size based on citation count
-                              final radius = 400.0 + (zone.totalCitations / 100).clamp(0, 600);
+                              final radius =
+                                  400.0 +
+                                  (zone.totalCitations / 100).clamp(0, 600);
                               return CircleMarker(
                                 point: LatLng(zone.lat, zone.lng),
                                 radius: radius,
@@ -235,7 +250,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                               );
                             }).toList(),
                           ),
-                          
+
                           // Risk zone markers (tappable)
                           MarkerLayer(
                             markers: _riskZones.map((zone) {
@@ -263,7 +278,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                                                 color: color.withOpacity(0.5),
                                                 blurRadius: 8,
                                                 spreadRadius: 2,
-                                              )
+                                              ),
                                             ]
                                           : null,
                                     ),
@@ -282,7 +297,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                               );
                             }).toList(),
                           ),
-                          
+
                           // Current location marker
                           MarkerLayer(
                             markers: [
@@ -294,13 +309,16 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.blue,
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 3),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
+                                    ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.blue.withOpacity(0.3),
                                         blurRadius: 8,
                                         spreadRadius: 2,
-                                      )
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -309,7 +327,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                           ),
                         ],
                       ),
-                      
+
                       // Legend
                       Positioned(
                         right: 12,
@@ -341,22 +359,37 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              _LegendItem(color: const Color(0xFFD32F2F), label: 'High (50%+)', textColor: Colors.black87),
+                              _LegendItem(
+                                color: const Color(0xFFD32F2F),
+                                label: 'High (50%+)',
+                                textColor: Colors.black87,
+                              ),
                               const SizedBox(height: 6),
-                              _LegendItem(color: const Color(0xFFFF9800), label: 'Medium (30-49%)', textColor: Colors.black87),
+                              _LegendItem(
+                                color: const Color(0xFFFF9800),
+                                label: 'Medium (30-49%)',
+                                textColor: Colors.black87,
+                              ),
                               const SizedBox(height: 6),
-                              _LegendItem(color: const Color(0xFF4CAF50), label: 'Low (<30%)', textColor: Colors.black87),
+                              _LegendItem(
+                                color: const Color(0xFF4CAF50),
+                                label: 'Low (<30%)',
+                                textColor: Colors.black87,
+                              ),
                             ],
                           ),
                         ),
                       ),
-                      
+
                       // Zone stats - more visible
                       Positioned(
                         left: 12,
                         bottom: 12,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
@@ -372,7 +405,11 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.map_outlined, size: 18, color: Colors.blue.shade700),
+                              Icon(
+                                Icons.map_outlined,
+                                size: 18,
+                                color: Colors.blue.shade700,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 '${_riskZones.length} risk zones',
@@ -383,12 +420,18 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                                 ),
                               ),
                               Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                                 width: 1,
                                 height: 16,
                                 color: Colors.grey.shade300,
                               ),
-                              Icon(Icons.receipt_long, size: 16, color: Colors.orange.shade700),
+                              Icon(
+                                Icons.receipt_long,
+                                size: 16,
+                                color: Colors.orange.shade700,
+                              ),
                               const SizedBox(width: 6),
                               Text(
                                 '466K+ citations',
@@ -401,7 +444,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                           ),
                         ),
                       ),
-                      
+
                       // Selected zone detail card
                       if (_selectedZone != null)
                         Positioned(
@@ -413,7 +456,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                             onClose: () => setState(() => _selectedZone = null),
                           ),
                         ),
-                      
+
                       // Error message
                       if (_error != null)
                         Positioned(
@@ -522,7 +565,10 @@ class _ZoneDetailCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _color,
                     borderRadius: BorderRadius.circular(4),
