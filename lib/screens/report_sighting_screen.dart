@@ -37,24 +37,36 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
-    final provider = context.read<UserProvider>();
-    final message = await provider.reportSighting(
-      type: _type,
-      location: _locationController.text.trim(),
-      notes: _notesController.text.trim(),
-      latitude: _lastPosition?.latitude,
-      longitude: _lastPosition?.longitude,
-    );
-    setState(() => _submitting = false);
-    if (!mounted) return;
-    _locationController.clear();
-    _notesController.clear();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message ?? 'Thanks! Sighting reported.'),
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    try {
+      final provider = context.read<UserProvider>();
+      final message = await provider.reportSighting(
+        type: _type,
+        location: _locationController.text.trim(),
+        notes: _notesController.text.trim(),
+        latitude: _lastPosition?.latitude,
+        longitude: _lastPosition?.longitude,
+      );
+      if (!mounted) return;
+      _locationController.clear();
+      _notesController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message ?? 'Thanks! Sighting reported.'),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to submit report. Please try again.'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -63,9 +75,7 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
       builder: (context, provider, _) {
         final reports = provider.sightings;
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Report enforcement / tow'),
-          ),
+          appBar: AppBar(title: const Text('Report enforcement / tow')),
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -113,8 +123,8 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
                               ),
                               validator: (value) =>
                                   value != null && value.trim().isNotEmpty
-                                      ? null
-                                      : 'Add a location',
+                                  ? null
+                                  : 'Add a location',
                             ),
                             const SizedBox(height: 12),
                             Row(
@@ -195,7 +205,9 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
                     const Card(
                       child: Padding(
                         padding: EdgeInsets.all(16),
-                        child: Text('No sightings yet. Be the first to report.'),
+                        child: Text(
+                          'No sightings yet. Be the first to report.',
+                        ),
                       ),
                     )
                   else
@@ -257,7 +269,9 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
     if (!mounted) return;
     if (position == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location unavailable. Check permissions.')),
+        const SnackBar(
+          content: Text('Location unavailable. Check permissions.'),
+        ),
       );
       return;
     }
@@ -270,7 +284,8 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
     setState(() {
       _lastPosition = position;
       _resolvedAddress = address;
-      _locationController.text = address ??
+      _locationController.text =
+          address ??
           '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
     });
     ScaffoldMessenger.of(context).showSnackBar(

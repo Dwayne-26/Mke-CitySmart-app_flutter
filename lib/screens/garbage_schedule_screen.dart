@@ -189,8 +189,20 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
               else if (schedules.isEmpty)
                 const Text('No upcoming pickups found.')
               else
-                ...schedules.map(
-                  (s) => Card(
+                ...schedules.map((s) {
+                  final hour = s.pickupDate.hour;
+                  final etaStart = TimeOfDay(hour: hour, minute: 0);
+                  final etaEnd = TimeOfDay(hour: (hour + 2) % 24, minute: 0);
+                  String formatTime(TimeOfDay t) {
+                    final h = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+                    final m = t.minute.toString().padLeft(2, '0');
+                    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+                    return '$h:$m $period';
+                  }
+
+                  final etaString =
+                      'ETA: ${formatTime(etaStart)}–${formatTime(etaEnd)}';
+                  return Card(
                     child: ListTile(
                       leading: Icon(
                         s.type == PickupType.garbage
@@ -200,10 +212,19 @@ class _GarbageScheduleScreenState extends State<GarbageScheduleScreen> {
                       title: Text(
                         '${s.type == PickupType.garbage ? 'Garbage' : 'Recycling'} • ${s.pickupDate.month}/${s.pickupDate.day} ${s.pickupDate.hour.toString().padLeft(2, '0')}:00',
                       ),
-                      subtitle: Text('Route ${s.routeId} • ${s.address}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Route ${s.routeId} • ${s.address}'),
+                          Text(
+                            etaString,
+                            style: const TextStyle(color: Colors.orangeAccent),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }),
             ],
           ),
         );

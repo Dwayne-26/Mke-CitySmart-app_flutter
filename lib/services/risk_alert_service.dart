@@ -22,19 +22,25 @@ class RiskAlertService {
     LocationService? locationService,
     TicketRiskPredictionService? ticketRiskPredictionService,
     CityTicketStatsService? cityStatsService,
+    ParkingRiskService? parkingRiskService,
     DateTime Function()? now,
-  })  : _notification = notificationService ?? NotificationService.instance,
-        _location = locationService ?? LocationService(),
-        _ticketRisk = ticketRiskPredictionService ?? TicketRiskPredictionService(),
-        _cityStats = cityStatsService ?? CityTicketStatsService(),
-        _now = now ?? DateTime.now;
+  }) : _notification = notificationService ?? NotificationService.instance,
+       _location = locationService ?? LocationService(),
+       _ticketRisk =
+           ticketRiskPredictionService ?? TicketRiskPredictionService(),
+       _cityStats = cityStatsService ?? CityTicketStatsService(),
+       _parkingRisk = parkingRiskService,
+       _now = now ?? DateTime.now;
 
-  static final RiskAlertService instance = RiskAlertService._();
+  static final RiskAlertService instance = RiskAlertService._(
+    parkingRiskService: ParkingRiskService.instance,
+  );
   factory RiskAlertService.test({
     NotificationService? notificationService,
     LocationService? locationService,
     TicketRiskPredictionService? ticketRiskPredictionService,
     CityTicketStatsService? cityStatsService,
+    ParkingRiskService? parkingRiskService,
     DateTime Function()? now,
   }) {
     return RiskAlertService._(
@@ -42,6 +48,7 @@ class RiskAlertService {
       locationService: locationService,
       ticketRiskPredictionService: ticketRiskPredictionService,
       cityStatsService: cityStatsService,
+      parkingRiskService: parkingRiskService,
       now: now,
     );
   }
@@ -56,7 +63,7 @@ class RiskAlertService {
   final LocationService _location;
   final NotificationService _notification;
   final CityTicketStatsService _cityStats;
-  final ParkingRiskService _parkingRisk = ParkingRiskService.instance;
+  final ParkingRiskService? _parkingRisk;
   final DateTime Function() _now;
 
   // ABUSE PREVENTION: Track alert counts per day to prevent spam
@@ -76,14 +83,13 @@ class RiskAlertService {
 
   Future<void> _check(UserProvider provider) async {
     final now = _now();
-    
+
     // Reset daily counter at midnight
-    if (_dailyAlertReset == null || 
-        now.day != _dailyAlertReset!.day) {
+    if (_dailyAlertReset == null || now.day != _dailyAlertReset!.day) {
       _dailyAlertCount = 0;
       _dailyAlertReset = now;
     }
-    
+
     final score = provider.towRiskIndex;
     if (score >= 70) {
       if (_lastHighAlert == null ||
@@ -95,12 +101,15 @@ class RiskAlertService {
           body: 'Recent enforcers or sweeps nearby. Check parking status.',
         );
         // Log to parking history
-        unawaited(ParkingHistoryService.instance.logEvent(
-          type: ParkingEventType.towTruckSpotted,
-          title: 'High Tow Risk Alert',
-          description: 'Risk score: $score. Recent enforcers or sweeps detected nearby.',
-          metadata: {'riskScore': score},
-        ));
+        unawaited(
+          ParkingHistoryService.instance.logEvent(
+            type: ParkingEventType.towTruckSpotted,
+            title: 'High Tow Risk Alert',
+            description:
+                'Risk score: $score. Recent enforcers or sweeps detected nearby.',
+            metadata: {'riskScore': score},
+          ),
+        );
       }
     }
 
@@ -112,13 +121,13 @@ class RiskAlertService {
     try {
       final position = await _location.getCurrentPosition();
       if (position == null) return;
-      
+
       // === NEW: Check citation-based risk from backend ===
       await _checkCitationRisk(position, now);
-      
+
       final ticketDensity =
           provider.tickets.where((t) => t.status == TicketStatus.open).length /
-              10;
+          10;
       final eventLoad = provider.sightings.isNotEmpty ? 0.3 : 0.0;
       final isNewArea = _isNewArea(position);
       _lastPosition = position;
@@ -143,17 +152,16 @@ class RiskAlertService {
             now.difference(_lastTicketAlert!).inMinutes >= coolDown) {
           _lastTicketAlert = now;
           final msg = _ticketRisk.riskMessage(riskScore);
-          _notification.showLocal(
-            title: 'Ticket risk nearby',
-            body: msg,
-          );
+          _notification.showLocal(title: 'Ticket risk nearby', body: msg);
           // Log to parking history
-          unawaited(ParkingHistoryService.instance.logCitationRiskAlert(
-            riskLevel: riskScore >= 0.85 ? 'High' : 'Elevated',
-            reason: msg,
-            latitude: position.latitude,
-            longitude: position.longitude,
-          ));
+          unawaited(
+            ParkingHistoryService.instance.logCitationRiskAlert(
+              riskLevel: riskScore >= 0.85 ? 'High' : 'Elevated',
+              reason: msg,
+              latitude: position.latitude,
+              longitude: position.longitude,
+            ),
+          );
         }
       }
     } on PermissionDeniedException {
@@ -170,7 +178,7 @@ class RiskAlertService {
   }
 
   /// Check citation-based risk from backend and alert if high risk during peak time.
-  /// 
+  ///
   /// SPAM PREVENTION:
   /// - Max 1 citation alert per 2 hours per location
   /// - Max 6 alerts per day total
@@ -178,47 +186,57 @@ class RiskAlertService {
   Future<void> _checkCitationRisk(Position position, DateTime now) async {
     // Don't spam - check daily limit first
     if (_dailyAlertCount >= _maxDailyAlerts) {
-      dev.log('Citation risk check skipped: daily limit reached ($_dailyAlertCount)');
+      dev.log(
+        'Citation risk check skipped: daily limit reached ($_dailyAlertCount)',
+      );
       return;
     }
-    
+
     // Cooldown: min 2 hours between citation alerts
     if (_lastCitationAlert != null &&
         now.difference(_lastCitationAlert!).inMinutes < 120) {
       return;
     }
-    
+
+    // Skip citation checks if parking risk service not available (e.g., in tests)
+    if (_parkingRisk == null) return;
+
     try {
       final risk = await _parkingRisk.getRiskForLocation(
         position.latitude,
         position.longitude,
       );
-      
+
       if (risk == null) return;
-      
+
       // Only alert for HIGH risk areas during peak hours
-      if (risk.riskLevel == RiskLevel.high && 
+      if (risk.riskLevel == RiskLevel.high &&
           risk.peakHours.contains(now.hour)) {
         _lastCitationAlert = now;
         _dailyAlertCount++;
-        
-        final message = '${risk.riskPercentage}% citation risk here. '
+
+        final message =
+            '${risk.riskPercentage}% citation risk here. '
             '${risk.topViolations.isNotEmpty ? "Watch for: ${risk.topViolations.first.replaceAll('_', ' ')}" : "Check parking signs!"}';
-        
+
         _notification.showLocal(
           title: '⚠️ High Risk Parking Zone',
           body: message,
         );
-        
+
         // Log to parking history
-        unawaited(ParkingHistoryService.instance.logCitationRiskAlert(
-          riskLevel: 'High (${risk.riskPercentage}%)',
-          reason: message,
-          latitude: position.latitude,
-          longitude: position.longitude,
-        ));
-        
-        dev.log('Citation risk alert sent: ${risk.riskPercentage}% at hour ${now.hour}');
+        unawaited(
+          ParkingHistoryService.instance.logCitationRiskAlert(
+            riskLevel: 'High (${risk.riskPercentage}%)',
+            reason: message,
+            latitude: position.latitude,
+            longitude: position.longitude,
+          ),
+        );
+
+        dev.log(
+          'Citation risk alert sent: ${risk.riskPercentage}% at hour ${now.hour}',
+        );
       }
     } catch (e) {
       dev.log('Citation risk check failed: $e');
@@ -236,16 +254,12 @@ class RiskAlertService {
     return dist > 150; // treat moves over ~150m as a new area
   }
 
-  double _haversineMeters(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
+  double _haversineMeters(double lat1, double lon1, double lat2, double lon2) {
     const R = 6371000; // meters
     final dLat = _deg2rad(lat2 - lat1);
     final dLon = _deg2rad(lon2 - lon1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_deg2rad(lat1)) *
             math.cos(_deg2rad(lat2)) *
             math.sin(dLon / 2) *
