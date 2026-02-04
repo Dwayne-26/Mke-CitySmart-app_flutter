@@ -18,11 +18,42 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   LocationRisk? _locationRisk;
   bool _loadingRisk = true;
+  bool _welcomeShown = false;
 
   @override
   void initState() {
     super.initState();
     _loadRiskData();
+    // Show welcome back message after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) => _showWelcomeBack());
+  }
+
+  void _showWelcomeBack() {
+    if (_welcomeShown) return;
+    _welcomeShown = true;
+
+    final userProvider = context.read<UserProvider>();
+    if (userProvider.isLoggedIn && !userProvider.isGuest) {
+      final name = userProvider.profile?.name;
+      final greeting = name != null && name.isNotEmpty
+          ? 'Welcome back, $name!'
+          : 'Welcome back!';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.waving_hand, color: Colors.amber),
+              const SizedBox(width: 12),
+              Expanded(child: Text(greeting)),
+            ],
+          ),
+          backgroundColor: kCitySmartGreen,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Future<void> _loadRiskData() async {

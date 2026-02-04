@@ -129,20 +129,29 @@ class _BootstrapAppState extends State<_BootstrapApp> {
           )
           .timeout(const Duration(seconds: 12), onTimeout: () => false);
 
-      // If Firebase initialized, attempt an anonymous sign-in so
-      // FirebaseAuth is ready for services that expect a user.
+      // If Firebase initialized, ensure user is authenticated.
+      // Only sign in anonymously if no user is currently signed in.
+      // This preserves existing sessions (email, Google, Apple sign-ins).
       if (firebaseReady) {
-        try {
-          await FirebaseAuth.instance.signInAnonymously();
-          print(
-            'Anonymous auth UID: ${FirebaseAuth.instance.currentUser?.uid}',
+        final existingUser = FirebaseAuth.instance.currentUser;
+        if (existingUser != null) {
+          debugPrint(
+            'Existing auth session found - UID: ${existingUser.uid}, '
+            'Provider: ${existingUser.providerData.map((p) => p.providerId).join(", ")}',
           );
-        } catch (e, st) {
-          print('Anonymous sign-in failed: $e');
-          // Log to cloud if available; ignore failures here.
+        } else {
           try {
-            developer.log('Anonymous sign-in failed: $e', stackTrace: st);
-          } catch (_) {}
+            await FirebaseAuth.instance.signInAnonymously();
+            debugPrint(
+              'Anonymous auth UID: ${FirebaseAuth.instance.currentUser?.uid}',
+            );
+          } catch (e, st) {
+            debugPrint('Anonymous sign-in failed: $e');
+            // Log to cloud if available; ignore failures here.
+            try {
+              developer.log('Anonymous sign-in failed: $e', stackTrace: st);
+            } catch (_) {}
+          }
         }
       }
 
