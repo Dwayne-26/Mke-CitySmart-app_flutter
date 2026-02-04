@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
@@ -790,20 +791,21 @@ class _AddTicketForm extends StatefulWidget {
 class _AddTicketFormState extends State<_AddTicketForm> {
   final _formKey = GlobalKey<FormState>();
   final _ticketIdController = TextEditingController();
-  final _plateController = TextEditingController();
   final _amountController = TextEditingController();
   final _locationController = TextEditingController();
   String? _selectedViolation;
+  String? _selectedVehicleId;
+  String _manualPlate = '';
   DateTime _issuedDate = DateTime.now();
   DateTime _dueDate = DateTime.now().add(const Duration(days: 14));
   File? _photoFile;
+  bool _useManualPlate = false;
 
   final _picker = ImagePicker();
 
   @override
   void dispose() {
     _ticketIdController.dispose();
-    _plateController.dispose();
     _amountController.dispose();
     _locationController.dispose();
     super.dispose();
@@ -851,6 +853,24 @@ class _AddTicketFormState extends State<_AddTicketForm> {
 
   Future<void> _submit() async {
     if (_formKey.currentState?.validate() ?? false) {
+      // Get plate from vehicle or manual entry
+      final provider = context.read<UserProvider>();
+      String plate;
+      String? vehicleId;
+
+      if (_useManualPlate) {
+        plate = _manualPlate.trim().toUpperCase();
+      } else if (_selectedVehicleId != null) {
+        final vehicle = provider.profile?.vehicles.firstWhere(
+          (v) => v.id == _selectedVehicleId,
+          orElse: () => provider.profile!.vehicles.first,
+        );
+        plate = vehicle?.licensePlate ?? '';
+        vehicleId = _selectedVehicleId;
+      } else {
+        plate = '';
+      }
+
       // Save photo locally if captured
       String? savedPhotoPath;
       final ticketId = _ticketIdController.text.trim();
@@ -858,31 +878,69 @@ class _AddTicketFormState extends State<_AddTicketForm> {
         savedPhotoPath = await _savePhotoLocally(_photoFile!, ticketId);
       }
 
+      // Try to geocode the location for risk engine data
+      double? latitude;
+      double? longitude;
+      final locationText = _locationController.text.trim();
+      if (locationText.isNotEmpty) {
+        try {
+          // Add Milwaukee, WI context for better geocoding results
+          final searchText = locationText.contains('Milwaukee')
+              ? locationText
+              : '$locationText, Milwaukee, WI';
+          final locations = await geocoding.locationFromAddress(searchText);
+          if (locations.isNotEmpty) {
+            latitude = locations.first.latitude;
+            longitude = locations.first.longitude;
+            debugPrint('📍 Ticket location geocoded: $latitude, $longitude');
+          }
+        } catch (e) {
+          debugPrint('⚠️ Could not geocode ticket location: $e');
+          // Continue without coordinates - not critical
+        }
+      }
+
       final ticket = Ticket(
         id: ticketId,
-        plate: _plateController.text.trim().toUpperCase(),
+        plate: plate,
         amount: double.tryParse(_amountController.text) ?? 0,
         reason: _selectedViolation ?? 'OTHER',
-        location: _locationController.text.trim(),
+        location: locationText,
         issuedAt: _issuedDate,
         dueDate: _dueDate,
         photoPath: savedPhotoPath,
+        vehicleId: vehicleId,
+        latitude: latitude,
+        longitude: longitude,
       );
       widget.onSubmit(ticket);
+
+      // Log citation data for risk engine improvement
+      if (latitude != null && longitude != null) {
+        debugPrint(
+          '🎯 Citation data logged for risk engine: $locationText ($latitude, $longitude) - $_selectedViolation',
+        );
+      }
+
       // Clear form
       _ticketIdController.clear();
-      _plateController.clear();
       _amountController.clear();
       _locationController.clear();
       setState(() {
         _photoFile = null;
         _selectedViolation = null;
+        _selectedVehicleId = null;
+        _manualPlate = '';
+        _useManualPlate = false;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<UserProvider>();
+    final vehicles = provider.profile?.vehicles ?? [];
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Form(
@@ -976,16 +1034,55 @@ class _AddTicketFormState extends State<_AddTicketForm> {
             ),
             const SizedBox(height: 12),
 
-            TextFormField(
-              controller: _plateController,
-              decoration: const InputDecoration(
-                labelText: 'License plate *',
-                hintText: 'e.g., ABC-1234',
-                prefixIcon: Icon(Icons.directions_car),
+            // Vehicle selection - dropdown or manual entry
+            if (vehicles.isNotEmpty && !_useManualPlate) ...[
+              DropdownButtonFormField<String>(
+                value: _selectedVehicleId,
+                decoration: const InputDecoration(
+                  labelText: 'Vehicle *',
+                  prefixIcon: Icon(Icons.directions_car),
+                ),
+                items: vehicles.map((v) {
+                  return DropdownMenuItem(
+                    value: v.id,
+                    child: Text(
+                      '${v.nickname.isNotEmpty ? v.nickname : v.make} - ${v.licensePlate}',
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) =>
+                    setState(() => _selectedVehicleId = value),
+                validator: (v) => v == null ? 'Select a vehicle' : null,
               ),
-              textCapitalization: TextCapitalization.characters,
-              validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
-            ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: () => setState(() => _useManualPlate = true),
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text('Enter plate manually'),
+              ),
+            ] else ...[
+              TextFormField(
+                initialValue: _manualPlate,
+                decoration: InputDecoration(
+                  labelText: 'License plate *',
+                  hintText: 'e.g., ABC-1234',
+                  prefixIcon: const Icon(Icons.directions_car),
+                  suffixIcon: vehicles.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.list),
+                          tooltip: 'Select from vehicles',
+                          onPressed: () => setState(() {
+                            _useManualPlate = false;
+                            _manualPlate = '';
+                          }),
+                        )
+                      : null,
+                ),
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (v) => _manualPlate = v,
+                validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+              ),
+            ],
             const SizedBox(height: 12),
 
             TextFormField(
