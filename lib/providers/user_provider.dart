@@ -1132,12 +1132,15 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> updateLanguage(String languageCode) async {
+    debugPrint('🌐 updateLanguage called: $languageCode (was: $_languageCode)');
     _languageCode = languageCode;
     if (_profile != null) {
       _profile = _profile!.copyWith(languageCode: languageCode);
       await _repository.saveProfile(_profile!);
+      debugPrint('🌐 Language saved to profile');
     }
     notifyListeners();
+    debugPrint('🌐 notifyListeners called for language change');
   }
 
   Future<void> _persistTickets() async {

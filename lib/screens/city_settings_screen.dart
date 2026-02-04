@@ -188,6 +188,13 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                 onChanged: (value) =>
                     setState(() => _languageCode = value ?? 'en'),
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Changes date/time formats and system text',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+              ),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () async {
@@ -199,7 +206,7 @@ class _CitySettingsScreenState extends State<CitySettingsScreen> {
                   await provider.updateLanguage(_languageCode);
                   if (!mounted) return;
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Settings updated')),
+                    const SnackBar(content: Text('Settings saved')),
                   );
                 },
                 child: const Text('Save'),
