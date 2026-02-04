@@ -47,7 +47,8 @@ import 'screens/map_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/alerts_landing_screen.dart';
 import 'screens/alert_detail_screen.dart';
-import 'screens/auth_diagnostics_screen.dart';
+// Auth diagnostics disabled for security - uncomment for debugging only
+// import 'screens/auth_diagnostics_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/parking_finder_screen.dart';
 import 'screens/referral_screen.dart';
@@ -377,7 +378,8 @@ class MKEParkApp extends StatelessWidget {
               '/landing': (context) => LandingScreen(),
               '/auth': (context) => const AuthScreen(),
               '/register': (context) => const RegisterScreen(),
-              '/auth-diagnostics': (context) => const AuthDiagnosticsScreen(),
+              // Auth diagnostics disabled for security - uncomment for debugging only
+              // '/auth-diagnostics': (context) => const AuthDiagnosticsScreen(),
               '/parking': (context) => const ParkingScreen(),
               '/permit': (context) => const PermitScreen(),
               '/permit-workflow': (context) => const PermitWorkflowScreen(),

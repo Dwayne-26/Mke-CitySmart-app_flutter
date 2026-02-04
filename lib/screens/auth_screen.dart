@@ -167,13 +167,14 @@ class _AuthScreenState extends State<AuthScreen> {
                       },
                 child: const Text('Create Account'),
               ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () =>
-                    Navigator.pushNamed(context, '/auth-diagnostics'),
-                icon: const Icon(Icons.info_outline),
-                label: const Text('Auth diagnostics'),
-              ),
+              // Auth diagnostics button removed for security - re-enable for debugging only
+              // const SizedBox(height: 8),
+              // TextButton.icon(
+              //   onPressed: () =>
+              //       Navigator.pushNamed(context, '/auth-diagnostics'),
+              //   icon: const Icon(Icons.info_outline),
+              //   label: const Text('Auth diagnostics'),
+              // ),
             ],
           ),
         ),
