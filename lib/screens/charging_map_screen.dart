@@ -458,55 +458,82 @@ class _ChargingMapScreenState extends State<ChargingMapScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Nearby stations',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: 0.2,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ...stations.map(
-                (station) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(
-                    station.hasFastCharging ? Icons.flash_on : Icons.ev_station,
-                    color: station.hasAvailability
-                        ? Colors.green
-                        : Colors.orange,
+      builder: (context) {
+        // Limit height to 60% of screen to prevent overflow
+        final maxHeight = MediaQuery.of(context).size.height * 0.6;
+        return SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  title: Text(station.name),
-                  subtitle: Text(
-                    '${station.network} • ${station.availablePorts}/${station.totalPorts} open • ${station.maxPowerKw.toStringAsFixed(0)} kW max',
+                  const SizedBox(height: 12),
+                  Text(
+                    'Nearby stations (${stations.length})',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                      letterSpacing: 0.2,
+                    ),
                   ),
-                  onTap: () {
-                    setState(() => _selected = station);
-                    Navigator.pop(context);
-                  },
-                ),
+                  const SizedBox(height: 12),
+                  // Use Flexible + ListView to handle many stations
+                  Flexible(
+                    child: stations.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text(
+                                'No stations loaded yet',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: stations.length,
+                            itemBuilder: (context, index) {
+                              final station = stations[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: Icon(
+                                  station.hasFastCharging
+                                      ? Icons.flash_on
+                                      : Icons.ev_station,
+                                  color: station.hasAvailability
+                                      ? Colors.green
+                                      : Colors.orange,
+                                ),
+                                title: Text(station.name),
+                                subtitle: Text(
+                                  '${station.network} • ${station.availablePorts}/${station.totalPorts} open • ${station.maxPowerKw.toStringAsFixed(0)} kW max',
+                                ),
+                                onTap: () {
+                                  setState(() => _selected = station);
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
               ),
-              const SizedBox(height: 8),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
