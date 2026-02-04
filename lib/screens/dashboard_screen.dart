@@ -183,8 +183,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   HomeTile(
                     icon: Icons.receipt_long,
-                    title: 'Tickets',
-                    onTap: () => Navigator.pushNamed(context, '/tickets'),
+                    title: 'My tickets',
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/ticket-tracker'),
                   ),
                   HomeTile(
                     icon: Icons.workspace_premium,

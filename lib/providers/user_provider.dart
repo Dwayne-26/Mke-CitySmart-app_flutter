@@ -1572,6 +1572,7 @@ class UserProvider extends ChangeNotifier {
     String? defaultVehicleId,
     int? geoRadiusMiles,
     bool? ticketRiskAlerts,
+    bool? ticketDueDateReminders,
   }) async {
     if (_profile == null) return;
     final prefs = _profile!.preferences.copyWith(
@@ -1581,6 +1582,7 @@ class UserProvider extends ChangeNotifier {
       defaultVehicleId: defaultVehicleId,
       geoRadiusMiles: geoRadiusMiles,
       ticketRiskAlerts: ticketRiskAlerts,
+      ticketDueDateReminders: ticketDueDateReminders,
     );
     _profile = _profile!.copyWith(preferences: prefs);
     await _repository.saveProfile(_profile!);
