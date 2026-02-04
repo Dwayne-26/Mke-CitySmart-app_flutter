@@ -4,6 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../models/subscription_plan.dart';
 import '../services/location_service.dart';
+import '../services/parking_prediction_service.dart';
 import '../services/parking_risk_service.dart';
 import '../widgets/feature_gate.dart';
 import '../widgets/parking_risk_badge.dart';
@@ -17,6 +18,7 @@ class ParkingHeatmapScreen extends StatefulWidget {
 
 class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   final _riskService = ParkingRiskService.instance;
+  final _predictionService = ParkingPredictionService.instance;
   final _mapController = MapController();
 
   double _centerLat = 43.0389; // Milwaukee default
@@ -28,6 +30,10 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
   String? _error;
   RiskZone? _selectedZone;
   bool _riskBannerDismissed = false;
+
+  // Prediction data
+  List<SafeParkingSpot> _safestSpots = [];
+  bool _showSafestSpots = false;
 
   @override
   void initState() {
@@ -100,6 +106,26 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
     });
   }
 
+  Future<void> _findSafestSpots() async {
+    final spots = await _predictionService.findSafestSpotsNearby(
+      latitude: _centerLat,
+      longitude: _centerLng,
+      radiusKm: 3.0,
+      maxResults: 5,
+    );
+
+    setState(() {
+      _safestSpots = spots;
+      _showSafestSpots = true;
+    });
+
+    // If we have a safest spot, zoom to it
+    if (spots.isNotEmpty) {
+      final safest = spots.first;
+      _mapController.move(LatLng(safest.latitude, safest.longitude), 14.0);
+    }
+  }
+
   Color _getRiskColor(RiskLevel level) {
     switch (level) {
       case RiskLevel.high:
@@ -141,6 +167,14 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
           ],
         ],
       ),
+      floatingActionButton: hasAccess && !_loading
+          ? FloatingActionButton.extended(
+              onPressed: _findSafestSpots,
+              backgroundColor: const Color(0xFF4CAF50),
+              icon: const Icon(Icons.verified_user),
+              label: const Text('Find Safest'),
+            )
+          : null,
       body: !hasAccess
           ? FeatureGate(
               feature: PremiumFeature.heatmap,
@@ -314,6 +348,58 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                             }).toList(),
                           ),
 
+                          // Safest spots markers (green checkmarks)
+                          if (_showSafestSpots && _safestSpots.isNotEmpty)
+                            MarkerLayer(
+                              markers: _safestSpots.asMap().entries.map((
+                                entry,
+                              ) {
+                                final index = entry.key;
+                                final spot = entry.value;
+                                final isFirst = index == 0;
+                                return Marker(
+                                  point: LatLng(spot.latitude, spot.longitude),
+                                  width: isFirst ? 50 : 40,
+                                  height: isFirst ? 50 : 40,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: isFirst
+                                          ? const Color(0xFF4CAF50)
+                                          : const Color(0xFF81C784),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: isFirst ? 4 : 2,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.green.withOpacity(0.5),
+                                          blurRadius: isFirst ? 12 : 6,
+                                          spreadRadius: isFirst ? 3 : 1,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: isFirst
+                                          ? const Icon(
+                                              Icons.verified,
+                                              color: Colors.white,
+                                              size: 28,
+                                            )
+                                          : Text(
+                                              '${index + 1}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+
                           // Current location marker
                           MarkerLayer(
                             markers: [
@@ -470,6 +556,24 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                           child: _ZoneDetailCard(
                             zone: _selectedZone!,
                             onClose: () => setState(() => _selectedZone = null),
+                          ),
+                        ),
+
+                      // Safest spots results card
+                      if (_showSafestSpots && _safestSpots.isNotEmpty && _selectedZone == null)
+                        Positioned(
+                          left: 12,
+                          right: 12,
+                          bottom: 50,
+                          child: _SafestSpotsCard(
+                            spots: _safestSpots,
+                            onClose: () => setState(() => _showSafestSpots = false),
+                            onSpotTap: (spot) {
+                              _mapController.move(
+                                LatLng(spot.latitude, spot.longitude),
+                                15.0,
+                              );
+                            },
                           ),
                         ),
 
@@ -669,5 +773,180 @@ class _ZoneDetailCard extends StatelessWidget {
       case RiskLevel.low:
         return '✅ Lower risk area, but always check posted signs.';
     }
+  }
+}
+
+/// Card showing safest parking spots found by prediction service
+class _SafestSpotsCard extends StatelessWidget {
+  const _SafestSpotsCard({
+    required this.spots,
+    required this.onClose,
+    required this.onSpotTap,
+  });
+
+  final List<SafeParkingSpot> spots;
+  final VoidCallback onClose;
+  final void Function(SafeParkingSpot) onSpotTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final safest = spots.first;
+
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4CAF50),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.verified, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'SAFEST SPOT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 20),
+                  onPressed: onClose,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Top recommendation
+            InkWell(
+              onTap: () => onSpotTap(safest),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4CAF50).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Color(0xFF4CAF50),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${(safest.safetyScore * 100).round()}% Safe',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Color(0xFF2E7D32),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${safest.distanceLabel} • ${safest.walkingMinutes} min walk',
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.navigation,
+                      color: Color(0xFF4CAF50),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Other spots
+            if (spots.length > 1) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Other safe options:',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...spots.skip(1).take(3).map((spot) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: InkWell(
+                      onTap: () => onSpotTap(spot),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF81C784),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${spots.indexOf(spot) + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            '${(spot.safetyScore * 100).round()}% safe',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          const Spacer(),
+                          Text(
+                            spot.distanceLabel,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
