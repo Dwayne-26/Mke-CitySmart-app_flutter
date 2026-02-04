@@ -730,12 +730,18 @@ extension on _ChargingMapScreenState {
               ),
               ListTile(
                 leading: const Icon(Icons.map, color: Colors.green),
-                title: const Text('Apple Maps', style: TextStyle(color: Colors.white)),
+                title: const Text(
+                  'Apple Maps',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () => Navigator.pop(ctx, 'apple'),
               ),
               ListTile(
                 leading: const Icon(Icons.map_outlined, color: Colors.blue),
-                title: const Text('Google Maps', style: TextStyle(color: Colors.white)),
+                title: const Text(
+                  'Google Maps',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () => Navigator.pop(ctx, 'google'),
               ),
             ],

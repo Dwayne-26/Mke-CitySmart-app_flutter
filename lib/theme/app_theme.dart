@@ -108,6 +108,26 @@ ThemeData buildCitySmartTheme() {
       iconColor: kCitySmartYellow,
       textColor: kCitySmartText,
     ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return kCitySmartYellow;
+        }
+        return Colors.grey.shade400;
+      }),
+      trackColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return kCitySmartYellow.withOpacity(0.5);
+        }
+        return Colors.grey.shade700;
+      }),
+      trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return kCitySmartYellow;
+        }
+        return Colors.grey.shade600;
+      }),
+    ),
     dividerColor: const Color(0xFF29332E),
   );
 }
