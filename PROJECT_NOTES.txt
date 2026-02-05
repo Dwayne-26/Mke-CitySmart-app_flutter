@@ -190,3 +190,43 @@ Future Enhancements (to implement if users request)
     - Supported languages: English (en), Spanish (es), Arabic (ar), French (fr), Chinese (zh), Hindi (hi), Greek (el)
   * Hmong (hmn) not supported by Flutter's Material localizations - would need custom delegate.
   * Estimated effort: ~2-3 days for full implementation depending on string count.
+
+- Custom Email Domain Setup (PENDING - 2026-02-05):
+  * Domain: mkecitysmart.com
+  * Purpose: Send Firebase Auth emails (verification, password reset) from noreply@mkecitysmart.com instead of noreply@mkeparkapp-1ad15.firebaseapp.com
+  * DNS Records Configured (verified via dig):
+    - TXT "firebase=mkeparkapp-1ad15" (Firebase verification)
+    - TXT "v=spf1 include:_spf.firebaseemail.com ~all" (SPF for Firebase email)
+    - CNAME firebase1._domainkey.mkecitysmart.com → mail-mkecitysmart-com.dkim1.firebasemail.com (DKIM)
+    - CNAME firebase2._domainkey.mkecitysmart.com → mail-mkecitysmart-com.dkim2.firebasemail.com (DKIM)
+  * Status: DNS records propagated correctly, waiting for Firebase Console to verify domain
+  * Next Steps:
+    1. Check Firebase Console → Authentication → Templates → Email domain verification status
+    2. Once verified, update email templates with custom sender (noreply@mkecitysmart.com)
+    3. Customize email template text/branding to match MKE CitySmart
+  * APNs Key for Phone Auth: AuthKey_937GPQ4M9B.p8 (uploaded to Firebase Console)
+
+- Welcome Dialog Prompt (FOR FUTURE IMPLEMENTATION - 2026-02-05):
+  * Show after successful registration/first sign-in
+  * Design: Celebratory, community-focused, brand-aligned
+  * Copy:
+    ───────────────────────────────────────
+    🎉 Welcome to the Team!
+
+    Thanks for joining MKE CitySmart!
+
+    Together, we're building a community that helps 
+    Milwaukee drivers avoid tickets and stay informed.
+
+    🚗 One sighting at a time.
+    📋 One report at a time.  
+    🤝 Protecting each other.
+
+    [Let's Go!]
+    ───────────────────────────────────────
+  * Implementation Notes:
+    - Show as modal dialog or full-screen welcome after first sign-in
+    - Track with SharedPreferences so it only shows once per user
+    - Button dismisses and navigates to dashboard
+    - Consider adding confetti animation for delight
+
