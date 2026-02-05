@@ -816,7 +816,7 @@ class _AddTicketFormState extends State<_AddTicketForm> {
     final photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
       setState(() => _photoFile = File(photo.path));
-      // TODO: Use OCR to extract ticket details from photo
+      // Future enhancement: Use ML Kit OCR to extract ticket details from photo
       if (mounted) {
         messenger.showSnackBar(
           const SnackBar(
