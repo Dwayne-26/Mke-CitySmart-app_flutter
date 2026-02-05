@@ -11,7 +11,7 @@ class ReferralService {
 
   // Rewards configuration
   static const int _premiumTrialDays =
-      7; // Days of premium for successful referral
+      3; // Days of premium for successful referral (changed from 7)
   static const int _maxReferralRewards = 10; // Max rewards per user
 
   FirebaseFirestore? _firestore;

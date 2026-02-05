@@ -236,7 +236,7 @@ class WatchAdButton extends StatefulWidget {
     required this.onReward,
     this.rewardDescription = 'Watch a short ad',
     this.buttonText = 'Watch Ad',
-    this.rewardText = '2-day Premium Trial',
+    this.rewardText = '3-day Premium Trial',
   });
 
   final VoidCallback onReward;

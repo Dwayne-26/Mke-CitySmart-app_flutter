@@ -63,17 +63,23 @@ class UserProfile {
   final int alertsToday;
   final DateTime? createdAt;
 
-  /// Check if user is within the 7-day free trial period
+  /// Free trial duration in days (for official accounts only)
+  static const int freeTrialDurationDays = 3;
+
+  /// Check if user is within the free trial period
+  /// Only applicable to registered users with valid email (not anonymous)
   bool get isInFreeTrial {
-    if (createdAt == null) return true; // Assume in trial if no date
-    final trialEnd = createdAt!.add(const Duration(days: 7));
+    // Anonymous users (no email) don't get free trial
+    if (email.isEmpty || createdAt == null) return false;
+    final trialEnd = createdAt!.add(Duration(days: freeTrialDurationDays));
     return DateTime.now().isBefore(trialEnd);
   }
 
-  /// Days remaining in free trial (0 if expired)
+  /// Days remaining in free trial (0 if expired or not eligible)
   int get freeTrialDaysRemaining {
-    if (createdAt == null) return 7;
-    final trialEnd = createdAt!.add(const Duration(days: 7));
+    // Anonymous users (no email) don't get free trial
+    if (email.isEmpty || createdAt == null) return 0;
+    final trialEnd = createdAt!.add(Duration(days: freeTrialDurationDays));
     final remaining = trialEnd.difference(DateTime.now()).inDays;
     return remaining > 0 ? remaining : 0;
   }

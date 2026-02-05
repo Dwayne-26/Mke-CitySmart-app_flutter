@@ -24,7 +24,8 @@ class SubscriptionService extends ChangeNotifier {
   // Entitlement identifier (must match RevenueCat dashboard)
   static const entitlementPro = 'pro';
 
-  // Product identifiers (must match App Store Connect / Google Play Console)
+  // Product identifiers (must match App Store Connect / RevenueCat dashboard)
+  // Note: These must exactly match (case-sensitive)
   static const productMonthly = 'citysmart_pro_monthly';
   static const productYearly = 'citysmart_pro_yearly';
 
@@ -76,16 +77,13 @@ class SubscriptionService extends ChangeNotifier {
 
       // Use test key in debug mode, production keys in release
       String apiKey;
-      if (kDebugMode) {
-        // Use test key for development
-        apiKey = _revenueCatTestKey;
+      // Always use production iOS key to connect to real App Store products
+      // The test key only works with RevenueCat's sandbox, not real products
+      if (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.macOS) {
+        apiKey = _revenueCatApiKeyiOS;
       } else {
-        // Use platform-specific keys for production
-        apiKey =
-            defaultTargetPlatform == TargetPlatform.iOS ||
-                defaultTargetPlatform == TargetPlatform.macOS
-            ? _revenueCatApiKeyiOS
-            : _revenueCatApiKeyAndroid;
+        apiKey = _revenueCatApiKeyAndroid;
       }
 
       // Skip initialization if using placeholder keys in production

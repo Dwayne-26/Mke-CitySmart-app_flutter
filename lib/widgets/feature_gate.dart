@@ -40,8 +40,9 @@ class FeatureGate extends StatelessWidget {
         final plan = SubscriptionService.getPlanForTier(provider.tier);
         final hasAccess = plan.hasFeature(feature);
 
-        // Check for free trial access
-        final isInFreeTrial = provider.profile?.isInFreeTrial ?? true;
+        // Check for free trial access (only for registered users)
+        final profile = provider.profile;
+        final isInFreeTrial = profile?.isInFreeTrial ?? false;
         final hasTrialAccess =
             isInFreeTrial && _freeTrialFeatures.contains(feature);
 
@@ -64,8 +65,8 @@ class FeatureGate extends StatelessWidget {
     final plan = SubscriptionService.getPlanForTier(provider.tier);
     final hasFeature = plan.hasFeature(feature);
 
-    // Check for free trial access
-    final isInFreeTrial = provider.profile?.isInFreeTrial ?? true;
+    // Check for free trial access (only for registered users)
+    final isInFreeTrial = provider.profile?.isInFreeTrial ?? false;
     final hasTrialAccess =
         isInFreeTrial && _freeTrialFeatures.contains(feature);
 
@@ -77,16 +78,16 @@ class FeatureGate extends StatelessWidget {
     final provider = context.read<UserProvider>();
     final plan = SubscriptionService.getPlanForTier(provider.tier);
     final hasPaidAccess = plan.hasFeature(feature);
-    final isInFreeTrial = provider.profile?.isInFreeTrial ?? true;
+    final isInFreeTrial = provider.profile?.isInFreeTrial ?? false;
     return !hasPaidAccess &&
         isInFreeTrial &&
         _freeTrialFeatures.contains(feature);
   }
 
-  /// Get remaining free trial days
+  /// Get remaining free trial days (0 if not eligible or expired)
   static int getTrialDaysRemaining(BuildContext context) {
     final provider = context.read<UserProvider>();
-    return provider.profile?.freeTrialDaysRemaining ?? 7;
+    return provider.profile?.freeTrialDaysRemaining ?? 0;
   }
 
   /// Show paywall for a feature (static method)

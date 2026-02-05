@@ -654,22 +654,25 @@ class _StationDetailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final availability = '${station.availablePorts}/${station.totalPorts} open';
-    final price = station.pricePerKwh.toStringAsFixed(2);
+    final hasPrice = station.pricePerKwh > 0;
+    final priceText = hasPrice
+        ? '\$${station.pricePerKwh.toStringAsFixed(2)} / kWh'
+        : 'Pricing unavailable';
     final connectors = station.connectorTypes.join(', ');
     final chipColor = station.hasAvailability
-        ? Colors.green.shade50
-        : Colors.orange.shade50;
+        ? const Color(0xFF2E5A3A) // Dark green
+        : const Color(0xFF5A4A2E); // Dark orange/amber
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFF1A2F2A), // Dark card background matching app theme
         boxShadow: [
           BoxShadow(
             blurRadius: 10,
             offset: Offset(0, -2),
-            color: Colors.black12,
+            color: Colors.black26,
           ),
         ],
       ),
@@ -682,47 +685,93 @@ class _StationDetailCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   station.name,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
+              IconButton(
+                onPressed: onClose,
+                icon: const Icon(Icons.close, color: Colors.white70),
+              ),
             ],
           ),
-          Text(station.address, style: const TextStyle(color: Colors.black54)),
-          const SizedBox(height: 8),
+          Text(station.address, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              Chip(label: Text(availability), backgroundColor: chipColor),
               Chip(
-                avatar: const Icon(Icons.flash_on, size: 18),
-                label: Text('${station.maxPowerKw.toStringAsFixed(0)} kW max'),
+                label: Text(
+                  availability,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: chipColor,
               ),
               Chip(
-                avatar: const Icon(Icons.attach_money, size: 18),
-                label: Text('\$$price / kWh'),
+                avatar: const Icon(
+                  Icons.flash_on,
+                  size: 18,
+                  color: Colors.amber,
+                ),
+                label: Text(
+                  '${station.maxPowerKw.toStringAsFixed(0)} kW max',
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF3A3A3A),
               ),
               Chip(
-                avatar: const Icon(Icons.cable_outlined, size: 18),
-                label: Text(connectors),
+                avatar: Icon(
+                  hasPrice ? Icons.attach_money : Icons.help_outline,
+                  size: 18,
+                  color: hasPrice ? Colors.green : Colors.grey,
+                ),
+                label: Text(
+                  priceText,
+                  style: TextStyle(
+                    color: hasPrice ? Colors.white : Colors.white60,
+                    fontStyle: hasPrice ? FontStyle.normal : FontStyle.italic,
+                  ),
+                ),
+                backgroundColor: const Color(0xFF3A3A3A),
+              ),
+              Chip(
+                avatar: const Icon(
+                  Icons.cable_outlined,
+                  size: 18,
+                  color: Colors.blueAccent,
+                ),
+                label: Text(
+                  connectors,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                backgroundColor: const Color(0xFF3A3A3A),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             '${station.network} • ${station.status}',
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
           ),
-          if (station.notes != null) ...[
+          if (station.notes != null && station.notes!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(station.notes!, style: const TextStyle(color: Colors.black87)),
+            Text(station.notes!, style: const TextStyle(color: Colors.white70)),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: onDirections,
             icon: const Icon(Icons.directions),
             label: const Text('Get directions'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF5E8A45),
+              foregroundColor: Colors.white,
+            ),
           ),
         ],
       ),
