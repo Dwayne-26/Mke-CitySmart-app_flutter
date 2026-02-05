@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/user_provider.dart';
@@ -239,13 +240,11 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
             const SizedBox(height: 16),
-            PromoBannerCard(
-              text: 'Start saving today with Auto Insurance?',
-              onTap: () => Navigator.pushNamed(context, '/subscriptions'),
+            // AdMob banner ad for free tier users
+            const AdBannerWidget(
+              adSize: AdSize.largeBanner,
+              showPlaceholder: false,
             ),
-            // Show ad banner for free tier users
-            const SizedBox(height: 12),
-            const AdBannerWidget(showPlaceholder: false),
           ],
         ),
       ),
@@ -320,36 +319,6 @@ class HomeTile extends StatelessWidget {
                 ),
               ],
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class PromoBannerCard extends StatelessWidget {
-  const PromoBannerCard({super.key, required this.text, required this.onTap});
-
-  final String text;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: kCitySmartYellow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: kCitySmartGreen,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ),
       ),
