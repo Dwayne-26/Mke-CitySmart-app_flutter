@@ -43,6 +43,8 @@
 	<true/>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Allow MKE CitySmart to add parking reminders and alternate side parking schedules to your calendar.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow MKE CitySmart to take photos of parking tickets for tracking and records.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Allow MKE CitySmart to tag enforcement/tow sightings with your current location.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

@@ -174,6 +174,7 @@ class UserProvider extends ChangeNotifier {
   Future<void> initialize() async {
     final auth = _auth;
     if (auth == null || !_firebaseEnabled) {
+      debugPrint('🔐 UserProvider: Firebase not available, using guest mode');
       _profile = null;
       _initializing = false;
       _guestMode = true;
@@ -185,15 +186,24 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
-    if (auth.currentUser != null) {
+    final currentUser = auth.currentUser;
+    if (currentUser != null) {
+      debugPrint('🔐 UserProvider: Found existing auth session');
+      debugPrint('   UID: ${currentUser.uid}');
+      debugPrint('   Anonymous: ${currentUser.isAnonymous}');
+      debugPrint('   Email: ${currentUser.email ?? "none"}');
+      debugPrint('   Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
       _profile = await _repository.loadProfile();
+      debugPrint('   Profile loaded: ${_profile != null ? "yes (${_profile!.name})" : "no"}');
     } else {
+      debugPrint('🔐 UserProvider: No auth session - fresh start for new user');
       _profile = null;
     }
 
     await _hydrateFromStorage();
     _initializing = false;
     _guestMode = _profile == null;
+    debugPrint('🔐 UserProvider: Guest mode = $_guestMode');
     if (_firebaseEnabled && !_guestMode) {
       unawaited(_repository.syncPending());
     }
@@ -1252,6 +1262,13 @@ class UserProvider extends ChangeNotifier {
   /// Add a new ticket to tracking
   void addTicket(Ticket ticket) {
     _tickets = [ticket, ..._tickets];
+    _persistTickets();
+    notifyListeners();
+  }
+
+  /// Delete a ticket from tracking
+  void deleteTicket(String ticketId) {
+    _tickets = _tickets.where((t) => t.id != ticketId).toList();
     _persistTickets();
     notifyListeners();
   }

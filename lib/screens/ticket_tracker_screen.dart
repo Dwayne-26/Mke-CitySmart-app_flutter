@@ -136,22 +136,78 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                         : ListView.builder(
                             padding: const EdgeInsets.all(12),
                             itemCount: openTickets.length,
-                            itemBuilder: (context, index) => _TicketCard(
-                              ticket: openTickets[index],
-                              onPay: () => _showPayDialog(
-                                context,
-                                provider,
-                                openTickets[index],
-                              ),
-                              onContest: () => _showContestDialog(
-                                context,
-                                openTickets[index],
-                              ),
-                              onSetReminder: () => _showReminderDialog(
-                                context,
-                                openTickets[index],
-                              ),
-                            ),
+                            itemBuilder: (context, index) {
+                              final ticket = openTickets[index];
+                              return Dismissible(
+                                key: Key(ticket.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  return await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Ticket?'),
+                                          content: Text(
+                                            ticket.isSample
+                                                ? 'Remove this sample ticket?'
+                                                : 'Are you sure you want to delete this ticket? This cannot be undone.',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ) ??
+                                      false;
+                                },
+                                onDismissed: (direction) {
+                                  provider.deleteTicket(ticket.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ticket.isSample
+                                            ? 'Sample ticket removed'
+                                            : 'Ticket deleted',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: _TicketCard(
+                                  ticket: ticket,
+                                  onPay: () =>
+                                      _showPayDialog(context, provider, ticket),
+                                  onContest: () =>
+                                      _showContestDialog(context, ticket),
+                                  onSetReminder: () =>
+                                      _showReminderDialog(context, ticket),
+                                ),
+                              );
+                            },
                           ),
 
                     // Paid/resolved tickets
@@ -164,8 +220,70 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                         : ListView.builder(
                             padding: const EdgeInsets.all(12),
                             itemCount: paidTickets.length,
-                            itemBuilder: (context, index) =>
-                                _PaidTicketCard(ticket: paidTickets[index]),
+                            itemBuilder: (context, index) {
+                              final ticket = paidTickets[index];
+                              return Dismissible(
+                                key: Key(ticket.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  return await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Ticket?'),
+                                          content: Text(
+                                            ticket.isSample
+                                                ? 'Remove this sample ticket?'
+                                                : 'Remove this paid ticket from history?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ) ??
+                                      false;
+                                },
+                                onDismissed: (direction) {
+                                  provider.deleteTicket(ticket.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ticket.isSample
+                                            ? 'Sample ticket removed'
+                                            : 'Ticket removed from history',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: _PaidTicketCard(ticket: ticket),
+                              );
+                            },
                           ),
 
                     // Add new ticket
@@ -813,14 +931,28 @@ class _AddTicketFormState extends State<_AddTicketForm> {
 
   Future<void> _takePhoto() async {
     final messenger = ScaffoldMessenger.of(context);
-    final photo = await _picker.pickImage(source: ImageSource.camera);
-    if (photo != null) {
-      setState(() => _photoFile = File(photo.path));
-      // Future enhancement: Use ML Kit OCR to extract ticket details from photo
+    try {
+      final photo = await _picker.pickImage(source: ImageSource.camera);
+      if (photo != null) {
+        setState(() => _photoFile = File(photo.path));
+        // Future enhancement: Use ML Kit OCR to extract ticket details from photo
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(
+              content: Text('Photo captured! Enter details manually.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Camera error: $e');
       if (mounted) {
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Photo captured! Enter details manually.'),
+            content: Text(
+              'Unable to access camera. Check permissions in Settings.',
+            ),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -828,9 +960,23 @@ class _AddTicketFormState extends State<_AddTicketForm> {
   }
 
   Future<void> _pickPhoto() async {
-    final photo = await _picker.pickImage(source: ImageSource.gallery);
-    if (photo != null) {
-      setState(() => _photoFile = File(photo.path));
+    try {
+      final photo = await _picker.pickImage(source: ImageSource.gallery);
+      if (photo != null) {
+        setState(() => _photoFile = File(photo.path));
+      }
+    } catch (e) {
+      debugPrint('❌ Gallery error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to access photo library. Check permissions in Settings.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
