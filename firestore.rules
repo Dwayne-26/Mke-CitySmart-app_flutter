@@ -96,9 +96,10 @@ service cloud.firestore {
 
     // Saved places (home, work, favorites) - user-owned data
     match /savedPlaces/{placeId} {
-      // Users can read only their own saved places
+      // Users can read/list their own saved places
+      // For queries, Firestore checks that the query constraint matches the rule
       allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+        && (resource == null || resource.data.userId == request.auth.uid);
 
       // Users can create saved places for themselves
       allow create: if request.auth != null
@@ -116,10 +117,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // App logs - allow authenticated users to write logs for debugging/analytics
+    // App logs - allow any authenticated user to write logs for debugging/analytics
+    // Read/update/delete remain restricted
     match /appLogs/{logId} {
       allow create: if request.auth != null;
-      allow read, update, delete: if false;
+      allow read, update, delete: if request.auth != null 
+        && request.auth.token.admin == true;
     }
 
     // Deny everything else by default.
