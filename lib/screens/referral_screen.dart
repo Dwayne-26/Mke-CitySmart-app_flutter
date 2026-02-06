@@ -136,6 +136,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
                     const SizedBox(height: 24),
 
+                    // Community expansion message
+                    const _CommunityExpansionBanner(),
+
+                    const SizedBox(height: 24),
+
                     // Bonus premium days via rewarded ad (for free users only)
                     _BonusPremiumAdSection(onReward: _loadData),
 
@@ -225,15 +230,21 @@ class _HeroSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  referralCode,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: kCitySmartYellow,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      referralCode,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 4,
+                            color: kCitySmartYellow,
+                          ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 IconButton(
                   onPressed: onCopy,
                   icon: const Icon(Icons.copy, color: kCitySmartYellow),
@@ -691,6 +702,106 @@ class _BonusPremiumAdSection extends StatelessWidget {
           },
         );
       },
+    );
+  }
+}
+
+/// Community expansion banner - encourages users to share even outside Milwaukee
+class _CommunityExpansionBanner extends StatelessWidget {
+  const _CommunityExpansionBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.blue.withValues(alpha: 0.15),
+            Colors.purple.withValues(alpha: 0.15),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.rocket_launch,
+                  color: Colors.blue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'We\'re Expanding! 🚀',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      'More cities & states coming soon!',
+                      style: TextStyle(
+                        color: kCitySmartText.withValues(alpha: 0.7),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Not in Milwaukee? No problem! Share your tickets and sightings from anywhere. '
+            'Your reports help us build data for YOUR city. '
+            'Together, we\'re growing a nationwide community of drivers helping drivers.',
+            style: TextStyle(
+              color: kCitySmartText.withValues(alpha: 0.8),
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.people, size: 16, color: Colors.blue),
+                SizedBox(width: 6),
+                Text(
+                  'Community Driven',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
