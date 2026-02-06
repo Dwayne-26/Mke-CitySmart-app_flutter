@@ -448,14 +448,16 @@ class CitationAnalyticsService {
         v.contains('2 HOUR')) {
       return 'PARKED IN EXCESS OF 2 HOURS PROHIBITED';
     }
-    if (v.contains('REGISTRATION'))
+    if (v.contains('REGISTRATION')) {
       return 'FAILURE TO DISPLAY CURRENT REGISTRATION';
+    }
     if (v.contains('HYDRANT')) return 'FIRE HYDRANT VIOLATION';
     if (v.contains('SIGN') || v.contains('PROHIBITED')) {
       return 'PARKING PROHIBITED BY OFFICIAL SIGN';
     }
-    if (v.contains('HANDICAP') || v.contains('DISABLED'))
+    if (v.contains('HANDICAP') || v.contains('DISABLED')) {
       return 'HANDICAPPED ZONE VIOLATION';
+    }
     if (v.contains('BUS')) return 'PARKED IN BUS STOP/ZONE';
     if (v.contains('LOADING')) return 'LOADING ZONE VIOLATION';
     if (v.contains('CROSSWALK')) return 'CROSSWALK VIOLATION';

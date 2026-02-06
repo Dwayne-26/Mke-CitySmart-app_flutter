@@ -46,7 +46,7 @@ const DEFAULT_NEARBY_RADIUS_MILES = 5;
 const MAX_NEARBY_RADIUS_MILES = 25;
 const MAX_FANOUT_PER_SIGHTING = 2000;
 const MAX_CANDIDATE_SCAN = 5000;
-const MULTICAST_CHUNK_SIZE = 500;
+// const MULTICAST_CHUNK_SIZE = 500; // No longer used
 
 // Approval tiers
 const SOFT_AUTO_APPROVE_DELAY_MINUTES = 3;
@@ -157,11 +157,11 @@ const geohashQueryRanges = (centerGeohash: string, prefixLen: number) => {
   return [{start: prefix, end: prefix + "\uf8ff"}];
 };
 
-const chunk = <T>(arr: T[], size: number): T[][] => {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-};
+// const chunk = <T>(arr: T[], size: number): T[][] => {
+//   const out: T[][] = [];
+//   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+//   return out;
+// };
 
 // --- Municipality detection for multi-city data organization ---
 // Detects city from coordinates using simple bounding boxes
@@ -569,7 +569,11 @@ export const mirrorSightingsToAlerts = onDocumentWritten(
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 
-export const submitSighting = onCall(async (request) => {
+export const submitSighting = onCall(
+  {
+    secrets: [firebaseAdminSdkKey],
+  },
+  async (request) => {
   const uidBase =
     request.auth?.uid ?? `anonymous_${request.rawRequest.ip ?? "unknown"}`;
   const uidKey = uidBase.replace(/[^A-Za-z0-9_.-]/g, "_");
@@ -790,30 +794,50 @@ export const submitSighting = onCall(async (request) => {
         let totalFailure = 0;
         const invalidTokens = new Set<string>();
 
-        for (const part of chunk(tokens, MULTICAST_CHUNK_SIZE)) {
-          const multicast = await admin.messaging().sendEachForMulticast({
-            tokens: part,
-            notification: {title, body},
-            data: {
-              kind: "nearby_sighting",
-              alertId: alertRef.id,
-              type: isEnforcer ? "enforcer" : "tow",
-            },
-          });
+        // Use direct HTTP API for FCM (same approach as simulateNearbyWarning)
+        const secretValue = firebaseAdminSdkKey.value();
+        const serviceAccountKey = JSON.parse(secretValue);
+        const auth = new GoogleAuth({
+          credentials: serviceAccountKey,
+          scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
+        });
+        const accessToken = await auth.getAccessToken();
 
-          totalSuccess += multicast.successCount;
-          totalFailure += multicast.failureCount;
-
-          multicast.responses.forEach((r, i) => {
-            if (r.success) return;
-            const code = (r.error as any)?.code ?? "";
-            if (
-              code === "messaging/registration-token-not-registered" ||
-              code === "messaging/invalid-registration-token"
-            ) {
-              invalidTokens.add(part[i]);
+        for (const token of tokens) {
+          try {
+            const fcmResponse = await fetch(
+              `https://fcm.googleapis.com/v1/projects/${serviceAccountKey.project_id}/messages:send`,
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  message: {
+                    token,
+                    notification: {title, body},
+                    data: {
+                      kind: "nearby_sighting",
+                      alertId: alertRef.id,
+                      type: isEnforcer ? "enforcer" : "tow",
+                    },
+                  },
+                }),
+              }
+            );
+            if (fcmResponse.ok) {
+              totalSuccess++;
+            } else {
+              totalFailure++;
+              const errBody = await fcmResponse.text();
+              if (errBody.includes("UNREGISTERED") || errBody.includes("INVALID_ARGUMENT")) {
+                invalidTokens.add(token);
+              }
             }
-          });
+          } catch {
+            totalFailure++;
+          }
         }
 
         logger.info("submitSighting fanout complete", {
