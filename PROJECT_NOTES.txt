@@ -230,3 +230,110 @@ Future Enhancements (to implement if users request)
     - Button dismisses and navigates to dashboard
     - Consider adding confetti animation for delight
 
+
+===============================================
+GOOGLE PLAY STORE SETUP - IN PROGRESS
+===============================================
+Last Updated: 2026-02-05
+
+STATUS: Step 2 of 5 - Need graphics before publishing
+
+COMPLETED:
+✅ Step 1: Google Play Developer Account (user already has one)
+✅ Android app configured (package: com.mkecitysmart.app)
+✅ Fastlane configured for deployment
+✅ deploy_android.sh script ready
+✅ Firebase/Google Services configured
+
+IN PROGRESS:
+⏳ Step 2: Create App Listing in Google Play Console
+
+TODO - APP LISTING:
+1. Go to https://play.google.com/console
+2. Click "Create app"
+3. Fill in:
+   - App name: MKE CitySmart
+   - Default language: English (United States)
+   - App or game: App
+   - Free or paid: Free
+4. Check declarations and click "Create app"
+
+TODO - STORE LISTING CONTENT:
+- Short description (80 chars): 
+  "Track Milwaukee parking citations, get reminders, and avoid late fees."
+
+- Full description:
+  """
+  MKE CitySmart helps Milwaukee residents stay on top of parking citations and never miss a payment deadline.
+
+  📋 TRACK YOUR CITATIONS
+  • Add citations manually or scan them with your camera
+  • See amounts owed with automatic late fee calculations
+  • Get organized with Open and Paid ticket tabs
+
+  ⏰ SMART REMINDERS
+  • Receive notifications before payment deadlines
+  • Avoid costly late fees with timely alerts
+  • Customize reminder timing to fit your schedule
+
+  🗺️ PARKING MADE EASIER
+  • View nearby parking options
+  • Check street sweeping schedules
+  • Find meter locations
+
+  🔒 PRIVATE & SECURE
+  • Your data stays on your device
+  • No account required to get started
+  • Optional cloud sync with phone verification
+
+  Built for Milwaukee, by Milwaukee.
+  """
+
+TODO - REQUIRED GRAPHICS (NOT YET CREATED):
+❌ App icon: 512 x 512 px (can resize from existing 1024x1024)
+   Source: ios/Runner/Assets.xcassets/AppIcon.appiconset/icon_1024.png
+❌ Feature graphic: 1024 x 500 px
+   - Use Canva template "Google Play Feature Graphic"
+   - Add app icon + tagline: "Track Citations. Avoid Late Fees."
+   - Brand colors: dark green #081D19, gold #E0C164
+❌ Phone screenshots: Min 2, 320-3840px
+   - Dashboard screen
+   - My Tickets screen
+   - Ticket detail with payment info
+   - Use mockuphone.com to frame screenshots
+❌ Tablet screenshots (optional): 7" and 10"
+
+TODO - REQUIRED INFO:
+- Privacy Policy URL: https://mkeparkapp-1ad15.web.app/privacy.html
+- App category: Tools or Maps & Navigation
+- Contact email: (required)
+- Contact phone: (optional)
+- Website: (optional)
+
+TODO - CONTENT RATING:
+- Complete questionnaire in Policy → App content
+- Target audience: 18+ recommended
+- Complete data safety form
+
+TODO - RELEASE SIGNING:
+- Currently using debug signing (see android/app/build.gradle.kts line 40)
+- Need to create release keystore:
+  keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+- Update android/app/build.gradle.kts with release signing config
+
+TODO - SERVICE ACCOUNT:
+- The path in deploy_android.sh points to Vincent's Dropbox path
+- Need your own Google Play API service account JSON
+- Download from: Google Play Console → Setup → API access
+
+NEXT STEPS WHEN READY:
+1. Create graphics (icon, feature graphic, screenshots)
+2. Create release keystore
+3. Set up service account
+4. Create app listing in Play Console
+5. Build and upload: flutter build appbundle --release
+6. Submit for internal testing first
+
+===============================================
+
+
