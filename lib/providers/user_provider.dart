@@ -922,6 +922,15 @@ class UserProvider extends ChangeNotifier {
 
     try {
       final uid = user.uid;
+      final isAnonymous = user.isAnonymous;
+
+      // Log the deletion event BEFORE deleting (while we still have permissions)
+      unawaited(
+        CloudLogService.instance.logEvent(
+          'account_deletion_started',
+          data: {'uid': uid, 'isAnonymous': isAnonymous},
+        ),
+      );
 
       // 1. Delete Firestore data (user document and subcollections)
       if (_firebaseEnabled) {
@@ -946,8 +955,15 @@ class UserProvider extends ChangeNotifier {
         await userDocRef.delete();
       }
 
-      // 2. Logout from RevenueCat
-      await SubscriptionService.instance.logout();
+      // 2. Logout from RevenueCat (only if not anonymous)
+      if (!isAnonymous) {
+        try {
+          await SubscriptionService.instance.logout();
+        } catch (e) {
+          // RevenueCat logout can fail for various reasons, don't block deletion
+          debugPrint('RevenueCat logout during account deletion failed: $e');
+        }
+      }
 
       // 3. Delete Firebase Auth account
       await user.delete();
@@ -976,12 +992,6 @@ class UserProvider extends ChangeNotifier {
       await prefs.clear();
 
       notifyListeners();
-      unawaited(
-        CloudLogService.instance.logEvent(
-          'account_deleted',
-          data: {'uid': uid},
-        ),
-      );
 
       return null; // Success
     } on FirebaseAuthException catch (e) {
