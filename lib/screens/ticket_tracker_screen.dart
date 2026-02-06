@@ -128,6 +128,45 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                     .length,
               ),
 
+              // Pay citations info banner
+              GestureDetector(
+                onTap: () => _showPaymentInfoSheet(context),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Why can\'t you pay citations in-app? Tap to learn more.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: kCitySmartText.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Colors.orange.withValues(alpha: 0.7),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               // Tabs
               TabBar(
                 controller: _tabController,
@@ -389,6 +428,141 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
 
   void _showAddTicketDialog(BuildContext context, UserProvider provider) {
     _tabController.animateTo(2); // Switch to Add tab
+  }
+
+  void _showPaymentInfoSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kCitySmartCard,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: kCitySmartMuted.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Icon and title
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.orange,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Why Can\'t You Pay Here?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: kCitySmartText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Message content
+            Text(
+              'We wanted to offer you the ability to pay parking citations directly through MKE CitySmart with a transaction fee under \$2.00 — less than what the city currently charges. Unfortunately, this feature was denied under current regulations.',
+              style: TextStyle(
+                fontSize: 15,
+                color: kCitySmartText.withValues(alpha: 0.85),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Current policies require all payments to go through the issuing organization. One payment option doesn\'t feel fair to us either — why should there be only one way to pay a citation that was given to you?',
+              style: TextStyle(
+                fontSize: 15,
+                color: kCitySmartText.withValues(alpha: 0.85),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCitySmartGreen.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: kCitySmartGreen.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.campaign_outlined, color: kCitySmartGreen),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'We believe Milwaukee drivers deserve more choices and lower fees. If you agree, let your city representatives know!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: kCitySmartText.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'We haven\'t given up on this idea and will keep pushing for change.',
+              style: TextStyle(
+                fontSize: 14,
+                color: kCitySmartMuted,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Close button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kCitySmartYellow,
+                  foregroundColor: kCitySmartGreen,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Got It',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showPayDialog(
