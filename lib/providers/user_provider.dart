@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -900,6 +902,85 @@ class UserProvider extends ChangeNotifier {
     _languageCode = 'en';
     notifyListeners();
     unawaited(CloudLogService.instance.logEvent('user_logout'));
+  }
+
+  /// Permanently deletes the user's account and all associated data.
+  /// This includes:
+  /// - Firebase Auth account
+  /// - Firestore user document and subcollections
+  /// - Local cached data
+  /// - RevenueCat subscription association
+  /// 
+  /// Returns null on success, or an error message on failure.
+  Future<String?> deleteAccount() async {
+    final user = _auth?.currentUser;
+    if (user == null) {
+      return 'No user signed in';
+    }
+
+    try {
+      final uid = user.uid;
+      
+      // 1. Delete Firestore data (user document and subcollections)
+      if (_firebaseEnabled) {
+        final firestore = FirebaseFirestore.instance;
+        final userDocRef = firestore.collection('users').doc(uid);
+        
+        // Delete subcollections
+        final subcollections = ['tickets', 'places', 'sightings', 'maintenance_reports'];
+        for (final subcollection in subcollections) {
+          final snapshot = await userDocRef.collection(subcollection).get();
+          for (final doc in snapshot.docs) {
+            await doc.reference.delete();
+          }
+        }
+        
+        // Delete the main user document
+        await userDocRef.delete();
+      }
+
+      // 2. Logout from RevenueCat
+      await SubscriptionService.instance.logout();
+
+      // 3. Delete Firebase Auth account
+      await user.delete();
+
+      // 4. Clear all local data
+      _profile = null;
+      _guestMode = true;
+      _guestPermits = const [];
+      _guestReservations = const [];
+      _guestSweepingSchedules = const [];
+      _tickets = const [];
+      _sightings = const [];
+      _adPreferences = const AdPreferences();
+      _tier = SubscriptionTier.free;
+      AdService.instance.updateUserState(tier: SubscriptionTier.free);
+      _receipts = const [];
+      _maintenanceReports = const [];
+      _garbageSchedules = const [];
+      _rulePack = defaultRulePack;
+      _cityId = 'default';
+      _tenantId = 'default';
+      _languageCode = 'en';
+      
+      // 5. Clear SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      
+      notifyListeners();
+      unawaited(CloudLogService.instance.logEvent('account_deleted', data: {'uid': uid}));
+      
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      // User may need to re-authenticate for sensitive operations
+      if (e.code == 'requires-recent-login') {
+        return 'Please sign out and sign back in, then try again';
+      }
+      return 'Failed to delete account: ${e.message}';
+    } catch (e) {
+      return 'Failed to delete account: $e';
+    }
   }
 
   Future<void> updateProfile({
