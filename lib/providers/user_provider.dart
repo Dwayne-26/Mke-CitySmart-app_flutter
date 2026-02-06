@@ -192,9 +192,13 @@ class UserProvider extends ChangeNotifier {
       debugPrint('   UID: ${currentUser.uid}');
       debugPrint('   Anonymous: ${currentUser.isAnonymous}');
       debugPrint('   Email: ${currentUser.email ?? "none"}');
-      debugPrint('   Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}');
+      debugPrint(
+        '   Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}',
+      );
       _profile = await _repository.loadProfile();
-      debugPrint('   Profile loaded: ${_profile != null ? "yes (${_profile!.name})" : "no"}');
+      debugPrint(
+        '   Profile loaded: ${_profile != null ? "yes (${_profile!.name})" : "no"}',
+      );
     } else {
       debugPrint('🔐 UserProvider: No auth session - fresh start for new user');
       _profile = null;
