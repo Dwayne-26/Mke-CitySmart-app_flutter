@@ -29,10 +29,50 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
   String? _resolvedAddress;
 
   @override
+  void initState() {
+    super.initState();
+    // Auto-detect location when screen opens so every sighting has geo data.
+    // This ensures: auto approval tier, push fanout, and feed/map visibility.
+    _autoDetectLocation();
+  }
+
+  @override
   void dispose() {
     _locationController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  /// Silently fetch location in the background when the screen opens.
+  /// If it fails, the user can still manually tap "Use my location".
+  Future<void> _autoDetectLocation() async {
+    setState(() => _locating = true);
+    try {
+      final position = await _locationService.getCurrentPosition();
+      if (!mounted || position == null) {
+        if (mounted) setState(() => _locating = false);
+        return;
+      }
+      final segment = await _streetService.fetchByPoint(
+        lat: position.latitude,
+        lng: position.longitude,
+      );
+      final address = segment?.display() ?? await _reverseGeocode(position);
+      if (!mounted) return;
+      setState(() {
+        _lastPosition = position;
+        _resolvedAddress = address;
+        _locating = false;
+        // Only pre-fill location if user hasn't typed anything yet
+        if (_locationController.text.trim().isEmpty) {
+          _locationController.text =
+              address ??
+              '${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)}';
+        }
+      });
+    } catch (_) {
+      if (mounted) setState(() => _locating = false);
+    }
   }
 
   Future<void> _submit() async {

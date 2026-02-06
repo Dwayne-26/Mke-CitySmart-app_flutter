@@ -699,6 +699,8 @@ export const submitSighting = onCall(
     reporterUid: uidBase,
     isPublic: false,
     geo: hasGeo ? new GeoPoint(latitude, longitude) : null,
+    latitude: hasGeo ? latitude : null,
+    longitude: hasGeo ? longitude : null,
     flagged: false,
     softApproveAfter: approvalTier === "soft"
       ? Timestamp.fromMillis(Date.now() + SOFT_AUTO_APPROVE_DELAY_MINUTES * 60 * 1000)
