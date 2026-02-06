@@ -136,11 +136,6 @@ class _ReferralScreenState extends State<ReferralScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Community expansion message
-                    const _CommunityExpansionBanner(),
-
-                    const SizedBox(height: 24),
-
                     // Bonus premium days via rewarded ad (for free users only)
                     _BonusPremiumAdSection(onReward: _loadData),
 
@@ -158,6 +153,11 @@ class _ReferralScreenState extends State<ReferralScreen> {
                       const SizedBox(height: 24),
                       _ActiveRewardBadge(expiresAt: _stats!.premiumTrialEnd!),
                     ],
+
+                    const SizedBox(height: 24),
+
+                    // Expansion coming soon message
+                    const _ExpansionComingSoonCard(),
 
                     // Bottom padding
                     const SizedBox(height: 40),
@@ -385,6 +385,8 @@ class _StatItem extends StatelessWidget {
             context,
           ).textTheme.bodySmall?.copyWith(color: kCitySmartMuted),
           textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
     );
@@ -706,19 +708,19 @@ class _BonusPremiumAdSection extends StatelessWidget {
   }
 }
 
-/// Community expansion banner - encourages users to share even outside Milwaukee
-class _CommunityExpansionBanner extends StatelessWidget {
-  const _CommunityExpansionBanner();
+/// Expansion coming soon card - encourages community growth
+class _ExpansionComingSoonCard extends StatelessWidget {
+  const _ExpansionComingSoonCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.blue.withValues(alpha: 0.15),
-            Colors.purple.withValues(alpha: 0.15),
+            Colors.blue.withValues(alpha: 0.1),
+            Colors.purple.withValues(alpha: 0.1),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -766,39 +768,31 @@ class _CommunityExpansionBanner extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
-            'Not in Milwaukee? No problem! Share your tickets and sightings from anywhere. '
-            'Your reports help us build data for YOUR city. '
-            'Together, we\'re growing a nationwide community of drivers helping drivers.',
+            'Not in Milwaukee? No problem! Share your parking tickets from ANY city. '
+            'Your reports help us grow and launch in your area faster. '
+            'Together, we\'re building a community that helps drivers everywhere avoid tickets.',
             style: TextStyle(
               color: kCitySmartText.withValues(alpha: 0.8),
-              fontSize: 13,
-              height: 1.4,
+              fontSize: 14,
+              height: 1.5,
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.people, size: 16, color: Colors.blue),
-                SizedBox(width: 6),
-                Text(
-                  'Community Driven',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+          Row(
+            children: [
+              const Icon(Icons.people, size: 16, color: Colors.blue),
+              const SizedBox(width: 6),
+              Text(
+                'Community-driven • Every report counts',
+                style: TextStyle(
+                  color: Colors.blue.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
