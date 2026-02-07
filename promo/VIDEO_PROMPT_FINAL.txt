@@ -10,6 +10,33 @@ VOICE-OVER TONE: Friendly, empowering, community-driven.
 FORMAT: 1080x1920 vertical (TikTok/Reels/App Store)
 
 
+================================================
+APP ICON — DETAILED VISUAL DESCRIPTION
+================================================
+The MKE CitySmart app icon is a rounded square (iOS style with smooth rounded
+corners). The background is a rich, deep dark green color (#081D19) — almost
+black-green, like a luxury car dashboard at night. 
+
+In the center is a gold/amber location pin icon (#E0C164) — the classic
+teardrop map marker shape pointing downward. The pin has a slight metallic
+sheen, catching light like brushed gold.
+
+Inside the location pin, or just below it, are the bold capital letters "MKE"
+in clean white or cream text (#FDF7EC), using a modern sans-serif font
+(similar to Inter or Poppins). The letters are thick, confident, and easy to
+read even at small sizes.
+
+The overall feel is premium, minimal, and city-smart — like a luxury navigation
+tool. Dark green conveys trust and urban sophistication. The gold pin conveys
+location awareness and value. Think of it as: "a gold GPS pin on a dark
+emerald background with MKE written on it."
+
+For video purposes: When animating the icon, have it glow with a soft gold
+pulse radiating outward from the pin, as if it's actively tracking and
+protecting the user's parking location.
+================================================
+
+
 === SCENE 1 (0:00–0:05) — THE HOOK ===
 IMAGE: None (use stock/AI-generated footage)
 VISUAL: Aerial drone shot of downtown Milwaukee at golden hour. Camera swoops
