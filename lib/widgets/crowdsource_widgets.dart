@@ -396,30 +396,45 @@ class _CrowdsourceAvailabilityBannerState
 
   Future<void> _startStream() async {
     try {
+      debugPrint('[CrowdsourceBanner] Starting stream...');
       final pos = await _locationService.getCurrentPosition();
       if (pos == null || !mounted) {
-        setState(() => _loading = false);
+        debugPrint('[CrowdsourceBanner] Location unavailable or not mounted');
+        if (mounted) setState(() => _loading = false);
         return;
       }
 
+      debugPrint(
+        '[CrowdsourceBanner] Location acquired: ${pos.latitude}, ${pos.longitude}',
+      );
+
       _sub = _crowdsource
           .nearbyReportsStream(latitude: pos.latitude, longitude: pos.longitude)
-          .listen((reports) {
-            if (!mounted) return;
-            final avail = ParkingCrowdsourceService.aggregateAvailability(
-              reports,
-            );
-            final countChanged = reports.length != _reportCount;
-            setState(() {
-              _availability = avail;
-              _reportCount = reports.length;
-              _loading = false;
-            });
-            // Pulse animation when new data arrives
-            if (countChanged && reports.isNotEmpty) {
-              _pulse.forward(from: 0);
-            }
-          });
+          .listen(
+            (reports) {
+              if (!mounted) return;
+              debugPrint(
+                '[CrowdsourceBanner] Received ${reports.length} reports',
+              );
+              final avail = ParkingCrowdsourceService.aggregateAvailability(
+                reports,
+              );
+              final countChanged = reports.length != _reportCount;
+              setState(() {
+                _availability = avail;
+                _reportCount = reports.length;
+                _loading = false;
+              });
+              // Pulse animation when new data arrives
+              if (countChanged && reports.isNotEmpty) {
+                _pulse.forward(from: 0);
+              }
+            },
+            onError: (e) {
+              debugPrint('[CrowdsourceBanner] Reports stream error: $e');
+              if (mounted) setState(() => _loading = false);
+            },
+          );
 
       // Also subscribe to zone-level aggregated spot counts
       _spotCountSub = _zoneService
@@ -427,10 +442,15 @@ class _CrowdsourceAvailabilityBannerState
             latitude: pos.latitude,
             longitude: pos.longitude,
           )
-          .listen((count) {
-            if (!mounted) return;
-            setState(() => _zoneSpotCount = count);
-          });
+          .listen(
+            (count) {
+              if (!mounted) return;
+              setState(() => _zoneSpotCount = count);
+            },
+            onError: (e) {
+              debugPrint('[CrowdsourceBanner] Spot count stream error: $e');
+            },
+          );
     } catch (e) {
       debugPrint('[CrowdsourceBanner] Failed to start stream: $e');
       if (mounted) setState(() => _loading = false);
@@ -447,6 +467,10 @@ class _CrowdsourceAvailabilityBannerState
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+      '[CrowdsourceBanner] build: loading=$_loading, '
+      'availability=$_availability, reportCount=$_reportCount',
+    );
     if (_loading) {
       return const SizedBox.shrink(); // Don't show while loading
     }
