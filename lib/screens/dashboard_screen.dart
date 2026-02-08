@@ -8,6 +8,7 @@ import '../services/parking_risk_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ad_widgets.dart';
 import '../widgets/citysmart_scaffold.dart';
+import '../widgets/crowdsource_widgets.dart';
 import 'alerts_landing_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -136,6 +137,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               _RiskBadgeCard(risk: _locationRisk!)
             else
               _RiskBadgeCardError(onRetry: _loadRiskData),
+            const SizedBox(height: 12),
+            // Live crowdsource parking availability + report button
+            const CrowdsourceAvailabilityBanner(),
             const SizedBox(height: 16),
             Expanded(
               child: GridView.count(
