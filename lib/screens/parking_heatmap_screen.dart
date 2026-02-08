@@ -129,14 +129,14 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
     _crowdsourceSub = _crowdsourceService
         .nearbyReportsStream(latitude: lat, longitude: lng)
         .listen(
-      (reports) {
-        if (!mounted) return;
-        setState(() => _nearbyReports = reports);
-      },
-      onError: (e) {
-        debugPrint('[HeatmapCrowdsource] Stream error: $e');
-      },
-    );
+          (reports) {
+            if (!mounted) return;
+            setState(() => _nearbyReports = reports);
+          },
+          onError: (e) {
+            debugPrint('[HeatmapCrowdsource] Stream error: $e');
+          },
+        );
   }
 
   @override
@@ -483,14 +483,16 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                                 final color = report.reportType.isPositiveSignal
                                     ? const Color(0xFF4CAF50)
                                     : report.reportType ==
-                                                ReportType.enforcementSpotted ||
-                                            report.reportType ==
-                                                ReportType.towTruckSpotted
-                                        ? const Color(0xFFE53935)
-                                        : const Color(0xFFFF9800);
+                                              ReportType.enforcementSpotted ||
+                                          report.reportType ==
+                                              ReportType.towTruckSpotted
+                                    ? const Color(0xFFE53935)
+                                    : const Color(0xFFFF9800);
                                 return Marker(
-                                  point:
-                                      LatLng(report.latitude, report.longitude),
+                                  point: LatLng(
+                                    report.latitude,
+                                    report.longitude,
+                                  ),
                                   width: isSelected ? 44 : 34,
                                   height: isSelected ? 44 : 34,
                                   child: GestureDetector(
@@ -737,8 +739,7 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                               _crowdsourceService.upvote(_selectedReport!.id);
                             },
                             onDownvote: () {
-                              _crowdsourceService
-                                  .downvote(_selectedReport!.id);
+                              _crowdsourceService.downvote(_selectedReport!.id);
                             },
                           ),
                         ),
@@ -1284,8 +1285,8 @@ class _ReportDetailCard extends StatelessWidget {
     final ageLabel = age < 1
         ? 'Just now'
         : age < 60
-            ? '${age}m ago'
-            : '${age ~/ 60}h ago';
+        ? '${age}m ago'
+        : '${age ~/ 60}h ago';
 
     return Card(
       elevation: 4,
@@ -1298,8 +1299,10 @@ class _ReportDetailCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: _color,
                     borderRadius: BorderRadius.circular(4),
@@ -1307,8 +1310,11 @@ class _ReportDetailCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(report.reportType.icon,
-                          color: Colors.white, size: 14),
+                      Icon(
+                        report.reportType.icon,
+                        color: Colors.white,
+                        size: 14,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         report.reportType.displayName.toUpperCase(),
@@ -1324,10 +1330,7 @@ class _ReportDetailCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   ageLabel,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
                 const Spacer(),
                 IconButton(
@@ -1340,10 +1343,7 @@ class _ReportDetailCard extends StatelessWidget {
             ),
             if (report.note != null && report.note!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text(
-                report.note!,
-                style: const TextStyle(fontSize: 14),
-              ),
+              Text(report.note!, style: const TextStyle(fontSize: 14)),
             ],
             const SizedBox(height: 12),
             Row(
@@ -1369,10 +1369,7 @@ class _ReportDetailCard extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   'Expires in ${report.reportType.ttlMinutes - age}m',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
                 ),
               ],
             ),

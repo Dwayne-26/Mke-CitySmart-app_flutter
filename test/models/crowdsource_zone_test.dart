@@ -86,10 +86,7 @@ void main() {
         zone.copyWith(estimatedOpenSpots: 0).availabilityLabel,
         'No spots reported',
       );
-      expect(
-        zone.copyWith(activeReports: 0).availabilityLabel,
-        'No data',
-      );
+      expect(zone.copyWith(activeReports: 0).availabilityLabel, 'No data');
     });
 
     test('availabilityColor based on spot count', () {
@@ -105,10 +102,7 @@ void main() {
         zone.copyWith(estimatedOpenSpots: 0).availabilityColor,
         Colors.red,
       );
-      expect(
-        zone.copyWith(activeReports: 0).availabilityColor,
-        Colors.grey,
-      );
+      expect(zone.copyWith(activeReports: 0).availabilityColor, Colors.grey);
     });
 
     test('confidenceLabel tiers', () {
@@ -238,10 +232,10 @@ void main() {
     test('parseIntDoubleMap handles various inputs', () {
       expect(CrowdsourceZone.parseIntDoubleMap(null), isEmpty);
       expect(CrowdsourceZone.parseIntDoubleMap('not a map'), isEmpty);
-      expect(
-        CrowdsourceZone.parseIntDoubleMap({'8': 12.5, '17': 2.1}),
-        {8: 12.5, 17: 2.1},
-      );
+      expect(CrowdsourceZone.parseIntDoubleMap({'8': 12.5, '17': 2.1}), {
+        8: 12.5,
+        17: 2.1,
+      });
     });
   });
 

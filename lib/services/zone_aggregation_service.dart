@@ -92,8 +92,7 @@ class ZoneAggregationService {
             totalReportsAllTime: 1,
             activeReports: 1,
             estimatedOpenSpots: report.reportType.isPositiveSignal ? 1 : 0,
-            activeAvailableSignals:
-                report.reportType.isPositiveSignal ? 1 : 0,
+            activeAvailableSignals: report.reportType.isPositiveSignal ? 1 : 0,
             activeTakenSignals: _isTakenSignal(report.reportType) ? 1 : 0,
             enforcementActive: _isEnforcementSignal(report.reportType),
             sweepingActive:
@@ -113,22 +112,23 @@ class ZoneAggregationService {
           final currentTaken =
               (data['activeTakenSignals'] as num?)?.toInt() ?? 0;
 
-          final newAvailable = currentAvailable +
-              (report.reportType.isPositiveSignal ? 1 : 0);
-          final newTaken = currentTaken +
-              (_isTakenSignal(report.reportType) ? 1 : 0);
+          final newAvailable =
+              currentAvailable + (report.reportType.isPositiveSignal ? 1 : 0);
+          final newTaken =
+              currentTaken + (_isTakenSignal(report.reportType) ? 1 : 0);
           final estimatedOpen = max(0, newAvailable - newTaken);
 
           final totalAllTime =
               ((data['totalReportsAllTime'] as num?)?.toInt() ?? 0) + 1;
           final activeCount =
               ((data['activeReports'] as num?)?.toInt() ?? 0) + 1;
-          final reporters =
-              (data['uniqueReporters'] as num?)?.toInt() ?? 0;
+          final reporters = (data['uniqueReporters'] as num?)?.toInt() ?? 0;
 
           // Confidence grows with report volume (log curve, caps at 1.0)
-          final confidence =
-              min(1.0, 0.1 + 0.15 * log(totalAllTime.toDouble()));
+          final confidence = min(
+            1.0,
+            0.1 + 0.15 * log(totalAllTime.toDouble()),
+          );
 
           tx.update(docRef, {
             'totalReportsAllTime': totalAllTime,
@@ -136,11 +136,14 @@ class ZoneAggregationService {
             'estimatedOpenSpots': estimatedOpen,
             'activeAvailableSignals': newAvailable,
             'activeTakenSignals': newTaken,
-            'enforcementActive': (data['enforcementActive'] as bool? ?? false) ||
+            'enforcementActive':
+                (data['enforcementActive'] as bool? ?? false) ||
                 _isEnforcementSignal(report.reportType),
-            'sweepingActive': (data['sweepingActive'] as bool? ?? false) ||
+            'sweepingActive':
+                (data['sweepingActive'] as bool? ?? false) ||
                 report.reportType == ReportType.streetSweepingActive,
-            'parkingBlocked': (data['parkingBlocked'] as bool? ?? false) ||
+            'parkingBlocked':
+                (data['parkingBlocked'] as bool? ?? false) ||
                 report.reportType == ReportType.parkingBlocked,
             'confidenceScore': confidence,
             'uniqueReporters': reporters + 1, // Approximate; exact needs Set
@@ -197,8 +200,7 @@ class ZoneAggregationService {
     }
 
     final estimatedOpen = max(0, available - taken);
-    final relevantCount =
-        activeReports.where((r) => r.isStillRelevant).length;
+    final relevantCount = activeReports.where((r) => r.isStillRelevant).length;
 
     try {
       await _firestore.runTransaction((tx) async {
@@ -251,9 +253,9 @@ class ZoneAggregationService {
               : const {},
           enforcementPeakHours: snapshot.exists
               ? (snapshot.data()?['enforcementPeakHours'] as List<dynamic>?)
-                      ?.map((e) => (e as num).toInt())
-                      .toList() ??
-                  const []
+                        ?.map((e) => (e as num).toInt())
+                        .toList() ??
+                    const []
               : const [],
           confidenceScore: confidence,
           uniqueReporters: reporters.length,
@@ -295,9 +297,9 @@ class ZoneAggregationService {
         final snapshot = await tx.get(docRef);
         if (!snapshot.exists) return;
 
-        final existing =
-            CrowdsourceZone.parseIntDoubleMap(
-                snapshot.data()?['hourlyAvgOpenSpots']);
+        final existing = CrowdsourceZone.parseIntDoubleMap(
+          snapshot.data()?['hourlyAvgOpenSpots'],
+        );
 
         // Rolling average: new_avg = old_avg * 0.8 + new_value * 0.2
         final oldAvg = existing[hour] ?? estimatedOpenSpots.toDouble();
@@ -330,9 +332,9 @@ class ZoneAggregationService {
         final snapshot = await tx.get(docRef);
         if (!snapshot.exists) return;
 
-        final existing =
-            CrowdsourceZone.parseIntDoubleMap(
-                snapshot.data()?['dailyAvgOpenSpots']);
+        final existing = CrowdsourceZone.parseIntDoubleMap(
+          snapshot.data()?['dailyAvgOpenSpots'],
+        );
 
         final oldAvg = existing[dayOfWeek] ?? estimatedOpenSpots.toDouble();
         final newAvg = oldAvg * 0.8 + estimatedOpenSpots * 0.2;
@@ -379,7 +381,11 @@ class ZoneAggregationService {
     int? precision,
   }) async {
     final p = precision ?? queryPrecision;
-    final prefix = ParkingCrowdsourceService.encodeGeohash(latitude, longitude, p);
+    final prefix = ParkingCrowdsourceService.encodeGeohash(
+      latitude,
+      longitude,
+      p,
+    );
     final docPrefix = zoneDocId(region, prefix);
     final upperBound = _docIdUpperBound(docPrefix);
 
@@ -409,7 +415,11 @@ class ZoneAggregationService {
     int? precision,
   }) {
     final p = precision ?? queryPrecision;
-    final prefix = ParkingCrowdsourceService.encodeGeohash(latitude, longitude, p);
+    final prefix = ParkingCrowdsourceService.encodeGeohash(
+      latitude,
+      longitude,
+      p,
+    );
     final docPrefix = zoneDocId(region, prefix);
     final upperBound = _docIdUpperBound(docPrefix);
 

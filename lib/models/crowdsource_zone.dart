@@ -133,14 +133,14 @@ class CrowdsourceZone {
       parkingBlocked: d['parkingBlocked'] as bool? ?? false,
       hourlyAvgOpenSpots: parseIntDoubleMap(d['hourlyAvgOpenSpots']),
       dailyAvgOpenSpots: parseIntDoubleMap(d['dailyAvgOpenSpots']),
-      enforcementPeakHours: (d['enforcementPeakHours'] as List<dynamic>?)
+      enforcementPeakHours:
+          (d['enforcementPeakHours'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const [],
       confidenceScore: (d['confidenceScore'] as num?)?.toDouble() ?? 0.0,
       uniqueReporters: (d['uniqueReporters'] as num?)?.toInt() ?? 0,
-      lastUpdated:
-          (d['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastUpdated: (d['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
       createdAt: (d['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -184,8 +184,7 @@ class CrowdsourceZone {
       name: json['name'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0,
-      totalReportsAllTime:
-          (json['totalReportsAllTime'] as num?)?.toInt() ?? 0,
+      totalReportsAllTime: (json['totalReportsAllTime'] as num?)?.toInt() ?? 0,
       activeReports: (json['activeReports'] as num?)?.toInt() ?? 0,
       estimatedOpenSpots: (json['estimatedOpenSpots'] as num?)?.toInt() ?? 0,
       activeTakenSignals: (json['activeTakenSignals'] as num?)?.toInt() ?? 0,
@@ -196,7 +195,8 @@ class CrowdsourceZone {
       parkingBlocked: json['parkingBlocked'] as bool? ?? false,
       hourlyAvgOpenSpots: parseIntDoubleMap(json['hourlyAvgOpenSpots']),
       dailyAvgOpenSpots: parseIntDoubleMap(json['dailyAvgOpenSpots']),
-      enforcementPeakHours: (json['enforcementPeakHours'] as List<dynamic>?)
+      enforcementPeakHours:
+          (json['enforcementPeakHours'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const [],
@@ -314,8 +314,7 @@ class CrowdsourceZone {
       name: name ?? this.name,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-      totalReportsAllTime:
-          totalReportsAllTime ?? this.totalReportsAllTime,
+      totalReportsAllTime: totalReportsAllTime ?? this.totalReportsAllTime,
       activeReports: activeReports ?? this.activeReports,
       estimatedOpenSpots: estimatedOpenSpots ?? this.estimatedOpenSpots,
       activeTakenSignals: activeTakenSignals ?? this.activeTakenSignals,
@@ -326,8 +325,7 @@ class CrowdsourceZone {
       parkingBlocked: parkingBlocked ?? this.parkingBlocked,
       hourlyAvgOpenSpots: hourlyAvgOpenSpots ?? this.hourlyAvgOpenSpots,
       dailyAvgOpenSpots: dailyAvgOpenSpots ?? this.dailyAvgOpenSpots,
-      enforcementPeakHours:
-          enforcementPeakHours ?? this.enforcementPeakHours,
+      enforcementPeakHours: enforcementPeakHours ?? this.enforcementPeakHours,
       confidenceScore: confidenceScore ?? this.confidenceScore,
       uniqueReporters: uniqueReporters ?? this.uniqueReporters,
       lastUpdated: lastUpdated ?? this.lastUpdated,

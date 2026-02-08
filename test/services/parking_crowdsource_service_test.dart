@@ -170,7 +170,9 @@ void main() {
         makeReport(ReportType.leavingSpot),
         makeReport(ReportType.spotTaken),
       ];
-      final result1 = ParkingCrowdsourceService.aggregateAvailability(moreAvailable);
+      final result1 = ParkingCrowdsourceService.aggregateAvailability(
+        moreAvailable,
+      );
       expect(result1.estimatedOpenSpots, 3);
 
       // 1 available - 4 taken = 0 (floored)
@@ -181,7 +183,9 @@ void main() {
         makeReport(ReportType.parkedHere),
         makeReport(ReportType.spotAvailable),
       ];
-      final result2 = ParkingCrowdsourceService.aggregateAvailability(moreTaken);
+      final result2 = ParkingCrowdsourceService.aggregateAvailability(
+        moreTaken,
+      );
       expect(result2.estimatedOpenSpots, 0);
     });
 

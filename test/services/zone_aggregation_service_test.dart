@@ -42,10 +42,7 @@ void main() {
     });
 
     test('falls back to default for short doc IDs', () {
-      expect(
-        ZoneAggregationService.regionFromDocId('ab'),
-        'wi/milwaukee',
-      );
+      expect(ZoneAggregationService.regionFromDocId('ab'), 'wi/milwaukee');
     });
   });
 
@@ -190,9 +187,7 @@ void main() {
     });
 
     test('region is taken from first zone', () {
-      final zones = [
-        makeZone(geohash: 'dp5dtp1'),
-      ];
+      final zones = [makeZone(geohash: 'dp5dtp1')];
       final summary = summarise(zones);
       expect(summary.region, 'wi/milwaukee');
     });
