@@ -14,12 +14,13 @@ class SubscriptionService extends ChangeNotifier {
 
   // RevenueCat API keys
   // Test/Development key (works for all platforms during development)
+  // ignore: unused_field
   static const _revenueCatTestKey = 'test_JhJpIJnyYopCsUtcPVYZKarOQEO';
 
   // Production keys from RevenueCat dashboard
   static const _revenueCatApiKeyiOS = 'appl_nPogZtDlCliLIbcHVwxxguJacpq';
-  static const _revenueCatApiKeyAndroid =
-      'goog_YOUR_ANDROID_KEY_HERE'; // TODO: Add Android key when ready
+  // Android key - add from RevenueCat when launching on Google Play
+  static const _revenueCatApiKeyAndroid = 'goog_PLACEHOLDER';
 
   // Entitlement identifier (must match RevenueCat dashboard)
   static const entitlementPro = 'pro';
@@ -165,13 +166,25 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   /// Logout user from RevenueCat
+  /// Note: This will fail if the user is anonymous in RevenueCat.
+  /// We catch and ignore the error since it's expected for anonymous users.
   Future<void> logout() async {
     if (!_initialized) return;
 
     try {
+      // Check if the current user is anonymous in RevenueCat
+      final isAnonymous = await Purchases.isAnonymous;
+      if (isAnonymous) {
+        debugPrint(
+          'SubscriptionService: Skipping logout - user is anonymous in RevenueCat',
+        );
+        return;
+      }
+
       _customerInfo = await Purchases.logOut();
       notifyListeners();
     } catch (e) {
+      // This can fail for anonymous users, which is expected
       _lastError = e.toString();
       debugPrint('SubscriptionService: Logout failed - $e');
     }
@@ -282,6 +295,7 @@ class SubscriptionService extends ChangeNotifier {
             '3 alerts per day',
             '7 days of history',
             'Basic parking info',
+            'Crowdsource reports',
           ],
         );
       case SubscriptionTier.pro:
@@ -303,6 +317,9 @@ class SubscriptionService extends ChangeNotifier {
             '1 year of history',
             'Citation heatmaps',
             'Smart alerts',
+            'Live spot counts',
+            'AI parking finder',
+            'Tow recovery helper',
             'Ad-free experience',
             'Zero processing fees',
             'Priority support',

@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../models/parking_zone.dart';
@@ -7,9 +8,28 @@ import '../models/parking_zone.dart';
 class LocationService {
   Future<Position?> getCurrentPosition() async {
     final permission = await _ensurePermission();
-    if (!permission) return null;
+    if (!permission) {
+      debugPrint('[LocationService] Permission denied');
+      return null;
+    }
+
+    // Try cached position first (instant) — good enough for risk/banner
+    final lastKnown = await Geolocator.getLastKnownPosition();
+    if (lastKnown != null) {
+      debugPrint(
+        '[LocationService] Using cached position: '
+        '${lastKnown.latitude}, ${lastKnown.longitude}',
+      );
+      return lastKnown;
+    }
+
+    debugPrint('[LocationService] No cached position, requesting fresh GPS...');
+    // No cached position — request a fresh one with a timeout
     return Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.best),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 10),
+      ),
     );
   }
 

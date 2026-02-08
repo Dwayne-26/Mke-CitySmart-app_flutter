@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../models/subscription_plan.dart';
+import '../providers/user_provider.dart';
 import '../services/referral_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ad_widgets.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -107,43 +111,58 @@ class _ReferralScreenState extends State<ReferralScreen> {
       appBar: AppBar(title: const Text('Invite Friends')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Hero section
-                  _HeroSection(
-                    referralCode: _referralCode ?? 'LOADING',
-                    onCopy: _copyCode,
-                    onShare: _shareCode,
-                  ),
+          : SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Hero section
+                    _HeroSection(
+                      referralCode: _referralCode ?? 'LOADING',
+                      onCopy: _copyCode,
+                      onShare: _shareCode,
+                    ),
 
-                  const SizedBox(height: 24),
-
-                  // Stats section
-                  if (_stats != null) _StatsSection(stats: _stats!),
-
-                  const SizedBox(height: 24),
-
-                  // How it works
-                  _HowItWorksSection(),
-
-                  const SizedBox(height: 24),
-
-                  // Apply code section
-                  _ApplyCodeSection(
-                    controller: _codeController,
-                    applying: _applying,
-                    onApply: _applyCode,
-                  ),
-
-                  // Active reward badge
-                  if (_stats?.hasActiveReward == true) ...[
                     const SizedBox(height: 24),
-                    _ActiveRewardBadge(expiresAt: _stats!.premiumTrialEnd!),
+
+                    // Stats section
+                    if (_stats != null) _StatsSection(stats: _stats!),
+
+                    const SizedBox(height: 24),
+
+                    // How it works
+                    _HowItWorksSection(),
+
+                    const SizedBox(height: 24),
+
+                    // Bonus premium days via rewarded ad (for free users only)
+                    _BonusPremiumAdSection(onReward: _loadData),
+
+                    const SizedBox(height: 24),
+
+                    // Apply code section
+                    _ApplyCodeSection(
+                      controller: _codeController,
+                      applying: _applying,
+                      onApply: _applyCode,
+                    ),
+
+                    // Active reward badge
+                    if (_stats?.hasActiveReward == true) ...[
+                      const SizedBox(height: 24),
+                      _ActiveRewardBadge(expiresAt: _stats!.premiumTrialEnd!),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // Expansion coming soon message
+                    const _ExpansionComingSoonCard(),
+
+                    // Bottom padding
+                    const SizedBox(height: 40),
                   ],
-                ],
+                ),
               ),
             ),
     );
@@ -211,15 +230,21 @@ class _HeroSection extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  referralCode,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: kCitySmartYellow,
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      referralCode,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 4,
+                            color: kCitySmartYellow,
+                          ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 IconButton(
                   onPressed: onCopy,
                   icon: const Icon(Icons.copy, color: kCitySmartYellow),
@@ -360,6 +385,8 @@ class _StatItem extends StatelessWidget {
             context,
           ).textTheme.bodySmall?.copyWith(color: kCitySmartMuted),
           textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          maxLines: 1,
         ),
       ],
     );
@@ -643,6 +670,129 @@ class _ActiveRewardBadge extends StatelessWidget {
                 fontSize: 11,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Optional rewarded ad section - only shows for free users
+/// Provides value: watch a short ad to earn bonus premium days
+class _BonusPremiumAdSection extends StatelessWidget {
+  const _BonusPremiumAdSection({required this.onReward});
+
+  final VoidCallback onReward;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<UserProvider>(
+      builder: (context, provider, _) {
+        // Only show for free tier users
+        if (provider.tier != SubscriptionTier.free) {
+          return const SizedBox.shrink();
+        }
+
+        return WatchAdButton(
+          rewardDescription: 'Earn bonus Premium time',
+          buttonText: 'Watch Ad',
+          rewardText: '3 Days Premium',
+          onReward: () {
+            // Grant the 3-day premium trial
+            provider.grantAdRewardTrial(days: 3);
+            onReward();
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Expansion coming soon card - encourages community growth
+class _ExpansionComingSoonCard extends StatelessWidget {
+  const _ExpansionComingSoonCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.blue.withValues(alpha: 0.1),
+            Colors.purple.withValues(alpha: 0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.rocket_launch,
+                  color: Colors.blue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'We\'re Expanding! 🚀',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      'More cities & states coming soon!',
+                      style: TextStyle(
+                        color: kCitySmartText.withValues(alpha: 0.7),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Not in Milwaukee? No problem! Share your parking tickets from ANY city. '
+            'Your reports help us grow and launch in your area faster. '
+            'Together, we\'re building a community that helps drivers everywhere avoid tickets.',
+            style: TextStyle(
+              color: kCitySmartText.withValues(alpha: 0.8),
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.people, size: 16, color: Colors.blue),
+              const SizedBox(width: 6),
+              Text(
+                'Community-driven • Every report counts',
+                style: TextStyle(
+                  color: Colors.blue.withValues(alpha: 0.8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         ],
       ),

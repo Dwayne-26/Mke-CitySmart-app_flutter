@@ -226,6 +226,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             : const Text('Save profile'),
                       ),
                     ),
+                    const SizedBox(height: 48),
+                    // Danger zone - Delete Account
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Danger Zone',
+                      style: TextStyle(
+                        color: Colors.redAccent.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () =>
+                          _showDeleteAccountDialog(context, provider),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.redAccent,
+                        side: const BorderSide(color: Colors.redAccent),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 24,
+                        ),
+                      ),
+                      icon: const Icon(Icons.delete_forever),
+                      label: const Text('Delete Account'),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Permanently delete your account and all data',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.withValues(alpha: 0.7),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -235,5 +270,103 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       },
     );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context, UserProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.redAccent),
+            SizedBox(width: 8),
+            Text('Delete Account?'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This will permanently delete:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text('• Your profile information'),
+            Text('• All saved tickets and citations'),
+            Text('• Saved places and preferences'),
+            Text('• Maintenance reports'),
+            SizedBox(height: 12),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _performAccountDeletion(context, provider);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete Forever'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performAccountDeletion(
+    BuildContext context,
+    UserProvider provider,
+  ) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Deleting account...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final error = await provider.deleteAccount();
+
+    if (!context.mounted) return;
+    Navigator.pop(context); // Dismiss loading
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: Colors.redAccent),
+      );
+    } else {
+      // Account deleted successfully - navigate to home
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account deleted successfully')),
+      );
+    }
   }
 }

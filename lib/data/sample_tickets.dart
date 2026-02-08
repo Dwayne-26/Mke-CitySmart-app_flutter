@@ -9,6 +9,7 @@ final sampleTickets = <Ticket>[
     location: 'Holton & Center',
     issuedAt: DateTime.now().subtract(const Duration(days: 4)),
     dueDate: DateTime.now().add(const Duration(days: 10)),
+    isSample: true,
   ),
   Ticket(
     id: 'TCK-22018',
@@ -18,6 +19,7 @@ final sampleTickets = <Ticket>[
     location: '3rd Ward Garage',
     issuedAt: DateTime.now().subtract(const Duration(days: 12)),
     dueDate: DateTime.now().subtract(const Duration(days: 1)),
+    isSample: true,
   ),
   Ticket(
     id: 'TCK-99004',
@@ -30,5 +32,6 @@ final sampleTickets = <Ticket>[
     status: TicketStatus.paid,
     paidAt: DateTime.now().subtract(const Duration(days: 2)),
     paymentMethod: 'card',
+    isSample: true,
   ),
 ];

@@ -46,7 +46,7 @@ const DEFAULT_NEARBY_RADIUS_MILES = 5;
 const MAX_NEARBY_RADIUS_MILES = 25;
 const MAX_FANOUT_PER_SIGHTING = 2000;
 const MAX_CANDIDATE_SCAN = 5000;
-const MULTICAST_CHUNK_SIZE = 500;
+// const MULTICAST_CHUNK_SIZE = 500; // No longer used
 
 // Approval tiers
 const SOFT_AUTO_APPROVE_DELAY_MINUTES = 3;
@@ -157,10 +157,117 @@ const geohashQueryRanges = (centerGeohash: string, prefixLen: number) => {
   return [{start: prefix, end: prefix + "\uf8ff"}];
 };
 
-const chunk = <T>(arr: T[], size: number): T[][] => {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+// const chunk = <T>(arr: T[], size: number): T[][] => {
+//   const out: T[][] = [];
+//   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+//   return out;
+// };
+
+// --- Municipality detection for multi-city data organization ---
+// Detects city from coordinates using simple bounding boxes
+// This is server-side detection for when we can't use reverse geocoding
+
+interface MunicipalityBounds {
+  id: string;
+  city: string;
+  state: string;
+  latMin: number;
+  latMax: number;
+  lngMin: number;
+  lngMax: number;
+}
+
+const MUNICIPALITY_BOUNDS: MunicipalityBounds[] = [
+  // Wisconsin cities
+  {id: "milwaukee_wisconsin", city: "Milwaukee", state: "Wisconsin", latMin: 42.92, latMax: 43.20, lngMin: -88.07, lngMax: -87.82},
+  {id: "waukesha_wisconsin", city: "Waukesha", state: "Wisconsin", latMin: 42.95, latMax: 43.05, lngMin: -88.28, lngMax: -88.18},
+  {id: "madison_wisconsin", city: "Madison", state: "Wisconsin", latMin: 43.01, latMax: 43.17, lngMin: -89.55, lngMax: -89.25},
+  {id: "green_bay_wisconsin", city: "Green Bay", state: "Wisconsin", latMin: 44.48, latMax: 44.56, lngMin: -88.10, lngMax: -87.90},
+  {id: "kenosha_wisconsin", city: "Kenosha", state: "Wisconsin", latMin: 42.54, latMax: 42.62, lngMin: -87.88, lngMax: -87.78},
+  {id: "racine_wisconsin", city: "Racine", state: "Wisconsin", latMin: 42.70, latMax: 42.78, lngMin: -87.84, lngMax: -87.74},
+  {id: "appleton_wisconsin", city: "Appleton", state: "Wisconsin", latMin: 44.24, latMax: 44.32, lngMin: -88.46, lngMax: -88.36},
+  {id: "oshkosh_wisconsin", city: "Oshkosh", state: "Wisconsin", latMin: 43.98, latMax: 44.06, lngMin: -88.60, lngMax: -88.50},
+  // Chicago area
+  {id: "chicago_illinois", city: "Chicago", state: "Illinois", latMin: 41.64, latMax: 42.02, lngMin: -87.94, lngMax: -87.52},
+  {id: "evanston_illinois", city: "Evanston", state: "Illinois", latMin: 42.02, latMax: 42.08, lngMin: -87.72, lngMax: -87.66},
+  // Minnesota
+  {id: "minneapolis_minnesota", city: "Minneapolis", state: "Minnesota", latMin: 44.89, latMax: 45.06, lngMin: -93.35, lngMax: -93.19},
+  {id: "st_paul_minnesota", city: "St. Paul", state: "Minnesota", latMin: 44.88, latMax: 45.01, lngMin: -93.18, lngMax: -92.98},
+];
+
+const detectMunicipalityId = (lat: number, lng: number): string | null => {
+  for (const bounds of MUNICIPALITY_BOUNDS) {
+    if (
+      lat >= bounds.latMin &&
+      lat <= bounds.latMax &&
+      lng >= bounds.lngMin &&
+      lng <= bounds.lngMax
+    ) {
+      return bounds.id;
+    }
+  }
+  // For unknown locations, create a generic ID based on approximate state
+  const state = approximateState(lat, lng);
+  if (state) {
+    return `unknown_${state.toLowerCase().replace(/\s+/g, "_")}`;
+  }
+  return null;
+};
+
+const approximateState = (lat: number, lng: number): string | null => {
+  // Wisconsin: roughly 42.5-47°N, 86.5-92.5°W
+  if (lat >= 42.5 && lat <= 47 && lng >= -92.5 && lng <= -86.5) return "Wisconsin";
+  // Illinois: roughly 37-42.5°N, 87.5-91.5°W
+  if (lat >= 37 && lat <= 42.5 && lng >= -91.5 && lng <= -87.5) return "Illinois";
+  // Minnesota: roughly 43.5-49°N, 89.5-97.5°W
+  if (lat >= 43.5 && lat <= 49 && lng >= -97.5 && lng <= -89.5) return "Minnesota";
+  // Michigan: roughly 41.5-48.5°N, 82-90.5°W
+  if (lat >= 41.5 && lat <= 48.5 && lng >= -90.5 && lng <= -82) return "Michigan";
+  // Iowa: roughly 40.4-43.5°N, 90.1-96.6°W
+  if (lat >= 40.4 && lat <= 43.5 && lng >= -96.6 && lng <= -90.1) return "Iowa";
+  return null;
+};
+
+const updateMunicipalitySightingStats = async (
+  db: admin.firestore.Firestore,
+  municipalityId: string,
+  isEnforcer: boolean
+) => {
+  try {
+    const statsRef = db.collection("municipality_stats").doc(municipalityId);
+    
+    await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(statsRef);
+      
+      if (doc.exists) {
+        transaction.update(statsRef, {
+          totalSightings: FieldValue.increment(1),
+          enforcerSightings: isEnforcer ? FieldValue.increment(1) : FieldValue.increment(0),
+          towSightings: isEnforcer ? FieldValue.increment(0) : FieldValue.increment(1),
+          lastSightingAt: FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Extract city/state from the bounds if available
+        const bounds = MUNICIPALITY_BOUNDS.find((b) => b.id === municipalityId);
+        transaction.set(statsRef, {
+          municipalityId,
+          city: bounds?.city ?? municipalityId.split("_")[0],
+          state: bounds?.state ?? municipalityId.split("_")[1],
+          totalSightings: 1,
+          totalCitations: 0,
+          enforcerSightings: isEnforcer ? 1 : 0,
+          towSightings: isEnforcer ? 0 : 1,
+          createdAt: FieldValue.serverTimestamp(),
+          lastSightingAt: FieldValue.serverTimestamp(),
+        });
+      }
+    });
+    
+    logger.info("Updated municipality sighting stats", {municipalityId, isEnforcer});
+  } catch (err) {
+    logger.warn("Failed to update municipality sighting stats", {municipalityId, error: err});
+    // Non-fatal
+  }
 };
 
 const determineApprovalTier = (report: {
@@ -462,7 +569,11 @@ export const mirrorSightingsToAlerts = onDocumentWritten(
 const RATE_LIMIT_MAX = 3;
 const RATE_LIMIT_WINDOW_SECONDS = 60 * 60;
 
-export const submitSighting = onCall(async (request) => {
+export const submitSighting = onCall(
+  {
+    secrets: [firebaseAdminSdkKey],
+  },
+  async (request) => {
   const uidBase =
     request.auth?.uid ?? `anonymous_${request.rawRequest.ip ?? "unknown"}`;
   const uidKey = uidBase.replace(/[^A-Za-z0-9_.-]/g, "_");
@@ -588,11 +699,23 @@ export const submitSighting = onCall(async (request) => {
     reporterUid: uidBase,
     isPublic: false,
     geo: hasGeo ? new GeoPoint(latitude, longitude) : null,
+    latitude: hasGeo ? latitude : null,
+    longitude: hasGeo ? longitude : null,
     flagged: false,
     softApproveAfter: approvalTier === "soft"
       ? Timestamp.fromMillis(Date.now() + SOFT_AUTO_APPROVE_DELAY_MINUTES * 60 * 1000)
       : null,
+    // Municipality tracking for multi-city expansion
+    municipalityId: hasGeo ? detectMunicipalityId(latitude, longitude) : null,
   });
+
+  // Update municipality sighting stats if we have geo
+  if (hasGeo) {
+    const municipalityId = detectMunicipalityId(latitude, longitude);
+    if (municipalityId) {
+      await updateMunicipalitySightingStats(db, municipalityId, isEnforcer);
+    }
+  }
 
   logger.info("submitSighting created alert", {alertId: alertRef.id, uid: uidBase});
 
@@ -673,30 +796,50 @@ export const submitSighting = onCall(async (request) => {
         let totalFailure = 0;
         const invalidTokens = new Set<string>();
 
-        for (const part of chunk(tokens, MULTICAST_CHUNK_SIZE)) {
-          const multicast = await admin.messaging().sendEachForMulticast({
-            tokens: part,
-            notification: {title, body},
-            data: {
-              kind: "nearby_sighting",
-              alertId: alertRef.id,
-              type: isEnforcer ? "enforcer" : "tow",
-            },
-          });
+        // Use direct HTTP API for FCM (same approach as simulateNearbyWarning)
+        const secretValue = firebaseAdminSdkKey.value();
+        const serviceAccountKey = JSON.parse(secretValue);
+        const auth = new GoogleAuth({
+          credentials: serviceAccountKey,
+          scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
+        });
+        const accessToken = await auth.getAccessToken();
 
-          totalSuccess += multicast.successCount;
-          totalFailure += multicast.failureCount;
-
-          multicast.responses.forEach((r, i) => {
-            if (r.success) return;
-            const code = (r.error as any)?.code ?? "";
-            if (
-              code === "messaging/registration-token-not-registered" ||
-              code === "messaging/invalid-registration-token"
-            ) {
-              invalidTokens.add(part[i]);
+        for (const token of tokens) {
+          try {
+            const fcmResponse = await fetch(
+              `https://fcm.googleapis.com/v1/projects/${serviceAccountKey.project_id}/messages:send`,
+              {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  message: {
+                    token,
+                    notification: {title, body},
+                    data: {
+                      kind: "nearby_sighting",
+                      alertId: alertRef.id,
+                      type: isEnforcer ? "enforcer" : "tow",
+                    },
+                  },
+                }),
+              }
+            );
+            if (fcmResponse.ok) {
+              totalSuccess++;
+            } else {
+              totalFailure++;
+              const errBody = await fcmResponse.text();
+              if (errBody.includes("UNREGISTERED") || errBody.includes("INVALID_ARGUMENT")) {
+                invalidTokens.add(token);
+              }
             }
-          });
+          } catch {
+            totalFailure++;
+          }
         }
 
         logger.info("submitSighting fanout complete", {
@@ -1400,17 +1543,35 @@ export const getRiskForLocation = onCall(async (request) => {
   const baseRiskScore = zoneData.riskScore ?? 10;
   
   // Get hourly risk multiplier
-  const byHour = (zoneData.byHour as Record<string, number>) ?? {};
-  const hourlyCount = byHour[hour.toString()] ?? 0;
-  const maxHourlyCount = Math.max(...Object.values(byHour), 1);
+  // byHour can be an array indexed by hour (0-23) or an object with hour keys
+  const rawByHour = zoneData.byHour;
+  let hourlyCount = 0;
+  let maxHourlyCount = 1;
+  if (Array.isArray(rawByHour)) {
+    hourlyCount = rawByHour[hour] ?? 0;
+    maxHourlyCount = Math.max(...rawByHour.filter((v: unknown) => typeof v === "number"), 1);
+  } else if (rawByHour && typeof rawByHour === "object") {
+    const byHour = rawByHour as Record<string, number>;
+    hourlyCount = byHour[hour.toString()] ?? 0;
+    maxHourlyCount = Math.max(...Object.values(byHour), 1);
+  }
   const hourlyMultiplier = 0.7 + (0.6 * hourlyCount / maxHourlyCount); // 0.7 to 1.3x
   
   // Get day-of-week risk multiplier
-  const byDay = (zoneData.byDayOfWeek as Record<string, number>) ?? {};
-  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const dayName = dayNames[dayOfWeek];
-  const dayCount = byDay[dayName] ?? 0;
-  const maxDayCount = Math.max(...Object.values(byDay), 1);
+  // byDayOfWeek can be an array indexed 0-6 (Sun-Sat) or an object with day name keys
+  const rawByDay = zoneData.byDayOfWeek;
+  let dayCount = 0;
+  let maxDayCount = 1;
+  if (Array.isArray(rawByDay)) {
+    dayCount = rawByDay[dayOfWeek] ?? 0;
+    maxDayCount = Math.max(...rawByDay.filter((v: unknown) => typeof v === "number"), 1);
+  } else if (rawByDay && typeof rawByDay === "object") {
+    const byDay = rawByDay as Record<string, number>;
+    const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+    const dayName = dayNames[dayOfWeek];
+    dayCount = byDay[dayName] ?? 0;
+    maxDayCount = Math.max(...Object.values(byDay), 1);
+  }
   const dayMultiplier = 0.8 + (0.4 * dayCount / maxDayCount); // 0.8 to 1.2x
   
   // Calculate final risk score
@@ -1702,5 +1863,388 @@ export const sendHighRiskAlerts = onSchedule(
       failureCount,
       totalDevices: devicesToAlert.length,
     });
+  }
+);
+
+// ==============================================================
+// INACTIVE ACCOUNT CLEANUP
+// ==============================================================
+// Runs daily to:
+// 1. Find users inactive for 20 days → send push notification reminder
+// 2. Find users inactive for 40 days → delete account
+// ==============================================================
+
+const INACTIVITY_REMINDER_DAYS = 20;
+const INACTIVITY_DELETE_DAYS = 40;
+
+export const cleanupInactiveAccounts = onSchedule(
+  {
+    schedule: "every day 03:00",
+    timeZone: "America/Chicago",
+    memory: "512MiB",
+  },
+  async () => {
+    const db = getFirestore();
+    const auth = admin.auth();
+    const now = Timestamp.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    const reminderCutoff = new Date(now.toMillis() - INACTIVITY_REMINDER_DAYS * msPerDay);
+    const deleteCutoff = new Date(now.toMillis() - INACTIVITY_DELETE_DAYS * msPerDay);
+
+    logger.info("Starting inactive account cleanup", {
+      reminderCutoff: reminderCutoff.toISOString(),
+      deleteCutoff: deleteCutoff.toISOString(),
+    });
+
+    // Track counts for logging
+    let remindersSent = 0;
+    let accountsDeleted = 0;
+    let errors = 0;
+
+    try {
+      // 1. Find users who need deletion (40+ days inactive)
+      const deleteQuery = await db
+        .collection("users")
+        .where("lastActivityAt", "<", Timestamp.fromDate(deleteCutoff))
+        .where("inactivityReminderSent", "==", true) // Only delete if reminded
+        .limit(100) // Process in batches to avoid timeout
+        .get();
+
+      for (const userDoc of deleteQuery.docs) {
+        const uid = userDoc.id;
+        try {
+          // Delete subcollections
+          const subcollections = ["tickets", "places", "sightings", "maintenance_reports"];
+          for (const subcollection of subcollections) {
+            const subDocs = await userDoc.ref.collection(subcollection).get();
+            const batch = db.batch();
+            subDocs.docs.forEach((doc) => batch.delete(doc.ref));
+            await batch.commit();
+          }
+
+          // Delete user document
+          await userDoc.ref.delete();
+
+          // Delete Firebase Auth account
+          await auth.deleteUser(uid);
+
+          // Clean up device tokens for this user
+          const deviceDocs = await db
+            .collection("devices")
+            .where("uid", "==", uid)
+            .get();
+          for (const deviceDoc of deviceDocs.docs) {
+            await deviceDoc.ref.delete();
+          }
+
+          accountsDeleted++;
+          logger.info(`Deleted inactive account: ${uid}`);
+        } catch (err) {
+          errors++;
+          logger.error(`Failed to delete account ${uid}:`, err);
+        }
+      }
+
+      // 2. Find users who need reminders (20+ days inactive, not yet reminded)
+      const reminderQuery = await db
+        .collection("users")
+        .where("lastActivityAt", "<", Timestamp.fromDate(reminderCutoff))
+        .where("lastActivityAt", ">=", Timestamp.fromDate(deleteCutoff))
+        .limit(100)
+        .get();
+
+      for (const userDoc of reminderQuery.docs) {
+        const uid = userDoc.id;
+        const userData = userDoc.data();
+
+        // Skip if already reminded
+        if (userData.inactivityReminderSent) {
+          continue;
+        }
+
+        try {
+          const daysUntilDeletion = INACTIVITY_DELETE_DAYS - INACTIVITY_REMINDER_DAYS;
+
+          // Find device tokens for this user
+          const deviceDocs = await db
+            .collection("devices")
+            .where("uid", "==", uid)
+            .get();
+
+          if (deviceDocs.empty) {
+            logger.info(`No device tokens for user ${uid}, skipping reminder`);
+            continue;
+          }
+
+          // Send push notification to all user devices
+          const tokens = deviceDocs.docs.map((doc) => doc.data().token);
+          
+          const message = {
+            notification: {
+              title: "Your account will be deleted soon",
+              body: `Open MKE CitySmart to keep your account. It will be deleted in ${daysUntilDeletion} days due to inactivity.`,
+            },
+            data: {
+              type: "inactivity_warning",
+              daysRemaining: String(daysUntilDeletion),
+            },
+            tokens,
+          };
+
+          const response = await admin.messaging().sendEachForMulticast(message);
+          
+          logger.info(`Sent inactivity reminder to ${uid}`, {
+            successCount: response.successCount,
+            failureCount: response.failureCount,
+          });
+
+          // Mark user as reminded
+          await userDoc.ref.update({
+            inactivityReminderSent: true,
+            inactivityReminderSentAt: FieldValue.serverTimestamp(),
+          });
+
+          remindersSent++;
+        } catch (err) {
+          errors++;
+          logger.error(`Failed to send reminder for ${uid}:`, err);
+        }
+      }
+
+      logger.info("Inactive account cleanup complete", {
+        remindersSent,
+        accountsDeleted,
+        errors,
+      });
+    } catch (err) {
+      logger.error("Inactive account cleanup failed:", err);
+    }
+  }
+);
+
+// ============================================================================
+// CITATION ANALYTICS - Process user-submitted citations for risk engine
+// ============================================================================
+
+/**
+ * When a new citation is submitted to citation_analytics,
+ * update the real-time risk zone data.
+ */
+export const processCitationAnalytics = onDocumentCreated(
+  {document: "citation_analytics/{citationId}", region: "us-central1"},
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    const db = getFirestore();
+
+    try {
+      const {
+        violationType,
+        latitude,
+        longitude,
+        issuedAt,
+        geoHash,
+        dayOfWeek,
+        hourOfDay,
+      } = data;
+
+      logger.info("Processing new citation for risk engine", {
+        violationType,
+        geoHash,
+      });
+
+      // Update citation_risk_zones collection with this new data point
+      // Find the nearest zone or create a new micro-zone
+      const zoneId = geoHash || `zone_${Math.floor(latitude * 100)}_${Math.floor(longitude * 100)}`;
+      const zoneRef = db.collection("citation_risk_zones").doc(zoneId);
+
+      await db.runTransaction(async (transaction) => {
+        const zoneDoc = await transaction.get(zoneRef);
+
+        if (zoneDoc.exists) {
+          const zoneData = zoneDoc.data() || {};
+          const newTotalCitations = (zoneData.totalCitations || 0) + 1;
+
+          // Update violation counts
+          const violationCounts = {...(zoneData.violationCounts || {})};
+          violationCounts[violationType] = (violationCounts[violationType] || 0) + 1;
+
+          // Update hour distribution
+          const hourCounts = [...(zoneData.hourCounts || Array(24).fill(0))];
+          const hour = hourOfDay ?? new Date(issuedAt?.toDate?.() || issuedAt).getHours();
+          if (hour >= 0 && hour < 24) hourCounts[hour]++;
+
+          // Update day of week distribution
+          const dayOfWeekCounts = [...(zoneData.dayOfWeekCounts || Array(7).fill(0))];
+          const dow = (dayOfWeek ?? new Date(issuedAt?.toDate?.() || issuedAt).getDay()) - 1;
+          if (dow >= 0 && dow < 7) dayOfWeekCounts[dow]++;
+
+          // Calculate new risk score (citations per area factor)
+          // Higher citations = higher risk
+          const riskScore = Math.min(100, Math.floor(newTotalCitations / 5) + 20);
+
+          // Determine top violations
+          const sortedViolations = Object.entries(violationCounts)
+            .sort((a, b) => (b[1] as number) - (a[1] as number))
+            .slice(0, 5)
+            .map(([v]) => v);
+
+          // Determine peak hours (hours with above-average citations)
+          const avgHourCount = hourCounts.reduce((a, b) => a + b, 0) / 24;
+          const peakHours = hourCounts
+            .map((count, i) => ({hour: i, count}))
+            .filter((h) => h.count > avgHourCount * 1.2)
+            .map((h) => h.hour);
+
+          transaction.update(zoneRef, {
+            totalCitations: newTotalCitations,
+            violationCounts,
+            hourCounts,
+            dayOfWeekCounts,
+            riskScore,
+            topViolations: sortedViolations,
+            peakHours,
+            lastCitationAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            // Track data source
+            userSubmittedCount: FieldValue.increment(1),
+          });
+        } else {
+          // Create new zone
+          const hour = hourOfDay ?? new Date(issuedAt?.toDate?.() || issuedAt).getHours();
+          const dow = (dayOfWeek ?? new Date(issuedAt?.toDate?.() || issuedAt).getDay()) - 1;
+
+          const hourCounts = Array(24).fill(0);
+          if (hour >= 0 && hour < 24) hourCounts[hour] = 1;
+
+          const dayOfWeekCounts = Array(7).fill(0);
+          if (dow >= 0 && dow < 7) dayOfWeekCounts[dow] = 1;
+
+          transaction.set(zoneRef, {
+            geoHash: zoneId,
+            latitude,
+            longitude,
+            totalCitations: 1,
+            violationCounts: {[violationType]: 1},
+            hourCounts,
+            dayOfWeekCounts,
+            riskScore: 25, // Initial moderate risk
+            topViolations: [violationType],
+            peakHours: [hour],
+            lastCitationAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            userSubmittedCount: 1,
+            source: "user_submitted",
+          });
+        }
+      });
+
+      logger.info("Citation processed for risk zone", {zoneId, violationType});
+    } catch (err) {
+      logger.error("Failed to process citation analytics:", err);
+    }
+  }
+);
+
+/**
+ * Get citation analytics summary for a location
+ * Used by the Flutter app to display risk info
+ */
+export const getCitationAnalytics = onCall(
+  {region: "us-central1"},
+  async (request) => {
+    const {latitude, longitude, radiusKm = 1} = request.data;
+
+    if (!latitude || !longitude) {
+      throw new HttpsError("invalid-argument", "latitude and longitude are required");
+    }
+
+    const db = getFirestore();
+
+    try {
+      // Get nearby zones
+      const latDelta = radiusKm / 111; // ~111km per degree latitude
+      const lngDelta = radiusKm / (111 * Math.cos((latitude * Math.PI) / 180));
+
+      const zonesSnapshot = await db
+        .collection("citation_risk_zones")
+        .where("latitude", ">=", latitude - latDelta)
+        .where("latitude", "<=", latitude + latDelta)
+        .limit(50)
+        .get();
+
+      // Filter by longitude in memory (Firestore can only filter on one field with range)
+      const nearbyZones = zonesSnapshot.docs
+        .filter((doc) => {
+          const data = doc.data();
+          return (
+            data.longitude >= longitude - lngDelta &&
+            data.longitude <= longitude + lngDelta
+          );
+        })
+        .map((doc) => doc.data());
+
+      // Aggregate data from nearby zones
+      let totalCitations = 0;
+      const violationCounts: Record<string, number> = {};
+      const hourCounts = Array(24).fill(0);
+      let highestRiskScore = 0;
+
+      for (const zone of nearbyZones) {
+        totalCitations += zone.totalCitations || 0;
+        highestRiskScore = Math.max(highestRiskScore, zone.riskScore || 0);
+
+        // Aggregate violations
+        for (const [v, count] of Object.entries(zone.violationCounts || {})) {
+          violationCounts[v] = (violationCounts[v] || 0) + (count as number);
+        }
+
+        // Aggregate hours
+        const zoneHours = zone.hourCounts || [];
+        for (let i = 0; i < 24; i++) {
+          hourCounts[i] += zoneHours[i] || 0;
+        }
+      }
+
+      // Get top violations
+      const topViolations = Object.entries(violationCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([v]) => v);
+
+      // Get peak hours
+      const avgHour = hourCounts.reduce((a, b) => a + b, 0) / 24 || 1;
+      const peakHours = hourCounts
+        .map((count, i) => ({hour: i, count}))
+        .filter((h) => h.count > avgHour)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+        .map((h) => h.hour);
+
+      // Calculate risk level
+      let riskLevel: "low" | "medium" | "high" = "low";
+      if (highestRiskScore >= 70) riskLevel = "high";
+      else if (highestRiskScore >= 40) riskLevel = "medium";
+
+      return {
+        totalCitations,
+        riskScore: highestRiskScore,
+        riskLevel,
+        topViolations,
+        peakHours,
+        zonesAnalyzed: nearbyZones.length,
+        message: riskLevel === "high"
+          ? "High citation activity in this area. Check parking signs carefully!"
+          : riskLevel === "medium"
+            ? "Moderate citation activity. Be aware of restrictions."
+            : "Low citation activity nearby.",
+      };
+    } catch (err) {
+      logger.error("getCitationAnalytics failed:", err);
+      throw new HttpsError("internal", "Failed to get citation analytics");
+    }
   }
 );

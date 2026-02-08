@@ -19,6 +19,7 @@ class Ticket {
     this.latitude,
     this.longitude,
     this.vehicleId,
+    this.isSample = false,
   });
 
   final String id;
@@ -40,6 +41,7 @@ class Ticket {
   final double? latitude; // Citation location for risk engine
   final double? longitude; // Citation location for risk engine
   final String? vehicleId; // Link to registered vehicle
+  final bool isSample; // Flag for sample/demo tickets
 
   /// Check if the ticket is past due
   bool get isOverdue =>
@@ -93,6 +95,7 @@ class Ticket {
     double? latitude,
     double? longitude,
     String? vehicleId,
+    bool? isSample,
   }) {
     return Ticket(
       id: id ?? this.id,
@@ -112,6 +115,7 @@ class Ticket {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       vehicleId: vehicleId ?? this.vehicleId,
+      isSample: isSample ?? this.isSample,
     );
   }
 
@@ -134,6 +138,7 @@ class Ticket {
       'latitude': latitude,
       'longitude': longitude,
       'vehicleId': vehicleId,
+      'isSample': isSample,
     };
   }
 
@@ -163,6 +168,7 @@ class Ticket {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       vehicleId: json['vehicleId'] as String?,
+      isSample: json['isSample'] as bool? ?? false,
     );
   }
 }

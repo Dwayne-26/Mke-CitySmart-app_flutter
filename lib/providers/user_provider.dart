@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -28,6 +30,7 @@ import '../data/sample_tickets.dart';
 import '../services/ad_service.dart';
 import '../services/api_client.dart';
 import '../services/cloud_log_service.dart';
+import '../services/device_binding_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/parking_history_service.dart';
@@ -83,6 +86,12 @@ class UserProvider extends ChangeNotifier {
   Future<void>? _googleSignInInit;
   String? _lastAuthError;
 
+  /// Owner/admin email addresses - these get full Pro access with no ads
+  static const List<String> _ownerEmails = [
+    'dwaynesampson263@gmail.com', // Main owner account
+    'mkeparkapp@gmail.com', // App account
+  ];
+
   /// Whether Firebase-backed auth features are enabled for this build/run.
   bool get firebaseEnabled => _firebaseEnabled && _auth != null;
 
@@ -98,6 +107,14 @@ class UserProvider extends ChangeNotifier {
   bool get isLoggedIn => _profile != null;
   bool get isGuest => _guestMode;
   UserProfile? get profile => _profile;
+
+  /// Check if current user is an owner/admin (full access, no ads)
+  bool get isOwner {
+    final email = _auth?.currentUser?.email?.toLowerCase();
+    if (email == null) return false;
+    return _ownerEmails.any((e) => e.toLowerCase() == email);
+  }
+
   List<Permit> get permits => _profile?.permits ?? _guestPermits;
   List<Reservation> get reservations =>
       _profile?.reservations ?? _guestReservations;
@@ -108,7 +125,11 @@ class UserProvider extends ChangeNotifier {
   DateTime? get alertsMutedUntil => _alertsMutedUntil;
   List<PaymentReceipt> get receipts => _receipts;
   AdPreferences get adPreferences => _profile?.adPreferences ?? _adPreferences;
-  SubscriptionTier get tier => _profile?.tier ?? _tier;
+
+  /// Returns Pro tier for owners, otherwise the user's actual tier
+  SubscriptionTier get tier =>
+      isOwner ? SubscriptionTier.pro : (_profile?.tier ?? _tier);
+
   SubscriptionPlan get subscriptionPlan => _planForTier(tier);
   double get maxAlertRadiusMiles => subscriptionPlan.maxAlertRadiusMiles;
   int get maxAlertsPerDay => subscriptionPlan.alertVolumePerDay;
@@ -174,6 +195,7 @@ class UserProvider extends ChangeNotifier {
   Future<void> initialize() async {
     final auth = _auth;
     if (auth == null || !_firebaseEnabled) {
+      debugPrint('🔐 UserProvider: Firebase not available, using guest mode');
       _profile = null;
       _initializing = false;
       _guestMode = true;
@@ -185,17 +207,32 @@ class UserProvider extends ChangeNotifier {
       return;
     }
 
-    if (auth.currentUser != null) {
+    final currentUser = auth.currentUser;
+    if (currentUser != null) {
+      debugPrint('🔐 UserProvider: Found existing auth session');
+      debugPrint('   UID: ${currentUser.uid}');
+      debugPrint('   Anonymous: ${currentUser.isAnonymous}');
+      debugPrint('   Email: ${currentUser.email ?? "none"}');
+      debugPrint(
+        '   Providers: ${currentUser.providerData.map((p) => p.providerId).join(", ")}',
+      );
       _profile = await _repository.loadProfile();
+      debugPrint(
+        '   Profile loaded: ${_profile != null ? "yes (${_profile!.name})" : "no"}',
+      );
     } else {
+      debugPrint('🔐 UserProvider: No auth session - fresh start for new user');
       _profile = null;
     }
 
     await _hydrateFromStorage();
     _initializing = false;
     _guestMode = _profile == null;
+    debugPrint('🔐 UserProvider: Guest mode = $_guestMode');
     if (_firebaseEnabled && !_guestMode) {
       unawaited(_repository.syncPending());
+      // Update last activity timestamp for inactive account tracking
+      unawaited(_repository.updateLastActivity());
     }
     if (_guestMode) {
       _guestPermits = _seedPermits();
@@ -225,8 +262,8 @@ class UserProvider extends ChangeNotifier {
     _receipts = await _repository.loadReceipts();
     _adPreferences = _profile?.adPreferences ?? _adPreferences;
     _tier = _profile?.tier ?? _tier;
-    // Update AdService with user's subscription tier
-    AdService.instance.updateUserState(tier: _tier);
+    // Update AdService with user's subscription tier (owner-aware)
+    AdService.instance.updateUserState(tier: tier);
     _maintenanceReports = await _repository.loadMaintenanceReports();
     _garbageSchedules = sampleSchedules(
       _profile?.address ?? '1234 E Sample St',
@@ -865,6 +902,15 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Log before signing out (while we still have permissions)
+    unawaited(CloudLogService.instance.logEvent('user_logout'));
+
+    // Stop device binding listener
+    final userId = _auth?.currentUser?.uid;
+    if (userId != null) {
+      await DeviceBindingService.instance.clearDeviceBinding(userId);
+    }
+
     await _auth?.signOut();
     _profile = null;
     _guestMode = true;
@@ -885,7 +931,105 @@ class UserProvider extends ChangeNotifier {
     _tenantId = 'default';
     _languageCode = 'en';
     notifyListeners();
-    unawaited(CloudLogService.instance.logEvent('user_logout'));
+  }
+
+  /// Permanently deletes the user's account and all associated data.
+  /// This includes:
+  /// - Firebase Auth account
+  /// - Firestore user document and subcollections
+  /// - Local cached data
+  /// - RevenueCat subscription association
+  ///
+  /// Returns null on success, or an error message on failure.
+  Future<String?> deleteAccount() async {
+    final user = _auth?.currentUser;
+    if (user == null) {
+      return 'No user signed in';
+    }
+
+    try {
+      final uid = user.uid;
+      final isAnonymous = user.isAnonymous;
+
+      // Log the deletion event BEFORE deleting (while we still have permissions)
+      unawaited(
+        CloudLogService.instance.logEvent(
+          'account_deletion_started',
+          data: {'uid': uid, 'isAnonymous': isAnonymous},
+        ),
+      );
+
+      // 1. Delete Firestore data (user document and subcollections)
+      if (_firebaseEnabled) {
+        final firestore = FirebaseFirestore.instance;
+        final userDocRef = firestore.collection('users').doc(uid);
+
+        // Delete subcollections
+        final subcollections = [
+          'tickets',
+          'places',
+          'sightings',
+          'maintenance_reports',
+        ];
+        for (final subcollection in subcollections) {
+          final snapshot = await userDocRef.collection(subcollection).get();
+          for (final doc in snapshot.docs) {
+            await doc.reference.delete();
+          }
+        }
+
+        // Delete the main user document
+        await userDocRef.delete();
+      }
+
+      // 2. Logout from RevenueCat (only if not anonymous)
+      if (!isAnonymous) {
+        try {
+          await SubscriptionService.instance.logout();
+        } catch (e) {
+          // RevenueCat logout can fail for various reasons, don't block deletion
+          debugPrint('RevenueCat logout during account deletion failed: $e');
+        }
+      }
+
+      // 3. Delete Firebase Auth account
+      await user.delete();
+
+      // 4. Clear all local data
+      _profile = null;
+      _guestMode = true;
+      _guestPermits = const [];
+      _guestReservations = const [];
+      _guestSweepingSchedules = const [];
+      _tickets = const [];
+      _sightings = const [];
+      _adPreferences = const AdPreferences();
+      _tier = SubscriptionTier.free;
+      AdService.instance.updateUserState(tier: SubscriptionTier.free);
+      _receipts = const [];
+      _maintenanceReports = const [];
+      _garbageSchedules = const [];
+      _rulePack = defaultRulePack;
+      _cityId = 'default';
+      _tenantId = 'default';
+      _languageCode = 'en';
+
+      // 5. Clear SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      notifyListeners();
+
+      return null; // Success
+    } on FirebaseAuthException catch (e) {
+      // User may need to re-authenticate for sensitive operations
+      if (e.code == 'requires-recent-login') {
+        return 'Please sign out and sign back in, then try again';
+      }
+      return 'Failed to delete account: ${e.message}';
+    } catch (e) {
+      return 'Failed to delete account: $e';
+    }
   }
 
   Future<void> updateProfile({
@@ -1199,6 +1343,43 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Grant a temporary premium trial from watching a rewarded ad.
+  /// This extends or sets a premium trial in Firestore.
+  Future<void> grantAdRewardTrial({int days = 3}) async {
+    if (!_firebaseEnabled) return;
+
+    final user = _auth?.currentUser;
+    if (user == null) return;
+
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final userDoc = firestore.collection('users').doc(user.uid);
+      final userData = await userDoc.get();
+
+      // Check existing trial end date
+      DateTime trialEnd = DateTime.now().add(Duration(days: days));
+      if (userData.exists) {
+        final existingEnd = userData.data()?['premiumTrialEnd'] as Timestamp?;
+        if (existingEnd != null &&
+            existingEnd.toDate().isAfter(DateTime.now())) {
+          // Extend existing trial
+          trialEnd = existingEnd.toDate().add(Duration(days: days));
+        }
+      }
+
+      // Update Firestore with new trial end
+      await userDoc.set({
+        'premiumTrialEnd': Timestamp.fromDate(trialEnd),
+        'lastAdRewardAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      debugPrint('✅ Granted $days day ad reward trial until $trialEnd');
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Failed to grant ad reward trial: $e');
+    }
+  }
+
   Future<void> updateCityAndTenant({
     required String cityId,
     required String tenantId,
@@ -1252,6 +1433,13 @@ class UserProvider extends ChangeNotifier {
   /// Add a new ticket to tracking
   void addTicket(Ticket ticket) {
     _tickets = [ticket, ..._tickets];
+    _persistTickets();
+    notifyListeners();
+  }
+
+  /// Delete a ticket from tracking
+  void deleteTicket(String ticketId) {
+    _tickets = _tickets.where((t) => t.id != ticketId).toList();
     _persistTickets();
     notifyListeners();
   }
@@ -1602,6 +1790,66 @@ class UserProvider extends ChangeNotifier {
     _profile = stored;
     _guestMode = false;
     await _hydrateFromStorage();
+
+    // Register this device and start listening for kicks (Option A: new device takes over)
+    await _setupDeviceBinding(user.uid);
+
+    notifyListeners();
+  }
+
+  /// Set up device binding for the current user.
+  /// Registers this device and listens for sign-outs from other devices.
+  Future<void> _setupDeviceBinding(String userId) async {
+    try {
+      // Register this device (will kick out any other device)
+      await DeviceBindingService.instance.registerDevice(userId);
+
+      // Start listening for when another device kicks us out
+      DeviceBindingService.instance.startListening(userId, () {
+        debugPrint(
+          'UserProvider: Kicked out by another device, signing out...',
+        );
+        _handleRemoteSignOut();
+      });
+    } catch (e) {
+      debugPrint('UserProvider: Device binding error: $e');
+      // Don't block login on device binding errors
+    }
+  }
+
+  /// Handle being signed out by another device
+  Future<void> _handleRemoteSignOut() async {
+    // Stop listening to prevent loops
+    DeviceBindingService.instance.stopListening();
+
+    // Sign out locally
+    await _auth?.signOut();
+
+    // Clear local state
+    _profile = null;
+    _guestMode = true;
+    _guestPermits = const [];
+    _guestReservations = const [];
+    _guestSweepingSchedules = const [];
+    _tickets = const [];
+    _sightings = const [];
+    _adPreferences = const AdPreferences();
+    _tier = SubscriptionTier.free;
+    AdService.instance.updateUserState(tier: SubscriptionTier.free);
+    _receipts = const [];
+    _maintenanceReports = const [];
+    _garbageSchedules = const [];
+    _rulePack = defaultRulePack;
+    _cityId = 'default';
+    _tenantId = 'default';
+    _languageCode = 'en';
+
+    // Set error message so user knows what happened
+    _setLastAuthError(
+      'Your account was signed in on another device. '
+      'If this wasn\'t you, please change your password.',
+    );
+
     notifyListeners();
   }
 

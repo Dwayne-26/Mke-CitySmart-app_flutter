@@ -96,9 +96,10 @@ service cloud.firestore {
 
     // Saved places (home, work, favorites) - user-owned data
     match /savedPlaces/{placeId} {
-      // Users can read only their own saved places
+      // Users can read/list their own saved places
+      // For queries, Firestore checks that the query constraint matches the rule
       allow read: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+        && (resource == null || resource.data.userId == request.auth.uid);
 
       // Users can create saved places for themselves
       allow create: if request.auth != null
@@ -110,16 +111,140 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
+    // Crowdsourced parking reports
+    match /parkingReports/{reportId} {
+      // Any authenticated user can read nearby reports
+      allow read: if request.auth != null;
+
+      // Authenticated users can create reports with required fields
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasAll([
+          'userId', 'reportType', 'latitude', 'longitude',
+          'geohash', 'timestamp', 'expiresAt'
+        ])
+        && request.resource.data.latitude is number
+        && request.resource.data.longitude is number
+        && request.resource.data.geohash is string;
+
+      // Only upvotes/downvotes can be incremented (via FieldValue.increment)
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['upvotes', 'downvotes', 'isExpired']);
+
+      // Only the owner can delete their own report
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    // Crowdsource zone aggregates — rolled up from parking reports.
+    // Written by clients via transactions (on report submit) and read by all.
+    match /crowdsourceZones/{zoneId} {
+      // Any authenticated user can read zone aggregates
+      allow read: if request.auth != null;
+
+      // Create/update allowed for authenticated users (zone aggregation runs
+      // client-side via Firestore transactions after each report submission).
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasAll([
+          'region', 'geohash', 'latitude', 'longitude'
+        ])
+        && request.resource.data.region is string
+        && request.resource.data.geohash is string;
+
+      // Only admins can delete zone documents
+      allow delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // Citation risk zones - read-only for app users (populated by backend)
     match /citation_risk_zones/{zoneId} {
       allow read: if true;
       allow write: if false;
     }
 
-    // App logs - allow authenticated users to write logs for debugging/analytics
+    // App logs - allow any authenticated user to write logs for debugging/analytics
+    // Read/update/delete remain restricted
     match /appLogs/{logId} {
       allow create: if request.auth != null;
-      allow read, update, delete: if false;
+      allow read, update, delete: if request.auth != null 
+        && request.auth.token.admin == true;
+    }
+
+    // Referral codes - public read (to validate codes), write only by owner
+    match /referral_codes/{codeId} {
+      // Anyone can read to check if a code is valid
+      allow read: if request.auth != null;
+      
+      // Only the owner can create their code (via ReferralService)
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      
+      // Updates allowed by owner or for incrementing uses
+      allow update: if request.auth != null
+        && (resource.data.ownerId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses', 'lastUsedAt']));
+      
+      allow delete: if false;
+    }
+
+    // Referrals collection - tracks who referred whom
+    match /referrals/{referralId} {
+      // Users can read referrals where they are the referrer or referred
+      allow read: if request.auth != null
+        && (resource.data.referrerId == request.auth.uid
+            || resource.data.referredId == request.auth.uid);
+      
+      // Create allowed for authenticated users recording their referral
+      allow create: if request.auth != null
+        && request.resource.data.referredId == request.auth.uid
+        && request.resource.data.keys().hasAll(['referrerId', 'referredId', 'code', 'createdAt', 'status']);
+      
+      // No updates or deletes from clients
+      allow update, delete: if false;
+    }
+
+    // Citation analytics - anonymized citation data for risk engine
+    // Users can submit citations, but cannot read/modify others' submissions
+    match /citation_analytics/{citationId} {
+      // Read allowed for authenticated users (for hotspot queries)
+      allow read: if request.auth != null;
+      
+      // Create allowed for authenticated users submitting anonymized data
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['violationType', 'latitude', 'longitude', 'issuedAt'])
+        && request.resource.data.violationType is string
+        && request.resource.data.latitude is number
+        && request.resource.data.longitude is number;
+      
+      // No updates or deletes from clients
+      allow update, delete: if false;
+    }
+
+    // Citation stats - aggregated statistics per geo area
+    // Read by clients, written by backend or via transaction
+    match /citation_stats/{geoHash} {
+      // Anyone authenticated can read stats
+      allow read: if request.auth != null;
+      
+      // Create/update allowed for aggregation (via transaction)
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasAll(['geoHash', 'totalCitations']);
+      
+      allow delete: if false;
+    }
+
+    // Municipality stats - per-city aggregated data for expansion planning
+    // Read by clients, written by backend/Cloud Functions
+    match /municipality_stats/{municipalityId} {
+      // Anyone authenticated can read municipality stats
+      allow read: if request.auth != null;
+      
+      // Create/update allowed from Cloud Functions and client transactions
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasAny(['municipalityId', 'city', 'state']);
+      
+      allow delete: if false;
     }
 
     // Deny everything else by default.

@@ -6,11 +6,14 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/ticket.dart';
 import '../models/user_preferences.dart';
 import '../providers/user_provider.dart';
+import '../services/citation_analytics_service.dart';
 import '../services/notification_service.dart';
+import '../services/ticket_ocr_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/citysmart_scaffold.dart';
 
@@ -58,11 +61,30 @@ class TicketTrackerScreen extends StatefulWidget {
 class _TicketTrackerScreenState extends State<TicketTrackerScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _showSampleHint = false;
+  static const _sampleHintDismissedKey = 'ticket_sample_hint_dismissed';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _checkSampleHintStatus();
+  }
+
+  Future<void> _checkSampleHintStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    final dismissed = prefs.getBool(_sampleHintDismissedKey) ?? false;
+    if (mounted && !dismissed) {
+      setState(() => _showSampleHint = true);
+    }
+  }
+
+  Future<void> _dismissSampleHint() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_sampleHintDismissedKey, true);
+    if (mounted) {
+      setState(() => _showSampleHint = false);
+    }
   }
 
   @override
@@ -108,6 +130,45 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                     .length,
               ),
 
+              // Pay citations info banner
+              GestureDetector(
+                onTap: () => _showPaymentInfoSheet(context),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Colors.orange.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: Colors.orange, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Why can\'t you pay citations in-app? Tap to learn more.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: kCitySmartText.withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: Colors.orange.withValues(alpha: 0.7),
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               // Tabs
               TabBar(
                 controller: _tabController,
@@ -120,6 +181,65 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                   const Tab(text: 'Add new'),
                 ],
               ),
+
+              // Sample tickets hint - only show if there are sample tickets and hint not dismissed
+              if (_showSampleHint && tickets.any((t) => t.isSample))
+                Container(
+                  margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kCitySmartYellow.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: kCitySmartYellow.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.lightbulb_outline,
+                        color: kCitySmartYellow,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Sample tickets for demo',
+                              style: TextStyle(
+                                color: kCitySmartYellow,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Swipe left on any ticket to delete it. These are just examples to show you how the tracker works.',
+                              style: TextStyle(
+                                color: kCitySmartText.withValues(alpha: 0.8),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _dismissSampleHint,
+                        icon: const Icon(
+                          Icons.close,
+                          color: kCitySmartMuted,
+                          size: 20,
+                        ),
+                        tooltip: 'Dismiss',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Tab content
               Expanded(
@@ -136,22 +256,78 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                         : ListView.builder(
                             padding: const EdgeInsets.all(12),
                             itemCount: openTickets.length,
-                            itemBuilder: (context, index) => _TicketCard(
-                              ticket: openTickets[index],
-                              onPay: () => _showPayDialog(
-                                context,
-                                provider,
-                                openTickets[index],
-                              ),
-                              onContest: () => _showContestDialog(
-                                context,
-                                openTickets[index],
-                              ),
-                              onSetReminder: () => _showReminderDialog(
-                                context,
-                                openTickets[index],
-                              ),
-                            ),
+                            itemBuilder: (context, index) {
+                              final ticket = openTickets[index];
+                              return Dismissible(
+                                key: Key(ticket.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  return await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Ticket?'),
+                                          content: Text(
+                                            ticket.isSample
+                                                ? 'Remove this sample ticket?'
+                                                : 'Are you sure you want to delete this ticket? This cannot be undone.',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ) ??
+                                      false;
+                                },
+                                onDismissed: (direction) {
+                                  provider.deleteTicket(ticket.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ticket.isSample
+                                            ? 'Sample ticket removed'
+                                            : 'Ticket deleted',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: _TicketCard(
+                                  ticket: ticket,
+                                  onPay: () =>
+                                      _showPayDialog(context, provider, ticket),
+                                  onContest: () =>
+                                      _showContestDialog(context, ticket),
+                                  onSetReminder: () =>
+                                      _showReminderDialog(context, ticket),
+                                ),
+                              );
+                            },
                           ),
 
                     // Paid/resolved tickets
@@ -164,8 +340,70 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
                         : ListView.builder(
                             padding: const EdgeInsets.all(12),
                             itemCount: paidTickets.length,
-                            itemBuilder: (context, index) =>
-                                _PaidTicketCard(ticket: paidTickets[index]),
+                            itemBuilder: (context, index) {
+                              final ticket = paidTickets[index];
+                              return Dismissible(
+                                key: Key(ticket.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  return await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Delete Ticket?'),
+                                          content: Text(
+                                            ticket.isSample
+                                                ? 'Remove this sample ticket?'
+                                                : 'Remove this paid ticket from history?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ) ??
+                                      false;
+                                },
+                                onDismissed: (direction) {
+                                  provider.deleteTicket(ticket.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ticket.isSample
+                                            ? 'Sample ticket removed'
+                                            : 'Ticket removed from history',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: _PaidTicketCard(ticket: ticket),
+                              );
+                            },
                           ),
 
                     // Add new ticket
@@ -192,6 +430,141 @@ class _TicketTrackerScreenState extends State<TicketTrackerScreen>
 
   void _showAddTicketDialog(BuildContext context, UserProvider provider) {
     _tabController.animateTo(2); // Switch to Add tab
+  }
+
+  void _showPaymentInfoSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kCitySmartCard,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: kCitySmartMuted.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Icon and title
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.info_outline,
+                    color: Colors.orange,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Text(
+                    'Why Can\'t You Pay Here?',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: kCitySmartText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Message content
+            Text(
+              'We wanted to offer you the ability to pay parking citations directly through MKE CitySmart with a transaction fee under \$2.00 — less than what the city currently charges. Unfortunately, this feature was denied under current regulations.',
+              style: TextStyle(
+                fontSize: 15,
+                color: kCitySmartText.withValues(alpha: 0.85),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Current policies require all payments to go through the issuing organization. One payment option doesn\'t feel fair to us either — why should there be only one way to pay a citation that was given to you?',
+              style: TextStyle(
+                fontSize: 15,
+                color: kCitySmartText.withValues(alpha: 0.85),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kCitySmartGreen.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: kCitySmartGreen.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.campaign_outlined, color: kCitySmartGreen),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'We believe Milwaukee drivers deserve more choices and lower fees. If you agree, let your city representatives know!',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: kCitySmartText.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'We haven\'t given up on this idea and will keep pushing for change.',
+              style: TextStyle(
+                fontSize: 14,
+                color: kCitySmartMuted,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Close button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kCitySmartYellow,
+                  foregroundColor: kCitySmartGreen,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Got It',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showPayDialog(
@@ -800,8 +1173,11 @@ class _AddTicketFormState extends State<_AddTicketForm> {
   DateTime _dueDate = DateTime.now().add(const Duration(days: 14));
   File? _photoFile;
   bool _useManualPlate = false;
+  bool _isScanning = false;
+  TicketOcrResult? _ocrResult;
 
   final _picker = ImagePicker();
+  final _ocrService = TicketOcrService.instance;
 
   @override
   void dispose() {
@@ -813,14 +1189,27 @@ class _AddTicketFormState extends State<_AddTicketForm> {
 
   Future<void> _takePhoto() async {
     final messenger = ScaffoldMessenger.of(context);
-    final photo = await _picker.pickImage(source: ImageSource.camera);
-    if (photo != null) {
-      setState(() => _photoFile = File(photo.path));
-      // TODO: Use OCR to extract ticket details from photo
+    try {
+      final photo = await _picker.pickImage(source: ImageSource.camera);
+      if (photo != null) {
+        final file = File(photo.path);
+        setState(() {
+          _photoFile = file;
+          _isScanning = true;
+        });
+
+        // Run OCR to extract ticket data
+        await _scanAndAutoFill(file, messenger);
+      }
+    } catch (e) {
+      debugPrint('❌ Camera error: $e');
       if (mounted) {
         messenger.showSnackBar(
           const SnackBar(
-            content: Text('Photo captured! Enter details manually.'),
+            content: Text(
+              'Unable to access camera. Check permissions in Settings.',
+            ),
+            backgroundColor: Colors.red,
           ),
         );
       }
@@ -828,9 +1217,113 @@ class _AddTicketFormState extends State<_AddTicketForm> {
   }
 
   Future<void> _pickPhoto() async {
-    final photo = await _picker.pickImage(source: ImageSource.gallery);
-    if (photo != null) {
-      setState(() => _photoFile = File(photo.path));
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final photo = await _picker.pickImage(source: ImageSource.gallery);
+      if (photo != null) {
+        final file = File(photo.path);
+        setState(() {
+          _photoFile = file;
+          _isScanning = true;
+        });
+
+        // Run OCR to extract ticket data
+        await _scanAndAutoFill(file, messenger);
+      }
+    } catch (e) {
+      debugPrint('❌ Gallery error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to access photo library. Check permissions in Settings.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Scan ticket photo with OCR and auto-fill form fields
+  Future<void> _scanAndAutoFill(
+    File photoFile,
+    ScaffoldMessengerState messenger,
+  ) async {
+    try {
+      final result = await _ocrService.scanTicket(photoFile);
+
+      if (!mounted) return;
+
+      setState(() {
+        _ocrResult = result;
+        _isScanning = false;
+      });
+
+      if (result.hasData) {
+        // Auto-fill extracted fields
+        if (result.citationNumber != null) {
+          _ticketIdController.text = result.citationNumber!;
+        }
+        if (result.amount != null) {
+          _amountController.text = result.amount!.toStringAsFixed(2);
+        }
+        if (result.location != null) {
+          _locationController.text = result.location!;
+        }
+        if (result.violationType != null) {
+          // Find matching violation in our list
+          final matchedViolation = kMilwaukeeViolationTypes.firstWhere(
+            (v) =>
+                v.toUpperCase().contains(result.violationType!.toUpperCase()) ||
+                result.violationType!.toUpperCase().contains(v.toUpperCase()),
+            orElse: () => result.violationType!,
+          );
+          setState(() => _selectedViolation = matchedViolation);
+        }
+        if (result.issuedDate != null) {
+          setState(() {
+            _issuedDate = result.issuedDate!;
+            _dueDate = result.issuedDate!.add(const Duration(days: 14));
+          });
+        }
+        if (result.licensePlate != null) {
+          setState(() {
+            _manualPlate = result.licensePlate!;
+            _useManualPlate = true;
+          });
+        }
+
+        // Show success feedback
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Auto-filled ${result.fieldsExtracted} fields from photo! Review & submit.',
+            ),
+            backgroundColor: kCitySmartGreen,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not read ticket details. Please enter manually.',
+            ),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ OCR scan failed: $e');
+      if (mounted) {
+        setState(() => _isScanning = false);
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('Scan failed. Please enter details manually.'),
+          ),
+        );
+      }
     }
   }
 
@@ -918,11 +1411,28 @@ class _AddTicketFormState extends State<_AddTicketForm> {
       );
       widget.onSubmit(ticket);
 
-      // Log citation data for risk engine improvement
+      // Submit citation data to analytics service for risk engine learning
       if (latitude != null && longitude != null) {
-        debugPrint(
-          '🎯 Citation data logged for risk engine: $locationText ($latitude, $longitude) - $_selectedViolation',
-        );
+        try {
+          await CitationAnalyticsService.instance.submitCitation(
+            citationNumber: ticketId,
+            violationType: _selectedViolation ?? 'OTHER',
+            latitude: latitude,
+            longitude: longitude,
+            issuedAt: _issuedDate,
+            licensePlate: plate,
+            amount: double.tryParse(_amountController.text),
+            location: locationText,
+            photoPath: savedPhotoPath,
+            fromOcr: _ocrResult?.hasData ?? false,
+          );
+          debugPrint(
+            '🎯 Citation submitted to analytics: $locationText ($latitude, $longitude) - $_selectedViolation',
+          );
+        } catch (e) {
+          debugPrint('⚠️ Failed to submit citation analytics: $e');
+          // Non-fatal, continue
+        }
       }
 
       // Clear form
@@ -931,6 +1441,7 @@ class _AddTicketFormState extends State<_AddTicketForm> {
       _locationController.clear();
       setState(() {
         _photoFile = null;
+        _ocrResult = null;
         _selectedViolation = null;
         _selectedVehicleId = null;
         _manualPlate = '';
@@ -951,47 +1462,121 @@ class _AddTicketFormState extends State<_AddTicketForm> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Photo capture section
+            // Photo capture section with OCR
             Card(
               color: kCitySmartCard,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.document_scanner,
+                          color: kCitySmartGreen,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Snap a photo to auto-fill',
+                          style: TextStyle(
+                            color: kCitySmartText,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
                     const Text(
-                      'Snap a photo of your ticket',
-                      style: TextStyle(
-                        color: kCitySmartText,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      'We\'ll read your ticket and fill in the details',
+                      style: TextStyle(color: kCitySmartMuted, fontSize: 12),
                     ),
                     const SizedBox(height: 12),
-                    if (_photoFile != null)
-                      Stack(
+                    if (_isScanning)
+                      const Column(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              _photoFile!,
-                              height: 150,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
+                          SizedBox(height: 20),
+                          CircularProgressIndicator(color: kCitySmartGreen),
+                          SizedBox(height: 12),
+                          Text(
+                            'Scanning ticket...',
+                            style: TextStyle(color: kCitySmartMuted),
                           ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                color: Colors.white,
+                          SizedBox(height: 20),
+                        ],
+                      )
+                    else if (_photoFile != null)
+                      Column(
+                        children: [
+                          Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.file(
+                                  _photoFile!,
+                                  height: 150,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
-                              onPressed: () =>
-                                  setState(() => _photoFile = null),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.black54,
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () => setState(() {
+                                    _photoFile = null;
+                                    _ocrResult = null;
+                                  }),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.black54,
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (_ocrResult?.hasData ?? false)
+                                Positioned(
+                                  bottom: 4,
+                                  left: 4,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: kCitySmartGreen,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${_ocrResult!.fieldsExtracted} fields detected',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: _takePhoto,
+                            icon: const Icon(Icons.refresh, size: 16),
+                            label: const Text('Rescan'),
                           ),
                         ],
                       )

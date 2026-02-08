@@ -8,6 +8,7 @@ import '../services/parking_risk_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ad_widgets.dart';
 import '../widgets/citysmart_scaffold.dart';
+import '../widgets/crowdsource_widgets.dart';
 import 'alerts_landing_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -84,7 +85,9 @@ class _DashboardScreenState extends State<DashboardScreen>
     double lng = -87.9065;
 
     try {
-      final loc = await LocationService().getCurrentPosition();
+      final loc = await LocationService().getCurrentPosition().timeout(
+        const Duration(seconds: 8),
+      );
       if (loc != null) {
         lat = loc.latitude;
         lng = loc.longitude;
@@ -136,6 +139,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               _RiskBadgeCard(risk: _locationRisk!)
             else
               _RiskBadgeCardError(onRetry: _loadRiskData),
+            const SizedBox(height: 12),
+            // Live crowdsource parking availability + report button
+            const CrowdsourceAvailabilityBanner(),
             const SizedBox(height: 16),
             Expanded(
               child: GridView.count(
@@ -198,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   HomeTile(
                     icon: Icons.build_circle_outlined,
                     title: 'Report maintenance',
-                    onTap: () => Navigator.pushNamed(context, '/maintenance'),
+                    comingSoon: true,
                   ),
                   HomeTile(
                     icon: Icons.history,
@@ -259,12 +265,14 @@ class HomeTile extends StatelessWidget {
     required this.title,
     this.subtitle,
     this.onTap,
+    this.comingSoon = false,
   });
 
   final IconData icon;
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
+  final bool comingSoon;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +285,16 @@ class HomeTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: onTap ?? () {},
+        onTap: comingSoon
+            ? () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Coming soon!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            : (onTap ?? () {}),
         child: Ink(
           decoration: BoxDecoration(
             color: tileBg,
@@ -285,39 +302,74 @@ class HomeTile extends StatelessWidget {
             border: Border.all(color: tileBorder, width: 1),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Stack(
             children: [
-              Icon(icon, size: 36, color: accent),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
-                    letterSpacing: 0.2,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    icon,
+                    size: 36,
+                    color: comingSoon ? accent.withValues(alpha: 0.5) : accent,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 2),
-                Flexible(
-                  child: Text(
-                    subtitle!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
+                  const Spacer(),
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: comingSoon
+                            ? textColor.withValues(alpha: 0.5)
+                            : textColor,
+                        letterSpacing: 0.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Flexible(
+                      child: Text(
+                        subtitle!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: comingSoon
+                              ? textColor.withValues(alpha: 0.5)
+                              : textColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (comingSoon)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'SOON',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0D2A26),
+                      ),
+                    ),
                   ),
                 ),
-              ],
             ],
           ),
         ),
