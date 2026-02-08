@@ -89,13 +89,13 @@ class ParkingPredictionService {
         geohashPrecision: 6, // ~1.2km radius for prediction
       );
       if (nearbyReports.isNotEmpty) {
-        final availability =
-            _crowdsourceService.aggregateAvailability(nearbyReports);
+        final availability = ParkingCrowdsourceService.aggregateAvailability(
+          nearbyReports,
+        );
         // Crowdsource availability shifts the safety score by up to ±15%
         // Score > 0.5 means users report spots available → boost safety
         // Score < 0.5 means users report spots taken → reduce safety
-        final crowdsourceDelta =
-            (availability.availabilityScore - 0.5) * 0.3;
+        final crowdsourceDelta = (availability.availabilityScore - 0.5) * 0.3;
         safetyScore += crowdsourceDelta;
         // Enforcement penalty from crowdsource
         if (availability.hasEnforcement) {

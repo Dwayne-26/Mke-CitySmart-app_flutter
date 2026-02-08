@@ -137,6 +137,26 @@ service cloud.firestore {
         && resource.data.userId == request.auth.uid;
     }
 
+    // Crowdsource zone aggregates — rolled up from parking reports.
+    // Written by clients via transactions (on report submit) and read by all.
+    match /crowdsourceZones/{zoneId} {
+      // Any authenticated user can read zone aggregates
+      allow read: if request.auth != null;
+
+      // Create/update allowed for authenticated users (zone aggregation runs
+      // client-side via Firestore transactions after each report submission).
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasAll([
+          'region', 'geohash', 'latitude', 'longitude'
+        ])
+        && request.resource.data.region is string
+        && request.resource.data.geohash is string;
+
+      // Only admins can delete zone documents
+      allow delete: if request.auth != null
+        && request.auth.token.admin == true;
+    }
+
     // Citation risk zones - read-only for app users (populated by backend)
     match /citation_risk_zones/{zoneId} {
       allow read: if true;

@@ -126,6 +126,14 @@ class ParkingReport {
   final int downvotes;
   final bool isExpired;
 
+  /// Region this report belongs to (e.g. "wi/milwaukee").
+  /// Enables multi-region partitioning for scaling to other cities/states.
+  final String region;
+
+  /// Zone document ID this report rolls up into.
+  /// Format: "{region}_{geohash7}", e.g. "wi_milwaukee_dp5dtpp".
+  final String? zoneId;
+
   const ParkingReport({
     required this.id,
     required this.userId,
@@ -140,6 +148,8 @@ class ParkingReport {
     this.upvotes = 0,
     this.downvotes = 0,
     this.isExpired = false,
+    this.region = 'wi/milwaukee',
+    this.zoneId,
   });
 
   /// Create from Firestore document
@@ -157,15 +167,15 @@ class ParkingReport {
       latitude: (data['latitude'] as num).toDouble(),
       longitude: (data['longitude'] as num).toDouble(),
       geohash: data['geohash'] as String? ?? '',
-      timestamp:
-          (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      expiresAt:
-          (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      expiresAt: (data['expiresAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       accuracyMeters: (data['accuracyMeters'] as num?)?.toDouble(),
       note: data['note'] as String?,
       upvotes: (data['upvotes'] as num?)?.toInt() ?? 0,
       downvotes: (data['downvotes'] as num?)?.toInt() ?? 0,
       isExpired: data['isExpired'] as bool? ?? false,
+      region: data['region'] as String? ?? 'wi/milwaukee',
+      zoneId: data['zoneId'] as String?,
     );
   }
 
@@ -188,6 +198,8 @@ class ParkingReport {
       upvotes: (json['upvotes'] as num?)?.toInt() ?? 0,
       downvotes: (json['downvotes'] as num?)?.toInt() ?? 0,
       isExpired: json['isExpired'] as bool? ?? false,
+      region: json['region'] as String? ?? 'wi/milwaukee',
+      zoneId: json['zoneId'] as String?,
     );
   }
 
@@ -206,6 +218,8 @@ class ParkingReport {
       'upvotes': upvotes,
       'downvotes': downvotes,
       'isExpired': isExpired,
+      'region': region,
+      'zoneId': zoneId,
     };
   }
 
@@ -225,12 +239,13 @@ class ParkingReport {
       'upvotes': upvotes,
       'downvotes': downvotes,
       'isExpired': isExpired,
+      'region': region,
+      'zoneId': zoneId,
     };
   }
 
   /// Whether this report is still relevant (not past TTL)
-  bool get isStillRelevant =>
-      !isExpired && DateTime.now().isBefore(expiresAt);
+  bool get isStillRelevant => !isExpired && DateTime.now().isBefore(expiresAt);
 
   /// Reliability score based on votes (0.0 to 1.0)
   double get reliabilityScore {
@@ -240,8 +255,7 @@ class ParkingReport {
   }
 
   /// Age of report in minutes
-  int get ageMinutes =>
-      DateTime.now().difference(timestamp).inMinutes;
+  int get ageMinutes => DateTime.now().difference(timestamp).inMinutes;
 
   ParkingReport copyWith({
     ReportType? reportType,
@@ -254,6 +268,8 @@ class ParkingReport {
     int? upvotes,
     int? downvotes,
     bool? isExpired,
+    String? region,
+    String? zoneId,
   }) {
     return ParkingReport(
       id: id,
@@ -269,6 +285,8 @@ class ParkingReport {
       upvotes: upvotes ?? this.upvotes,
       downvotes: downvotes ?? this.downvotes,
       isExpired: isExpired ?? this.isExpired,
+      region: region ?? this.region,
+      zoneId: zoneId ?? this.zoneId,
     );
   }
 
@@ -297,6 +315,10 @@ class SpotAvailability {
   final int enforcementSignals;
   final DateTime lastUpdated;
 
+  /// Estimated number of open spots derived from signal counts.
+  /// availableSignals − takenSignals, floored to 0.
+  final int estimatedOpenSpots;
+
   const SpotAvailability({
     required this.geohashPrefix,
     required this.totalReports,
@@ -304,6 +326,7 @@ class SpotAvailability {
     required this.takenSignals,
     required this.enforcementSignals,
     required this.lastUpdated,
+    this.estimatedOpenSpots = 0,
   });
 
   /// Availability score: 0.0 (no spots) to 1.0 (plenty of spots)
@@ -318,6 +341,9 @@ class SpotAvailability {
 
   /// Human-readable availability label
   String get label {
+    if (estimatedOpenSpots > 0) {
+      return '~$estimatedOpenSpots spot${estimatedOpenSpots == 1 ? '' : 's'} open';
+    }
     final score = availabilityScore;
     if (score >= 0.7) return 'Good availability';
     if (score >= 0.4) return 'Limited spots';

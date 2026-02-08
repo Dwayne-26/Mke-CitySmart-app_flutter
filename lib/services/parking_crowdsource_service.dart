@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 import '../models/parking_report.dart';
+import 'zone_aggregation_service.dart';
 
 /// Service for crowdsourced parking availability reports.
 ///
@@ -18,6 +19,7 @@ class ParkingCrowdsourceService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ZoneAggregationService _zoneService = ZoneAggregationService.instance;
 
   /// Firestore collection name
   static const String _collection = 'parkingReports';
@@ -51,6 +53,7 @@ class ParkingCrowdsourceService {
     required double longitude,
     double? accuracyMeters,
     String? note,
+    String region = 'wi/milwaukee',
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
@@ -65,8 +68,17 @@ class ParkingCrowdsourceService {
     }
 
     final now = DateTime.now();
-    final geohash = encodeGeohash(latitude, longitude, _storageGeohashPrecision);
+    final geohash = encodeGeohash(
+      latitude,
+      longitude,
+      _storageGeohashPrecision,
+    );
     final expiresAt = now.add(Duration(minutes: reportType.ttlMinutes));
+    final zoneGeohash = geohash.substring(
+      0,
+      ZoneAggregationService.zonePrecision.clamp(1, geohash.length),
+    );
+    final zoneId = ZoneAggregationService.zoneDocId(region, zoneGeohash);
 
     final docRef = _firestore.collection(_collection).doc();
     final report = ParkingReport(
@@ -80,6 +92,8 @@ class ParkingCrowdsourceService {
       expiresAt: expiresAt,
       accuracyMeters: accuracyMeters,
       note: note,
+      region: region,
+      zoneId: zoneId,
     );
 
     try {
@@ -87,8 +101,16 @@ class ParkingCrowdsourceService {
       _recentSubmissions.add(now);
       debugPrint(
         '[Crowdsource] Report submitted: ${reportType.displayName} '
-        'at $latitude,$longitude (geohash: $geohash)',
+        'at $latitude,$longitude (geohash: $geohash, zone: $zoneId)',
       );
+
+      // Fire-and-forget zone aggregation update
+      _zoneService
+          .updateZoneForReport(report, region: region)
+          .catchError((e) {
+        debugPrint('[Crowdsource] Zone aggregation failed (non-blocking): $e');
+      });
+
       return report;
     } catch (e) {
       debugPrint('[Crowdsource] Failed to submit report: $e');
@@ -156,12 +178,12 @@ class ParkingCrowdsourceService {
         .limit(100)
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now();
-      return snapshot.docs
-          .map((doc) => ParkingReport.fromFirestore(doc))
-          .where((r) => now.isBefore(r.expiresAt))
-          .toList();
-    });
+          final now = DateTime.now();
+          return snapshot.docs
+              .map((doc) => ParkingReport.fromFirestore(doc))
+              .where((r) => now.isBefore(r.expiresAt))
+              .toList();
+        });
   }
 
   /// Start listening for nearby reports and call [onUpdate] with new data.
@@ -183,18 +205,18 @@ class ParkingCrowdsourceService {
         .limit(100)
         .snapshots()
         .listen(
-      (snapshot) {
-        final now = DateTime.now();
-        final reports = snapshot.docs
-            .map((doc) => ParkingReport.fromFirestore(doc))
-            .where((r) => now.isBefore(r.expiresAt))
-            .toList();
-        onUpdate(reports);
-      },
-      onError: (e) {
-        debugPrint('[Crowdsource] Listener error: $e');
-      },
-    );
+          (snapshot) {
+            final now = DateTime.now();
+            final reports = snapshot.docs
+                .map((doc) => ParkingReport.fromFirestore(doc))
+                .where((r) => now.isBefore(r.expiresAt))
+                .toList();
+            onUpdate(reports);
+          },
+          onError: (e) {
+            debugPrint('[Crowdsource] Listener error: $e');
+          },
+        );
   }
 
   /// Stop the nearby reports listener.
@@ -234,7 +256,7 @@ class ParkingCrowdsourceService {
   // ---------------------------------------------------------------------------
 
   /// Aggregate nearby reports into a [SpotAvailability] summary.
-  SpotAvailability aggregateAvailability(List<ParkingReport> reports) {
+  static SpotAvailability aggregateAvailability(List<ParkingReport> reports) {
     if (reports.isEmpty) {
       return SpotAvailability(
         geohashPrefix: '',
@@ -271,6 +293,8 @@ class ParkingCrowdsourceService {
       }
     }
 
+    final estimatedOpen = (available - taken).clamp(0, available);
+
     return SpotAvailability(
       geohashPrefix: reports.first.geohash.substring(
         0,
@@ -280,6 +304,7 @@ class ParkingCrowdsourceService {
       availableSignals: available,
       takenSignals: taken,
       enforcementSignals: enforcement,
+      estimatedOpenSpots: estimatedOpen,
       lastUpdated: reports
           .map((r) => r.timestamp)
           .reduce((a, b) => a.isAfter(b) ? a : b),
@@ -319,8 +344,7 @@ class ParkingCrowdsourceService {
 
     try {
       // Verify ownership before deleting
-      final doc =
-          await _firestore.collection(_collection).doc(reportId).get();
+      final doc = await _firestore.collection(_collection).doc(reportId).get();
       if (!doc.exists || doc.data()?['userId'] != user.uid) {
         debugPrint('[Crowdsource] Cannot delete: not owner');
         return false;

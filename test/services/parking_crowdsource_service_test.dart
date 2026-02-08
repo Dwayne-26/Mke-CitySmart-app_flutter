@@ -6,10 +6,14 @@ void main() {
   group('ParkingCrowdsourceService.encodeGeohash', () {
     test('Milwaukee downtown encodes to expected prefix', () {
       // Milwaukee City Hall: 43.0389, -87.9065
-      final hash = ParkingCrowdsourceService.encodeGeohash(43.0389, -87.9065, 7);
+      final hash = ParkingCrowdsourceService.encodeGeohash(
+        43.0389,
+        -87.9065,
+        7,
+      );
       expect(hash.length, 7);
-      // Milwaukee should start with 'dp5' at precision 3
-      expect(hash.substring(0, 3), 'dp5');
+      // Milwaukee should start with 'dp9' at precision 3
+      expect(hash.substring(0, 3), 'dp9');
     });
 
     test('different precisions produce shorter/longer hashes', () {
@@ -23,19 +27,23 @@ void main() {
 
     test('nearby locations share geohash prefix', () {
       // Two spots ~50m apart on Water St, Milwaukee
-      final hash1 =
-          ParkingCrowdsourceService.encodeGeohash(43.0389, -87.9065, 5);
-      final hash2 =
-          ParkingCrowdsourceService.encodeGeohash(43.0392, -87.9063, 5);
+      final hash1 = ParkingCrowdsourceService.encodeGeohash(
+        43.0389,
+        -87.9065,
+        5,
+      );
+      final hash2 = ParkingCrowdsourceService.encodeGeohash(
+        43.0392,
+        -87.9063,
+        5,
+      );
       expect(hash1, hash2); // Same at precision 5 (~4.9km cell)
     });
 
     test('distant locations have different prefixes', () {
       // Milwaukee vs Chicago
-      final mke =
-          ParkingCrowdsourceService.encodeGeohash(43.0389, -87.9065, 5);
-      final chi =
-          ParkingCrowdsourceService.encodeGeohash(41.8781, -87.6298, 5);
+      final mke = ParkingCrowdsourceService.encodeGeohash(43.0389, -87.9065, 5);
+      final chi = ParkingCrowdsourceService.encodeGeohash(41.8781, -87.6298, 5);
       expect(mke, isNot(chi));
     });
 
@@ -55,7 +63,6 @@ void main() {
   });
 
   group('ParkingCrowdsourceService.aggregateAvailability', () {
-    final service = ParkingCrowdsourceService.instance;
     final now = DateTime.now();
 
     ParkingReport makeReport(
@@ -79,7 +86,7 @@ void main() {
     }
 
     test('empty reports produce neutral availability', () {
-      final result = service.aggregateAvailability([]);
+      final result = ParkingCrowdsourceService.aggregateAvailability([]);
       expect(result.totalReports, 0);
       expect(result.availabilityScore, 0.5);
       expect(result.label, 'Limited spots');
@@ -93,7 +100,7 @@ void main() {
         makeReport(ReportType.leavingSpot),
         makeReport(ReportType.spotTaken),
       ];
-      final result = service.aggregateAvailability(reports);
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       expect(result.availableSignals, 4);
       expect(result.takenSignals, 1);
       expect(result.availabilityScore, greaterThan(0.6));
@@ -107,7 +114,7 @@ void main() {
         makeReport(ReportType.parkedHere),
         makeReport(ReportType.spotAvailable),
       ];
-      final result = service.aggregateAvailability(reports);
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       expect(result.availableSignals, 1);
       expect(result.takenSignals, 4);
       expect(result.availabilityScore, lessThan(0.4));
@@ -119,16 +126,14 @@ void main() {
         makeReport(ReportType.towTruckSpotted),
         makeReport(ReportType.spotAvailable),
       ];
-      final result = service.aggregateAvailability(reports);
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       expect(result.enforcementSignals, 2);
       expect(result.hasEnforcement, isTrue);
     });
 
     test('geohashPrefix is extracted from reports', () {
-      final reports = [
-        makeReport(ReportType.spotAvailable),
-      ];
-      final result = service.aggregateAvailability(reports);
+      final reports = [makeReport(ReportType.spotAvailable)];
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       expect(result.geohashPrefix, 'dp5dt');
     });
 
@@ -138,29 +143,51 @@ void main() {
         makeReport(ReportType.spotTaken, ageMinutes: 0), // Most recent
         makeReport(ReportType.leavingSpot, ageMinutes: 10),
       ];
-      final result = service.aggregateAvailability(reports);
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       // The most recent should be ageMinutes=0
-      expect(
-        result.lastUpdated.difference(now).inSeconds.abs(),
-        lessThan(2),
-      );
+      expect(result.lastUpdated.difference(now).inSeconds.abs(), lessThan(2));
     });
 
     test('street sweeping counts as taken', () {
-      final reports = [
-        makeReport(ReportType.streetSweepingActive),
-      ];
-      final result = service.aggregateAvailability(reports);
+      final reports = [makeReport(ReportType.streetSweepingActive)];
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       expect(result.takenSignals, 1);
       expect(result.availableSignals, 0);
     });
 
     test('parking blocked counts as taken', () {
-      final reports = [
-        makeReport(ReportType.parkingBlocked),
-      ];
-      final result = service.aggregateAvailability(reports);
+      final reports = [makeReport(ReportType.parkingBlocked)];
+      final result = ParkingCrowdsourceService.aggregateAvailability(reports);
       expect(result.takenSignals, 1);
+    });
+
+    test('estimatedOpenSpots is available minus taken, floored to 0', () {
+      // 4 available - 1 taken = 3
+      final moreAvailable = [
+        makeReport(ReportType.leavingSpot),
+        makeReport(ReportType.spotAvailable),
+        makeReport(ReportType.spotAvailable),
+        makeReport(ReportType.leavingSpot),
+        makeReport(ReportType.spotTaken),
+      ];
+      final result1 = ParkingCrowdsourceService.aggregateAvailability(moreAvailable);
+      expect(result1.estimatedOpenSpots, 3);
+
+      // 1 available - 4 taken = 0 (floored)
+      final moreTaken = [
+        makeReport(ReportType.spotTaken),
+        makeReport(ReportType.spotTaken),
+        makeReport(ReportType.parkedHere),
+        makeReport(ReportType.parkedHere),
+        makeReport(ReportType.spotAvailable),
+      ];
+      final result2 = ParkingCrowdsourceService.aggregateAvailability(moreTaken);
+      expect(result2.estimatedOpenSpots, 0);
+    });
+
+    test('estimatedOpenSpots is 0 for empty reports', () {
+      final result = ParkingCrowdsourceService.aggregateAvailability([]);
+      expect(result.estimatedOpenSpots, 0);
     });
   });
 }

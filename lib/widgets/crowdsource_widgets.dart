@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/parking_report.dart';
 import '../services/location_service.dart';
 import '../services/parking_crowdsource_service.dart';
+import '../services/zone_aggregation_service.dart';
 import '../theme/app_theme.dart';
 
 // ---------------------------------------------------------------------------
@@ -137,10 +138,7 @@ class _ReportSheetState extends State<_ReportSheet> {
             const SizedBox(height: 16),
 
             // GPS status chip
-            _GpsChip(
-              locating: _locating,
-              accuracy: _position?.accuracy,
-            ),
+            _GpsChip(locating: _locating, accuracy: _position?.accuracy),
             const SizedBox(height: 16),
 
             // Report type grid
@@ -186,7 +184,10 @@ class _ReportSheetState extends State<_ReportSheet> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
                   _error!,
-                  style: const TextStyle(color: Colors.orangeAccent, fontSize: 13),
+                  style: const TextStyle(
+                    color: Colors.orangeAccent,
+                    fontSize: 13,
+                  ),
                 ),
               ),
 
@@ -197,8 +198,8 @@ class _ReportSheetState extends State<_ReportSheet> {
               child: ElevatedButton.icon(
                 onPressed:
                     (_selected != null && _position != null && !_submitting)
-                        ? _submit
-                        : null,
+                    ? _submit
+                    : null,
                 icon: _submitting
                     ? const SizedBox(
                         width: 18,
@@ -209,14 +210,13 @@ class _ReportSheetState extends State<_ReportSheet> {
                         ),
                       )
                     : const Icon(Icons.send),
-                label: Text(
-                  _submitting ? 'Submitting…' : 'Submit Report',
-                ),
+                label: Text(_submitting ? 'Submitting…' : 'Submit Report'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kCitySmartYellow,
                   foregroundColor: Colors.black,
-                  disabledBackgroundColor:
-                      kCitySmartYellow.withValues(alpha: 0.3),
+                  disabledBackgroundColor: kCitySmartYellow.withValues(
+                    alpha: 0.3,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
@@ -273,10 +273,7 @@ class _GpsChip extends StatelessWidget {
           SizedBox(
             width: 14,
             height: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: color,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: color),
           )
         else
           Icon(icon, size: 16, color: color),
@@ -332,8 +329,9 @@ class _ReportTypeGrid extends StatelessWidget {
                     type.displayName,
                     style: TextStyle(
                       color: isSelected ? kCitySmartYellow : kCitySmartText,
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                       fontSize: 13,
                     ),
                     maxLines: 2,
@@ -367,11 +365,14 @@ class _CrowdsourceAvailabilityBannerState
     extends State<CrowdsourceAvailabilityBanner>
     with SingleTickerProviderStateMixin {
   final _crowdsource = ParkingCrowdsourceService.instance;
+  final _zoneService = ZoneAggregationService.instance;
   final _locationService = LocationService();
 
   StreamSubscription<List<ParkingReport>>? _sub;
+  StreamSubscription<int>? _spotCountSub;
   SpotAvailability? _availability;
   int _reportCount = 0;
+  int _zoneSpotCount = 0; // Aggregated spot count from zones
   bool _loading = true;
 
   late final AnimationController _pulse;
@@ -384,9 +385,10 @@ class _CrowdsourceAvailabilityBannerState
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    _pulseAnim = Tween<double>(begin: 1.0, end: 1.08).animate(
-      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
-    );
+    _pulseAnim = Tween<double>(
+      begin: 1.0,
+      end: 1.08,
+    ).animate(CurvedAnimation(parent: _pulse, curve: Curves.easeInOut));
     _startStream();
   }
 
@@ -399,24 +401,32 @@ class _CrowdsourceAvailabilityBannerState
       }
 
       _sub = _crowdsource
-          .nearbyReportsStream(
+          .nearbyReportsStream(latitude: pos.latitude, longitude: pos.longitude)
+          .listen((reports) {
+            if (!mounted) return;
+            final avail = ParkingCrowdsourceService.aggregateAvailability(reports);
+            final countChanged = reports.length != _reportCount;
+            setState(() {
+              _availability = avail;
+              _reportCount = reports.length;
+              _loading = false;
+            });
+            // Pulse animation when new data arrives
+            if (countChanged && reports.isNotEmpty) {
+              _pulse.forward(from: 0);
+            }
+          });
+
+      // Also subscribe to zone-level aggregated spot counts
+      _spotCountSub = _zoneService
+          .nearbySpotCountStream(
             latitude: pos.latitude,
             longitude: pos.longitude,
           )
-          .listen((reports) {
-        if (!mounted) return;
-        final avail = _crowdsource.aggregateAvailability(reports);
-        final countChanged = reports.length != _reportCount;
-        setState(() {
-          _availability = avail;
-          _reportCount = reports.length;
-          _loading = false;
-        });
-        // Pulse animation when new data arrives
-        if (countChanged && reports.isNotEmpty) {
-          _pulse.forward(from: 0);
-        }
-      });
+          .listen((count) {
+            if (!mounted) return;
+            setState(() => _zoneSpotCount = count);
+          });
     } catch (e) {
       debugPrint('[CrowdsourceBanner] Failed to start stream: $e');
       if (mounted) setState(() => _loading = false);
@@ -426,6 +436,7 @@ class _CrowdsourceAvailabilityBannerState
   @override
   void dispose() {
     _sub?.cancel();
+    _spotCountSub?.cancel();
     _pulse.dispose();
     super.dispose();
   }
@@ -436,21 +447,33 @@ class _CrowdsourceAvailabilityBannerState
       return const SizedBox.shrink(); // Don't show while loading
     }
     if (_availability == null || _reportCount == 0) {
-      return _EmptyBanner(
-        onReport: () => showReportSheet(context),
-      );
+      return _EmptyBanner(onReport: () => showReportSheet(context));
     }
 
     final avail = _availability!;
+    // Prefer zone-aggregated spot count; fall back to signal-based estimate
+    final spotCount = _zoneSpotCount > 0
+        ? _zoneSpotCount
+        : avail.estimatedOpenSpots;
+    final displayLabel = spotCount > 0
+        ? '~$spotCount spot${spotCount == 1 ? '' : 's'} open'
+        : avail.label;
+    // Use zone color when we have zone data
+    final displayColor = spotCount >= 5
+        ? Colors.green
+        : spotCount >= 2
+            ? Colors.orange
+            : spotCount > 0
+                ? Colors.orange
+                : avail.color;
+
     return ScaleTransition(
       scale: _pulseAnim,
       child: Card(
         color: kCitySmartCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: BorderSide(
-            color: avail.color.withValues(alpha: 0.5),
-          ),
+          side: BorderSide(color: displayColor.withValues(alpha: 0.5)),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -461,11 +484,11 @@ class _CrowdsourceAvailabilityBannerState
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: avail.color,
+                  color: displayColor,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: avail.color.withValues(alpha: 0.5),
+                      color: displayColor.withValues(alpha: 0.5),
                       blurRadius: 6,
                       spreadRadius: 1,
                     ),
@@ -481,9 +504,9 @@ class _CrowdsourceAvailabilityBannerState
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      avail.label,
+                      displayLabel,
                       style: TextStyle(
-                        color: avail.color,
+                        color: displayColor,
                         fontWeight: FontWeight.w700,
                         fontSize: 14,
                       ),

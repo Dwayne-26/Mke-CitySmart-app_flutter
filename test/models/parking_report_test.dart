@@ -12,7 +12,9 @@ void main() {
       expect(ReportType.enforcementSpotted.displayName, 'Enforcement Spotted');
       expect(ReportType.towTruckSpotted.displayName, 'Tow Truck Spotted');
       expect(
-          ReportType.streetSweepingActive.displayName, 'Street Sweeping Active');
+        ReportType.streetSweepingActive.displayName,
+        'Street Sweeping Active',
+      );
       expect(ReportType.parkingBlocked.displayName, 'Parking Blocked');
     });
 
@@ -77,6 +79,9 @@ void main() {
       expect(report.upvotes, 3);
       expect(report.downvotes, 1);
       expect(report.isExpired, isFalse);
+      // Defaults for new region/zone fields
+      expect(report.region, 'wi/milwaukee');
+      expect(report.zoneId, isNull);
     });
 
     test('reliabilityScore calculates correctly', () {
@@ -205,6 +210,43 @@ void main() {
       expect(str, contains('Leaving Spot'));
       expect(str, contains('43.0389'));
     });
+
+    test('region and zoneId serialise correctly', () {
+      final withZone = ParkingReport(
+        id: 'rpt_010',
+        userId: 'user_1',
+        reportType: ReportType.spotAvailable,
+        latitude: 43.0389,
+        longitude: -87.9065,
+        geohash: 'dp5dtpp',
+        timestamp: now,
+        expiresAt: now.add(const Duration(minutes: 15)),
+        region: 'il/chicago',
+        zoneId: 'il_chicago_dp3wjz0',
+      );
+
+      final json = withZone.toJson();
+      expect(json['region'], 'il/chicago');
+      expect(json['zoneId'], 'il_chicago_dp3wjz0');
+
+      final restored = ParkingReport.fromJson(json);
+      expect(restored.region, 'il/chicago');
+      expect(restored.zoneId, 'il_chicago_dp3wjz0');
+    });
+
+    test('region defaults to wi/milwaukee', () {
+      expect(report.region, 'wi/milwaukee');
+    });
+
+    test('copyWith can update region and zoneId', () {
+      final updated = report.copyWith(
+        region: 'wi/madison',
+        zoneId: 'wi_madison_dp8m500',
+      );
+      expect(updated.region, 'wi/madison');
+      expect(updated.zoneId, 'wi_madison_dp8m500');
+      expect(updated.id, report.id); // unchanged
+    });
   });
 
   group('SpotAvailability', () {
@@ -262,8 +304,10 @@ void main() {
         enforcementSignals: 0,
         lastUpdated: DateTime.now(),
       );
-      expect(withEnforcement.availabilityScore,
-          lessThan(withoutEnforcement.availabilityScore));
+      expect(
+        withEnforcement.availabilityScore,
+        lessThan(withoutEnforcement.availabilityScore),
+      );
       expect(withEnforcement.hasEnforcement, isTrue);
       expect(withoutEnforcement.hasEnforcement, isFalse);
     });
@@ -284,8 +328,11 @@ void main() {
           enforcementSignals: 0,
           lastUpdated: DateTime.now(),
         );
-        expect(sa.label, label,
-            reason: 'avail=$avail, taken=$taken should be "$label"');
+        expect(
+          sa.label,
+          label,
+          reason: 'avail=$avail, taken=$taken should be "$label"',
+        );
       }
     });
 
@@ -309,6 +356,58 @@ void main() {
         lastUpdated: DateTime.now(),
       );
       expect(bad.color, equals(Colors.red));
+    });
+
+    test('label shows spot count when estimatedOpenSpots > 0', () {
+      final withSpots = SpotAvailability(
+        geohashPrefix: 'dp5dt',
+        totalReports: 10,
+        availableSignals: 8,
+        takenSignals: 2,
+        enforcementSignals: 0,
+        lastUpdated: DateTime.now(),
+        estimatedOpenSpots: 12,
+      );
+      expect(withSpots.label, '~12 spots open');
+    });
+
+    test('label shows singular for 1 spot', () {
+      final oneSpot = SpotAvailability(
+        geohashPrefix: 'dp5dt',
+        totalReports: 5,
+        availableSignals: 2,
+        takenSignals: 1,
+        enforcementSignals: 0,
+        lastUpdated: DateTime.now(),
+        estimatedOpenSpots: 1,
+      );
+      expect(oneSpot.label, '~1 spot open');
+    });
+
+    test('label falls back to score-based when estimatedOpenSpots is 0', () {
+      final noSpots = SpotAvailability(
+        geohashPrefix: 'dp5dt',
+        totalReports: 10,
+        availableSignals: 8,
+        takenSignals: 2,
+        enforcementSignals: 0,
+        lastUpdated: DateTime.now(),
+        estimatedOpenSpots: 0,
+      );
+      // Score is high (0.8), so should show 'Good availability'
+      expect(noSpots.label, 'Good availability');
+    });
+
+    test('estimatedOpenSpots defaults to 0', () {
+      final sa = SpotAvailability(
+        geohashPrefix: 'dp5dt',
+        totalReports: 5,
+        availableSignals: 3,
+        takenSignals: 2,
+        enforcementSignals: 0,
+        lastUpdated: DateTime.now(),
+      );
+      expect(sa.estimatedOpenSpots, 0);
     });
   });
 }
