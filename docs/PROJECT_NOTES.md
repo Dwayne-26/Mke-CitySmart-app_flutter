@@ -387,6 +387,8 @@ check fees, navigate there.
 **What it does:** Two-tier subscription model (Free / Pro) with feature gating,
 a paywall, and AdMob ads for free-tier users.
 
+**Google Play ↔ RevenueCat credentials note (Feb 2026):** Play Console navigation for service account / API access has changed. If RevenueCat shows “Credentials need attention” for Google Play, follow RevenueCat’s current guide for creating Play service credentials: https://www.revenuecat.com/docs/service-credentials/creating-play-service-credentials
+
 **Tiers:**
 | Feature | Free | Pro ($4.99/mo) |
 |---------|------|----------------|
@@ -403,6 +405,16 @@ a paywall, and AdMob ads for free-tier users.
 | Priority Support | ❌ | ✅ |
 | Expanded Radius (15 mi) | ❌ | ✅ |
 | Unlimited Alerts | ❌ | ✅ |
+
+**Android Purchase Validation Checklist (pre-release):**
+1. RevenueCat dashboard → Google Play app credentials page shows all 3 green checks (subscriptions / inappproducts / monetization)
+2. RevenueCat Offerings include Google Play products: `citysmart_pro_monthly`, `citysmart_pro_yearly`
+3. Both products grant entitlement `pro` (or `citysmart_pro`)
+4. On Android device/emulator: open paywall → offerings load (not fallback cards)
+5. Test purchase → `SubscriptionTier.pro` activates → gated features unlock
+6. Restore purchases works cross-device (same Firebase UID → same RevenueCat app_user_id)
+7. Service account: `revenuecat-play@mkeparkapp-1ad15.iam.gserviceaccount.com`
+8. Google Play Developer API enabled in project `mkeparkapp-1ad15`
 
 **Gating implementation:**
 - `FeatureGate` widget wraps premium screen bodies (heatmap, parking finder, tow helper)

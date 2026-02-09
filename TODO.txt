@@ -1,5 +1,5 @@
 MKE City Smart — TODO Tracking
-Last Updated: 2026-01-31
+Last Updated: 2026-02-09
 Owner: Wayne26
 
 LEGEND
@@ -175,6 +175,12 @@ NOTES:
 NOTES:
 - 2026-02-01: Implemented referral_service.dart with Firestore tracking. Unique code generation (MKE + 6 alphanumeric). 7-day premium trial for both referrer and referred. Max 10 rewards per user. Created referral_screen.dart with share functionality, stats display, code entry.
 
+[F-304] [DONE] (P1) RevenueCat ↔ Google Play integration
+- Connect service account credentials so RevenueCat can validate Android purchases
+- Match iOS setup (already done via App Store Connect)
+NOTES:
+- 2026-02-09: Created service account revenuecat-play@mkeparkapp-1ad15.iam.gserviceaccount.com in Google Cloud. Enabled Google Play Developer API. Invited service account in Play Console with View financial data, Manage orders and subscriptions, View app information, Manage store presence. Generated JSON key and uploaded to RevenueCat. All 3 credential checks passed (subscriptions, inappproducts, monetization). Updated main.dart to pass Firebase UID to RevenueCat init for cross-device entitlement sync. flutter analyze clean, 209/209 tests pass.
+
 ========================================================
 P0/P1 — QUALITY / SECURITY / RELEASE READINESS
 --------------------------------------------------------
@@ -217,6 +223,9 @@ RUNNING NOTES (quick scratchpad)
 ========================================================
 DONE LOG (most recent first)
 ---------------------------------------------------------
+2026-02-09 — [F-304] RevenueCat ↔ Google Play integration
+  Result: Created Google Cloud service account, enabled Google Play Developer API, invited service account in Play Console with financial + store permissions, uploaded JSON key to RevenueCat. All 3 credential checks passed. Updated main.dart to pass Firebase UID into RevenueCat initialization for cross-device entitlement sync. Added Android purchase validation checklist to PROJECT_NOTES.md.
+  Evidence: RevenueCat dashboard all-green; flutter analyze clean; 209/209 tests pass; git commit
 2026-01-31 — [F-006] Sightings feed: query + filters work
   Result: Implemented full feed filtering system. Created FeedFilterService for query building and radius calculations. Updated FeedScreen with filter bar UI (radius: 1mi/5mi/10mi/city-wide; time: 1hr/2hr/6hr/24hr/all). Haversine distance filtering, time window queries, pagination with Load More (20/page). Cards show relative time and distance.
   Evidence: Git commits; FeedFilterService + FeedScreen updated

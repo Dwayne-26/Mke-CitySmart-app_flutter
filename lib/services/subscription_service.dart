@@ -19,8 +19,8 @@ class SubscriptionService extends ChangeNotifier {
 
   // Production keys from RevenueCat dashboard
   static const _revenueCatApiKeyiOS = 'appl_nPogZtDlCliLIbcHVwxxguJacpq';
-  // Android key - add from RevenueCat when launching on Google Play
-  static const _revenueCatApiKeyAndroid = 'goog_PLACEHOLDER';
+  // Android key from RevenueCat (Google Play)
+  static const _revenueCatApiKeyAndroid = 'goog_UfVOclLbKRHTgvZmywUdbmeJEVs';
 
   // Entitlement identifier (must match RevenueCat dashboard)
   static const entitlementPro = 'pro';
