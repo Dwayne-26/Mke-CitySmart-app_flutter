@@ -744,14 +744,7 @@ class _TopRecommendedSpotCard extends StatelessWidget {
                   color: spotColor,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  IconData(
-                    spot.source.iconCodePoint,
-                    fontFamily: 'MaterialIcons',
-                  ),
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: Icon(spot.source.icon, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -888,11 +881,7 @@ class _RecommendedSpotTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              IconData(spot.source.iconCodePoint, fontFamily: 'MaterialIcons'),
-              color: spotColor,
-              size: 18,
-            ),
+            Icon(spot.source.icon, color: spotColor, size: 18),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
