@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../models/parking_report.dart';
 import 'parking_crowdsource_service.dart';
@@ -670,17 +670,17 @@ extension SpotSourceExt on SpotSource {
     }
   }
 
-  /// Icon code point for display.
-  int get iconCodePoint {
+  /// Icon for display.
+  IconData get icon {
     switch (this) {
       case SpotSource.crowdsourceReport:
-        return 0xe1e0; // Icons.person_pin_circle
+        return Icons.person_pin_circle;
       case SpotSource.zoneAvailability:
-        return 0xe55b; // Icons.location_on
+        return Icons.location_on;
       case SpotSource.historicalPattern:
-        return 0xe8b5; // Icons.schedule
+        return Icons.schedule;
       case SpotSource.riskZone:
-        return 0xe8e8; // Icons.verified_user
+        return Icons.verified_user;
     }
   }
 }
