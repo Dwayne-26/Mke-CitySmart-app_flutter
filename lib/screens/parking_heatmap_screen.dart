@@ -15,6 +15,7 @@ import '../theme/app_theme.dart';
 import '../widgets/ad_widgets.dart';
 import '../widgets/crowdsource_widgets.dart';
 import '../widgets/feature_gate.dart';
+import '../widgets/hero_confirmation.dart';
 import '../widgets/parking_risk_badge.dart';
 
 class ParkingHeatmapScreen extends StatefulWidget {
@@ -214,17 +215,11 @@ class _ParkingHeatmapScreenState extends State<ParkingHeatmapScreen> {
                 FloatingActionButton.small(
                   heroTag: 'reportFab',
                   onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
                     final report = await showReportSheet(context);
                     if (report != null && mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '✓ ${report.reportType.displayName} reported!',
-                          ),
-                          backgroundColor: const Color(0xFF4CAF50),
-                          duration: const Duration(seconds: 2),
-                        ),
+                      showHeroConfirmation(
+                        context,
+                        reportType: report.reportType.displayName,
                       );
                     }
                   },

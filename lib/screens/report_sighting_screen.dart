@@ -8,6 +8,7 @@ import '../providers/user_provider.dart';
 import '../services/ad_service.dart';
 import '../services/location_service.dart';
 import '../services/street_segment_service.dart';
+import '../widgets/hero_confirmation.dart';
 
 class ReportSightingScreen extends StatefulWidget {
   const ReportSightingScreen({super.key});
@@ -80,7 +81,7 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
     setState(() => _submitting = true);
     try {
       final provider = context.read<UserProvider>();
-      final message = await provider.reportSighting(
+      final result = await provider.reportSighting(
         type: _type,
         location: _locationController.text.trim(),
         notes: _notesController.text.trim(),
@@ -90,11 +91,13 @@ class _ReportSightingScreenState extends State<ReportSightingScreen> {
       if (!mounted) return;
       _locationController.clear();
       _notesController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message ?? 'Thanks! Sighting reported.'),
-          duration: const Duration(seconds: 4),
-        ),
+      // Show Community Hero confirmation instead of plain SnackBar
+      await showHeroConfirmation(
+        context,
+        reportType: _type == SightingType.parkingEnforcer
+            ? 'Parking Enforcer'
+            : 'Tow Truck',
+        usersWarned: result.usersWarned,
       );
       // Record action and possibly show interstitial ad
       _maybeShowInterstitial();

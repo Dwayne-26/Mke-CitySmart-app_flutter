@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
@@ -10,6 +12,44 @@ import '../services/parking_prediction_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ad_widgets.dart';
 import '../widgets/crowdsource_widgets.dart';
+
+/// Platform-aware navigation launcher.
+/// Uses Google Maps on Android, Apple Maps on iOS.
+Future<void> launchMapsNavigation(
+  BuildContext context, {
+  required double latitude,
+  required double longitude,
+}) async {
+  Uri url;
+
+  if (Platform.isAndroid) {
+    // Google Maps intent for Android - opens native app directly
+    url = Uri.parse('google.navigation:q=$latitude,$longitude&mode=w');
+  } else {
+    // Apple Maps for iOS
+    url = Uri.parse(
+      'https://maps.apple.com/?daddr=$latitude,$longitude&dirflg=w',
+    );
+  }
+
+  if (await canLaunchUrl(url)) {
+    await launchUrl(url, mode: LaunchMode.externalApplication);
+  } else {
+    // Fallback to Google Maps web URL
+    final webUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude&travelmode=walking',
+    );
+    if (await canLaunchUrl(webUrl)) {
+      await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open maps app')),
+        );
+      }
+    }
+  }
+}
 
 class ParkingScreen extends StatelessWidget {
   const ParkingScreen({super.key});
@@ -508,29 +548,11 @@ class _SafeSpotTile extends StatelessWidget {
   final SafeParkingSpot spot;
 
   Future<void> _navigateToSpot(BuildContext context) async {
-    // Open in Apple Maps (iOS) or Google Maps with directions
-    final url = Uri.parse(
-      'https://maps.apple.com/?daddr=${spot.latitude},${spot.longitude}&dirflg=w',
+    await launchMapsNavigation(
+      context,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
     );
-
-    // Try Apple Maps first, fall back to Google Maps
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      // Fallback to Google Maps
-      final googleUrl = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=${spot.latitude},${spot.longitude}&travelmode=walking',
-      );
-      if (await canLaunchUrl(googleUrl)) {
-        await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open maps app')),
-          );
-        }
-      }
-    }
   }
 
   @override
@@ -577,26 +599,11 @@ class _TopSafeSpotCard extends StatelessWidget {
   final SafeParkingSpot spot;
 
   Future<void> _navigateToSpot(BuildContext context) async {
-    final url = Uri.parse(
-      'https://maps.apple.com/?daddr=${spot.latitude},${spot.longitude}&dirflg=w',
+    await launchMapsNavigation(
+      context,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
     );
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      final googleUrl = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=${spot.latitude},${spot.longitude}&travelmode=walking',
-      );
-      if (await canLaunchUrl(googleUrl)) {
-        await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open maps app')),
-          );
-        }
-      }
-    }
   }
 
   @override
@@ -691,26 +698,11 @@ class _TopRecommendedSpotCard extends StatelessWidget {
   final RecommendedSpot spot;
 
   Future<void> _navigateToSpot(BuildContext context) async {
-    final url = Uri.parse(
-      'https://maps.apple.com/?daddr=${spot.latitude},${spot.longitude}&dirflg=w',
+    await launchMapsNavigation(
+      context,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
     );
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      final googleUrl = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=${spot.latitude},${spot.longitude}&travelmode=walking',
-      );
-      if (await canLaunchUrl(googleUrl)) {
-        await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open maps app')),
-          );
-        }
-      }
-    }
   }
 
   @override
@@ -843,26 +835,11 @@ class _RecommendedSpotTile extends StatelessWidget {
   final RecommendedSpot spot;
 
   Future<void> _navigateToSpot(BuildContext context) async {
-    final url = Uri.parse(
-      'https://maps.apple.com/?daddr=${spot.latitude},${spot.longitude}&dirflg=w',
+    await launchMapsNavigation(
+      context,
+      latitude: spot.latitude,
+      longitude: spot.longitude,
     );
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-    } else {
-      final googleUrl = Uri.parse(
-        'https://www.google.com/maps/dir/?api=1&destination=${spot.latitude},${spot.longitude}&travelmode=walking',
-      );
-      if (await canLaunchUrl(googleUrl)) {
-        await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
-      } else {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open maps app')),
-          );
-        }
-      }
-    }
   }
 
   @override

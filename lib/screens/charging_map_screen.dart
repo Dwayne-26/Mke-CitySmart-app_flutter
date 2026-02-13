@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -796,7 +798,33 @@ class _StationDetailCard extends StatelessWidget {
 
 extension on _ChargingMapScreenState {
   Future<void> _openDirections(EVStation station) async {
-    // Show a choice dialog for Google Maps or Apple Maps
+    // On Android, use Google Maps directly (no dialog)
+    if (Platform.isAndroid) {
+      // Use Google Maps navigation intent for native app
+      final uri = Uri.parse(
+        'google.navigation:q=${station.latitude},${station.longitude}&mode=d',
+      );
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+      // Fallback to Google Maps web
+      final webUri = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1&destination=${station.latitude},${station.longitude}',
+      );
+      final opened = await launchUrl(
+        webUri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open maps app.')),
+        );
+      }
+      return;
+    }
+
+    // iOS: Show a choice dialog for Google Maps or Apple Maps
     final choice = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.grey.shade900,

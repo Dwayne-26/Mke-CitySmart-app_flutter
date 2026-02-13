@@ -11,6 +11,7 @@ import '../services/parking_crowdsource_service.dart';
 import '../services/zone_aggregation_service.dart';
 import '../theme/app_theme.dart';
 import 'feature_gate.dart';
+import 'hero_confirmation.dart';
 
 // ---------------------------------------------------------------------------
 // Report Submission Bottom-Sheet
@@ -602,14 +603,9 @@ class _CrowdsourceAvailabilityBannerState
                 onTap: () async {
                   final report = await showReportSheet(context);
                   if (report != null && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '✓ ${report.reportType.displayName} reported!',
-                        ),
-                        backgroundColor: const Color(0xFF4CAF50),
-                        duration: const Duration(seconds: 2),
-                      ),
+                    showHeroConfirmation(
+                      context,
+                      reportType: report.reportType.displayName,
                     );
                   }
                 },

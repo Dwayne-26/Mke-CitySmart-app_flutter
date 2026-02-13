@@ -99,7 +99,18 @@ class OpenChargeMapService {
         .map((c) => (c['PowerKW'] as num?)?.toDouble() ?? 0)
         .fold<double>(0, (a, b) => b > a ? b : a);
 
-    final totalPorts = connections.isEmpty ? 1 : connections.length;
+    // Use NumberOfPoints from API (actual port count), or sum Quantity from
+    // each connection, or fall back to counting connection types.
+    final numberOfPoints = (json['NumberOfPoints'] as num?)?.toInt() ?? 0;
+    final quantitySum = connections
+        .map((c) => (c['Quantity'] as num?)?.toInt() ?? 1)
+        .fold<int>(0, (a, b) => a + b);
+    // Pick the highest non-zero value for best accuracy
+    int totalPorts = [
+      numberOfPoints,
+      quantitySum,
+      connections.length,
+    ].where((n) => n > 0).fold<int>(1, (a, b) => b > a ? b : a);
     final availablePorts = isAvailable ? totalPorts : 0;
 
     return EVStation(

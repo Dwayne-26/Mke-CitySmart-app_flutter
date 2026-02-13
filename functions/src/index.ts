@@ -144,17 +144,57 @@ const geohashPrecisionForRadiusMiles = (radiusMiles: number): number => {
   return 5;
 };
 
+/**
+ * Decode a geohash back to lat/lng bounds.
+ */
+const decodeGeohashBounds = (gh: string) => {
+  let latMin = -90, latMax = 90, lonMin = -180, lonMax = 180;
+  let evenBit = true;
+  for (const c of gh) {
+    const idx = GEOHASH_BASE32.indexOf(c);
+    for (let bits = 4; bits >= 0; bits--) {
+      const bitN = (idx >> bits) & 1;
+      if (evenBit) {
+        const lonMid = (lonMin + lonMax) / 2;
+        if (bitN) lonMin = lonMid; else lonMax = lonMid;
+      } else {
+        const latMid = (latMin + latMax) / 2;
+        if (bitN) latMin = latMid; else latMax = latMid;
+      }
+      evenBit = !evenBit;
+    }
+  }
+  return {latMin, latMax, lonMin, lonMax};
+};
+
+/**
+ * Get the 8 neighboring geohashes + the center (9 cells total).
+ * This ensures devices near geohash cell boundaries are not missed.
+ */
+const geohashNeighbors = (gh: string): string[] => {
+  const bounds = decodeGeohashBounds(gh);
+  const latCenter = (bounds.latMin + bounds.latMax) / 2;
+  const lonCenter = (bounds.lonMin + bounds.lonMax) / 2;
+  const latStep = bounds.latMax - bounds.latMin;
+  const lonStep = bounds.lonMax - bounds.lonMin;
+  const neighbors: string[] = [];
+  for (const dLat of [-1, 0, 1]) {
+    for (const dLon of [-1, 0, 1]) {
+      const lat = latCenter + dLat * latStep;
+      const lon = lonCenter + dLon * lonStep;
+      if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+        neighbors.push(encodeGeohash(lat, lon, gh.length));
+      }
+    }
+  }
+  return Array.from(new Set(neighbors));
+};
+
 const geohashQueryRanges = (centerGeohash: string, prefixLen: number) => {
-  // Range query for all strings with the same prefix:
-  // [prefix, prefix + "\uf8ff"]
-  //
-  // NOTE: true neighbor-cell coverage is more complex. To reduce boundary misses
-  // without an external geohash-neighbors implementation, we widen the prefix
-  // by one character (coarser cell), which increases candidate coverage and
-  // relies on haversine filtering for correctness.
-  const effectivePrefixLen = Math.max(1, prefixLen - 1);
-  const prefix = centerGeohash.slice(0, effectivePrefixLen);
-  return [{start: prefix, end: prefix + "\uf8ff"}];
+  // Get 9-cell coverage (center + 8 neighbors) to eliminate boundary misses.
+  const prefix = centerGeohash.slice(0, prefixLen);
+  const cells = geohashNeighbors(prefix);
+  return cells.map((cell) => ({start: cell, end: cell + "\uf8ff"}));
 };
 
 // const chunk = <T>(arr: T[], size: number): T[][] => {
@@ -719,6 +759,9 @@ export const submitSighting = onCall(
 
   logger.info("submitSighting created alert", {alertId: alertRef.id, uid: uidBase});
 
+  // Track how many users were warned (hoisted so it's in scope for the return).
+  let usersWarned = 0;
+
   // Immediate nearby-user push fan-out when geo is available.
   // Only do this when we decide the report does NOT require manual review.
   if (hasGeo && approvalTier !== "manual") {
@@ -744,9 +787,8 @@ export const submitSighting = onCall(
       const lonMin = longitude - lonDelta;
       const lonMax = longitude + lonDelta;
 
-      // Query by geohash prefix/range to avoid scanning the whole devices collection.
-      // Note: We currently query only the center geohash prefix. For larger radii,
-      // we may need to query neighboring prefixes (follow-up improvement).
+      // Query by geohash prefix/range with 9-cell neighbor coverage.
+      // This ensures devices near geohash cell boundaries are not missed.
       const candidateDocs: Array<{id: string; data: any}> = [];
       for (const r of ranges) {
         const snap = await devicesRef
@@ -824,12 +866,20 @@ export const submitSighting = onCall(
                       alertId: alertRef.id,
                       type: isEnforcer ? "enforcer" : "tow",
                     },
+                    android: {
+                      collapseKey: `alert_${alertRef.id}`,
+                      notification: {tag: `alert_${alertRef.id}`},
+                    },
+                    apns: {
+                      headers: {"apns-collapse-id": `alert_${alertRef.id}`},
+                    },
                   },
                 }),
               }
             );
             if (fcmResponse.ok) {
               totalSuccess++;
+              usersWarned++;
             } else {
               totalFailure++;
               const errBody = await fcmResponse.text();
@@ -877,7 +927,7 @@ export const submitSighting = onCall(
       ? "Report submitted. It needs review before posting."
       : "Report submitted. It will post shortly if unflagged.");
 
-  return {success: true, message: userMessage};
+  return {success: true, message: userMessage, usersWarned};
 });
 
 // Helper for development/testing: simulate a nearby warning push without creating an alert.
@@ -1501,6 +1551,13 @@ export const notifyOnApproval = onDocumentWritten(
             title,
             body: body || "New alert.",
           },
+          android: {
+            collapseKey: `alert_${event.params.alertId}`,
+            notification: {tag: `alert_${event.params.alertId}`},
+          },
+          apns: {
+            headers: {"apns-collapse-id": `alert_${event.params.alertId}`},
+          },
         });
         logger.info("notifyOnApproval sent topic notification", {
           alertId: event.params.alertId,
@@ -1517,118 +1574,7 @@ export const notifyOnApproval = onDocumentWritten(
   },
 );
 
-export const sendNearbyAlerts = onCall(async (request) => {
-  const radiusMiles = Number(request.data?.radiusMiles ?? 3);
-  // production: require auth and coordinates
-  if (!request.auth) {
-    throw new HttpsError('unauthenticated', 'Sign in required.');
-  }
-
-  const latitude = Number(request.data?.latitude);
-  const longitude = Number(request.data?.longitude);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    throw new HttpsError('invalid-argument', 'Latitude/longitude required.');
-  }
-
-  const token = (request.data?.token ?? '').toString().trim();
-  if (!token) {
-    throw new HttpsError('invalid-argument', 'FCM token required.');
-  }
-  const windowMinutes = Number(request.data?.windowMinutes ?? 180);
-  const limit = Math.min(Number(request.data?.limit ?? 25), 50);
-
-  const now = Date.now();
-  const since = Timestamp.fromMillis(
-    now - windowMinutes * 60 * 1000,
-  );
-
-  const snap = await getFirestore()
-    .collection("alerts")
-    .where("status", "==", "active")
-    .where("createdAt", ">=", since)
-    .orderBy("createdAt", "desc")
-    .limit(limit)
-    .get();
-
-  const haversineMiles = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ) => {
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-    const r = 3958.8;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return r * c;
-  };
-
-  const matches = snap.docs
-    .map((doc) => ({id: doc.id, data: doc.data()}))
-    .filter(({data}) => {
-      const geo = data.geo as GeoPoint | undefined;
-      const lat = Number(geo?.latitude ?? data.latitude);
-      const lng = Number(geo?.longitude ?? data.longitude);
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-      const dist = haversineMiles(latitude, longitude, lat, lng);
-      return dist <= radiusMiles;
-    });
-
-  const sendLimit = Math.min(matches.length, 5);
-  let successCount = 0;
-  let failureCount = 0;
-  
-  for (let i = 0; i < sendLimit; i++) {
-    const match = matches[i];
-    const title = (match.data.title ?? "Alert").toString();
-    const message = (match.data.message ?? "").toString();
-    const location = (match.data.location ?? "").toString();
-    const body = [message, location ? `at ${location}` : ""]
-      .filter((part) => part && part.trim().length > 0)
-      .join(" ");
-
-    try {
-      await admin.messaging().send({
-        token,
-        notification: {
-          title,
-          body: body || "Nearby alert.",
-        },
-        data: {
-          alertId: match.id,
-          type: (match.data.type ?? "").toString(),
-        },
-      });
-      successCount++;
-    } catch (err) {
-      failureCount++;
-      const errMsg = err instanceof Error ? err.message : String(err);
-      logger.warn("sendNearbyAlerts FCM send failed", {
-        alertId: match.id,
-        tokenPrefix: token.slice(0, 10),
-        error: errMsg,
-      });
-      // If token is invalid, break early - no point sending more
-      if (errMsg.includes("not-registered") || errMsg.includes("invalid")) {
-        break;
-      }
-    }
-  }
-
-  return {
-    success: true,
-    sent: successCount,
-    failed: failureCount,
-    totalMatches: matches.length,
-  };
-});
+// sendNearbyAlerts — REMOVED (vestigial; replaced by real-time geo fan-out in submitSighting)
 
 // ============================================================================
 // PARKING RISK HEATMAP FUNCTIONS

@@ -1123,7 +1123,7 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<String?> reportSighting({
+  Future<({String? message, int usersWarned})> reportSighting({
     required SightingType type,
     required String location,
     String notes = '',
@@ -1155,6 +1155,7 @@ class UserProvider extends ChangeNotifier {
     final result = await _reportApi.sendSighting(report);
     final success = result['success'] == true;
     final serverMessage = result['message']?.toString();
+    final usersWarned = (result['usersWarned'] as num?)?.toInt() ?? 0;
 
     // Also show local notification if nearby (for immediate feedback)
     _maybeNotifyNearbySighting(report);
@@ -1185,13 +1186,22 @@ class UserProvider extends ChangeNotifier {
       ),
     );
 
-    // Return appropriate message based on outcome
+    // Return appropriate message and impact count based on outcome
     if (success) {
-      return serverMessage ?? 'Thanks! Sighting reported.';
+      return (
+        message: serverMessage ?? 'Thanks! Sighting reported.',
+        usersWarned: usersWarned,
+      );
     } else if (localSaveOk) {
-      return 'Sighting saved locally. Will sync when online.';
+      return (
+        message: 'Sighting saved locally. Will sync when online.',
+        usersWarned: 0,
+      );
     } else {
-      return 'Sighting recorded. May not sync to other users.';
+      return (
+        message: 'Sighting recorded. May not sync to other users.',
+        usersWarned: 0,
+      );
     }
   }
 
