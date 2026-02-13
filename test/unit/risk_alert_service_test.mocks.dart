@@ -833,7 +833,7 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
           as _i11.Future<void>);
 
   @override
-  _i11.Future<String?> reportSighting({
+  _i11.Future<({String? message, int usersWarned})> reportSighting({
     required _i21.SightingType? type,
     required String? location,
     String? notes = '',
@@ -848,9 +848,13 @@ class MockUserProvider extends _i1.Mock implements _i6.UserProvider {
               #latitude: latitude,
               #longitude: longitude,
             }),
-            returnValue: _i11.Future<String?>.value(),
+            returnValue:
+                _i11.Future<({String? message, int usersWarned})>.value((
+                  message: null,
+                  usersWarned: 0,
+                )),
           )
-          as _i11.Future<String?>);
+          as _i11.Future<({String? message, int usersWarned})>);
 
   @override
   _i11.Future<void> deleteSighting(String? sightingId) =>

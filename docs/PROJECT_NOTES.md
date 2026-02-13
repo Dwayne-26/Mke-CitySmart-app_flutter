@@ -587,4 +587,105 @@ Sign-In, Sign in with Apple. Guest mode supported.
 | Models | 23 |
 | Widgets | 14 |
 | Total commits | 544 |
-| Current version | 1.0.69+73 |
+| Current version | 1.0.74+78 |
+
+---
+
+## 🔔 Fan-Out Notification Fixes (v1.0.74)
+
+Three critical gaps in the push notification fan-out system were identified and fixed:
+
+### 1. Double Notification Dedup (collapseKey)
+**Problem:** When a sighting was submitted, users could receive two notifications — one from
+geo fan-out (`submitSighting`) and another from the topic broadcast (`notifyOnApproval`).
+
+**Fix:** Added `collapseKey` (Android) and `apns-collapse-id` (iOS) headers to both FCM
+payloads, keyed to `alert_{alertId}`. The OS now collapses duplicate pushes into one.
+
+### 2. Geohash Boundary Misses → 9-Cell Neighbor Queries
+**Problem:** Devices located near a geohash cell boundary might not receive notifications
+because the single-cell prefix query only covered the center cell.
+
+**Fix:** Implemented `decodeGeohashBounds()` and `geohashNeighbors()` in the Cloud Function.
+The fan-out now queries all 9 neighboring geohash cells (center + 8 surrounding), ensuring
+devices near boundaries are never missed.
+
+#### Before vs After Diagram
+
+```
+BEFORE (single-cell query — boundary devices missed):
+
+  ┌─────────┬─────────┬─────────┐
+  │         │         │         │
+  │  ╳ miss │         │         │
+  │         │         │         │
+  ├─────────┼─────────┼─────────┤
+  │         │ ████████│         │
+  │  ╳ miss │ █CENTER█│  ╳ miss │
+  │         │ ████████│         │
+  ├─────────┼─────────┼─────────┤
+  │         │         │         │
+  │         │  ╳ miss │         │
+  │         │         │         │
+  └─────────┴─────────┴─────────┘
+  Only the CENTER cell is queried.
+  Devices in adjacent cells (╳) are missed
+  even if within the notification radius.
+
+
+AFTER (9-cell neighbor query — full coverage):
+
+  ┌─────────┬─────────┬─────────┐
+  │ ████████│ ████████│ ████████│
+  │ █ NW  ██│ █  N  ██│ █ NE  ██│
+  │ ████████│ ████████│ ████████│
+  ├─────────┼─────────┼─────────┤
+  │ ████████│ ████████│ ████████│
+  │ █  W  ██│ █CENTER█│ █  E  ██│
+  │ ████████│ ████████│ ████████│
+  ├─────────┼─────────┼─────────┤
+  │ ████████│ ████████│ ████████│
+  │ █ SW  ██│ █  S  ██│ █ SE  ██│
+  │ ████████│ ████████│ ████████│
+  └─────────┴─────────┴─────────┘
+  All 9 cells queried. Devices near any
+  boundary are now included. Haversine
+  distance filter still applies for precision.
+```
+
+### 3. Dead Code Removal
+**Problem:** The old `sendNearbyAlerts` Cloud Function was redundant — fan-out is now handled
+inline within `submitSighting`.
+
+**Fix:** Deleted `sendNearbyAlerts` from code and Firebase deployment.
+
+---
+
+## 🛡️ Community Hero Reward System (v1.0.74)
+
+An emotional feedback system that makes reporters feel the human impact of their contribution.
+
+### How It Works
+When a user submits a sighting report (enforcer/tow) or parking report (leaving spot, parked
+here, spot available), instead of a plain "✓ reported!" SnackBar, they see a **Community Hero**
+bottom sheet with:
+
+1. **Animated shield badge** — elastic scale-in animation
+2. **"Community Hero" title** in accent gold
+3. **"X drivers warned" counter** — animated count-up showing the actual number of nearby
+   users who received push notifications (sighting reports only)
+4. **Rotating emotional impact messages** — randomly selected from 8 sighting messages and
+   8 parking messages, e.g.:
+   - *"You just helped a single parent avoid a ticket they can't afford."*
+   - *"Someone circling the block just found their spot — thanks to you."*
+5. **"Keep Protecting MKE" dismiss button**
+
+### Technical Implementation
+- `functions/src/index.ts`: `submitSighting` now returns `usersWarned` count in its response
+  (hoisted `totalSuccess` variable out of the fan-out try block to be in scope at return)
+- `lib/widgets/hero_confirmation.dart`: New widget with `showHeroConfirmation()` function
+- `lib/providers/user_provider.dart`: `reportSighting()` return type changed from `String?`
+  to `({String? message, int usersWarned})` record type
+- `lib/screens/report_sighting_screen.dart`: `_submit()` now shows hero sheet with count
+- `lib/widgets/crowdsource_widgets.dart`: Parking report callers show hero sheet
+- `lib/screens/parking_heatmap_screen.dart`: FAB report button shows hero sheet
