@@ -280,8 +280,34 @@ class SubscriptionService extends ChangeNotifier {
       _offerings = await Purchases.getOfferings();
       notifyListeners();
       return _offerings;
+    } on PlatformException catch (e) {
+      debugPrint(
+        'SubscriptionService: getOfferings failed - code=${e.code} message=${e.message} details=${e.details}',
+      );
+
+      // Try to probe StoreKit directly for our product IDs so we can tell if
+      // the App Store is returning *any* products for this bundle.
+      try {
+        final products = await Purchases.getProducts([
+          productMonthly,
+          productYearly,
+        ]);
+        debugPrint(
+          'SubscriptionService: getProducts returned ${products.length} products for ids: '
+          '${[productMonthly, productYearly].join(', ')}',
+        );
+      } catch (probeErr) {
+        debugPrint('SubscriptionService: getProducts probe failed: $probeErr');
+      }
+
+      final details = e.details == null ? '' : '\n${e.details}';
+      _lastError = '${e.message ?? 'Offerings error'}$details';
+      notifyListeners();
+      return null;
     } catch (e) {
+      debugPrint('SubscriptionService: getOfferings failed: $e');
       _lastError = e.toString();
+      notifyListeners();
       return null;
     }
   }
